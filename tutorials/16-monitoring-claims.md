@@ -569,3 +569,4 @@ async function monitorAndClaim(user: Keypair, intervalMs = 60_000) {
 - [Tutorial 08: Token Incentives](./08-token-incentives.md) — deeper dive on the incentive math
 - [Tutorial 07: Fee Sharing Setup](./07-fee-sharing.md) — configuring shareholders
 - [Tutorial 11: Building a Trading Bot](./11-trading-bot.md) — automate trading
+
