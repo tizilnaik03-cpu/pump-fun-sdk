@@ -34,3 +34,4 @@ export const createHeadersWithPluginSettings = (
   ...header,
   [SPERAX_PLUGIN_SETTINGS]: typeof settings === 'string' ? settings : JSON.stringify(settings),
 });
+
