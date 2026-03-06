@@ -21,3 +21,4 @@ export interface PluginRenderProps<Result = any> {
    */
   name: string;
 }
+
