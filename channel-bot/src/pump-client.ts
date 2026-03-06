@@ -22,6 +22,7 @@ export interface TokenInfo {
     symbol: string;
     description: string;
     imageUri: string;
+    bannerUri: string;
     creator: string;
     createdTimestamp: number;
     complete: boolean;
@@ -29,6 +30,27 @@ export interface TokenInfo {
     marketCapSol: number;
     priceSol: number;
     curveProgress: number;
+    /** All-time high USD market cap */
+    athMarketCap: number;
+    /** Timestamp (seconds) when ATH was reached */
+    athTimestamp: number;
+    /** Timestamp (seconds) when token hit King of the Hill */
+    kothTimestamp: number;
+    /** Timestamp (seconds) of last trade */
+    lastTradeTimestamp: number;
+    /** Timestamp (seconds) of last community reply */
+    lastReplyTimestamp: number;
+    /** Number of community replies */
+    replyCount: number;
+    /** PumpSwap AMM pool address (if graduated) */
+    pumpSwapPool: string;
+    /** Which program: "pump" or "pumpswap" */
+    program: string;
+    /** Flags */
+    isCashbackEnabled: boolean;
+    isNsfw: boolean;
+    isBanned: boolean;
+    isHackathon: boolean;
     website?: string;
     twitter?: string;
     telegram?: string;

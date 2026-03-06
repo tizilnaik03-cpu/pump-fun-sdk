@@ -310,8 +310,10 @@ export interface WatchEntry {
 export interface BotConfig {
     /** Telegram Bot API token */
     telegramToken: string;
-    /** Solana RPC HTTP URL */
+    /** Solana RPC HTTP URL (primary) */
     solanaRpcUrl: string;
+    /** All Solana RPC HTTP URLs for fallback (primary + backups) */
+    solanaRpcUrls: string[];
     /** Solana WebSocket URL (optional) */
     solanaWsUrl?: string;
     /** Polling interval in seconds (fallback when WS unavailable) */

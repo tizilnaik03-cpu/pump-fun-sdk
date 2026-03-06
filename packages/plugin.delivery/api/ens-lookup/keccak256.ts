@@ -56,22 +56,8 @@ function keccakF1600(state: bigint[]): void {
     }
 
     // ρ and π steps
-    const rotations = [
-       0,  1, 62, 28, 27,
-      36, 44,  6, 55, 20,
-       3, 10, 43, 25, 39,
-      41, 45, 15, 21,  8,
-      18,  2, 61, 56, 14,
-    ];
-    const piLane = [
-       0, 10,  7, 11, 17,
-       5, 16,  2, 13, 22,
-       1, 18, 23, 15, 24,
-       4, 19,  9, 20,  3,
-       6, 14, 12,  8, 21,
-    ];
     for (let i = 0; i < 25; i++) {
-      B[piLane[i]] = rotl64(state[i], rotations[i]);
+      B[PI_LANE[i]] = rotl64(state[i], RHO[i]);
     }
 
     // χ step

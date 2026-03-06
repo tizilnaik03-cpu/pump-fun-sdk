@@ -21,6 +21,11 @@ export function loadConfig(): BotConfig {
     const solanaRpcUrl =
         process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
+    // Support comma-separated fallback RPC URLs
+    const solanaRpcUrls = process.env.SOLANA_RPC_URLS
+        ? process.env.SOLANA_RPC_URLS.split(',').map((s) => s.trim()).filter(Boolean)
+        : [solanaRpcUrl];
+
     // Derive WebSocket URL from RPC if not explicitly set
     let solanaWsUrl = process.env.SOLANA_WS_URL;
     if (!solanaWsUrl) {
@@ -83,6 +88,7 @@ export function loadConfig(): BotConfig {
         logLevel,
         pollIntervalSeconds,
         solanaRpcUrl,
+        solanaRpcUrls,
         solanaWsUrl,
         telegramToken: telegramToken || '',
         whaleThresholdSol,
