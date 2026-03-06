@@ -26,6 +26,7 @@ export interface ClaimFeedContext {
     solUsdPrice: number;
     githubUser: GitHubUserInfo | null;
     xProfile: XProfile | null;
+    tokenInfo?: TokenInfo | null;
     affiliates?: { axiom: string; gmgn: string; padre: string };
 }
 
@@ -34,13 +35,22 @@ export interface ClaimFeedContext {
  * first fee share from the PumpFun social fee PDA.
  */
 export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | null; caption: string } {
-    const { event, solUsdPrice, githubUser, xProfile } = ctx;
+    const { event, solUsdPrice, githubUser, xProfile, tokenInfo } = ctx;
     const L: string[] = [];
     const mint = event.tokenMint?.trim() || '';
     const aff = ctx.affiliates;
 
-    // ━━ HEADER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    L.push(`🐙 <b>GitHub Dev Claimed Fees</b>`);
+    // ━━ HEADER: TOKEN IDENTITY ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (tokenInfo) {
+        const pfLink = `<a href="https://pump.fun/coin/${mint}">${esc(tokenInfo.name || mint.slice(0, 8))}</a>`;
+        const ticker = tokenInfo.symbol ? ` <b>$${esc(tokenInfo.symbol)}</b>` : '';
+        const mcStr = tokenInfo.usdMarketCap > 0
+            ? `  💹 $${formatCompact(tokenInfo.usdMarketCap)}`
+            : tokenInfo.marketCapSol > 0 ? `  💹 ${tokenInfo.marketCapSol.toFixed(1)} SOL` : '';
+        L.push(`🐙${ticker} — ${pfLink}${mcStr}`);
+    } else {
+        L.push(`🐙 <b>GitHub Dev Claimed Fees</b>`);
+    }
 
     // ━━ INFLUENCER BADGE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const tier = getInfluencerTier(
@@ -111,7 +121,8 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         : null;
     L.push(`${txLink ? `🔍 ${txLink} · ` : ''}🕐 ${formatTime(event.timestamp)}`);
 
-    const imageUrl = githubUser?.avatarUrl || null;
+    // Token image takes priority; fall back to GitHub avatar
+    const imageUrl = tokenInfo?.imageUri || githubUser?.avatarUrl || null;
     return { imageUrl, caption: L.join('\n') };
 }
 

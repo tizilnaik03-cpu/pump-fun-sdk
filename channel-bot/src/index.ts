@@ -134,11 +134,15 @@ async function main(): Promise<void> {
             if (!isFirstClaimByGithubUser(event.githubUserId)) return;
             pipeline.firstClaim++;
 
-            const githubUser = await fetchGitHubUserById(event.githubUserId);
+            const mint = event.tokenMint?.trim() || '';
+            const [githubUser, tokenInfo, solUsdPrice] = await Promise.all([
+                fetchGitHubUserById(event.githubUserId),
+                mint ? fetchTokenInfo(mint) : Promise.resolve(null),
+                fetchSolUsdPrice(),
+            ]);
             const xProfile = githubUser?.twitterUsername
                 ? await fetchXProfile(githubUser.twitterUsername)
                 : null;
-            const solUsdPrice = await fetchSolUsdPrice();
 
             log.info('📤 GitHub social fee claim by %s (%s) — %.4f SOL',
                 event.githubUserId, githubUser?.login ?? '?', event.amountSol);
@@ -148,6 +152,7 @@ async function main(): Promise<void> {
                 solUsdPrice,
                 githubUser,
                 xProfile,
+                tokenInfo,
             };
 
             const { imageUrl, caption } = formatGitHubClaimFeed(ctx);
