@@ -256,3 +256,4 @@ When adding a new feature or domain:
 - Not updating `agent.json` capabilities when adding new agent-facing features
 - Terminal management instructions missing from new agent instruction files
 - Stale program IDs or account types in context documents
+
