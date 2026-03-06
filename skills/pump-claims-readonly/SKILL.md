@@ -231,3 +231,4 @@ const sharingPda = feeSharingConfigPda(mint);
 - `totalUnclaimedTokens` excludes current-day rewards — add `getCurrentDayTokens` for full picture
 - Call `syncUserVolumeAccumulator` before reading `getCurrentDayTokens` for accuracy
 - This skill covers **read-only queries only** — for claiming and collecting, see the `pump-token-incentives` and `pump-fee-sharing` skills
+
