@@ -151,7 +151,7 @@ export class ClaimMonitor {
         log.info('Claim monitor: monitoring %d programs', this.programPubkeys.length);
 
         // Bootstrap social fee index from on-chain SharingConfig accounts (non-blocking)
-        this.socialFeeIndex.bootstrap(this.rpc).catch((err) => {
+        this.socialFeeIndex.bootstrap(this.rpc).catch((err: unknown) => {
             log.warn('SocialFeeIndex bootstrap error: %s', err);
         });
 
