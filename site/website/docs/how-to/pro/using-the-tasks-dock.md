@@ -15,3 +15,4 @@ The task dock allows all these window management functions to be done with simpl
 * If the window is not on top, clicking the icon brings it to the top instead of minimizing it.
 
 The tasks dock will be automatically visible once you open an app.
+
