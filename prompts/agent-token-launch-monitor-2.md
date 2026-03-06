@@ -222,3 +222,4 @@ When pasting changes, be aware that Agent 1 may have already modified `types.ts`
 - **Always use background terminals** (`isBackground: true`) for every command
 - **Always kill the terminal** after the command completes
 - Do not reuse foreground shell sessions
+
