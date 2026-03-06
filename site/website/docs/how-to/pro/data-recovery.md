@@ -58,3 +58,4 @@ Contact experts in our discord if you require better chances of recovery.
     await getFileContents(FILE_ID);
     ```
 * use `decodeBase64Content(FILE_CONTENTS);` function to decode the base64 content of the file with the MIME part.
+
