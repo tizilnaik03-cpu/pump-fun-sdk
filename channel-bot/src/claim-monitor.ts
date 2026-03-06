@@ -360,11 +360,6 @@ export class ClaimMonitor {
                     this.claimsDetected++;
                     const typeCount = (this.claimsByType.get(event.claimType) ?? 0) + 1;
                     this.claimsByType.set(event.claimType, typeCount);
-                    log.info('Claim #%d: type=%s mint=%s wallet=%s amount=%.4f SOL',
-                        this.claimsDetected, event.claimType,
-                        event.tokenMint?.slice(0, 8) || '(none)',
-                        event.claimerWallet?.slice(0, 8) || '?',
-                        event.amountSol);
                     this.onClaim(event);
                 }
             }
