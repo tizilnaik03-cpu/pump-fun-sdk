@@ -41,3 +41,4 @@ export const log = {
         if (shouldLog('warn')) console.warn(`[${ts()}] [WARN]`, msg, ...args);
     },
 };
+
