@@ -14,3 +14,4 @@ export interface RequestData {
   gender: 'man' | 'woman';
   mood: Mood;
 }
+
