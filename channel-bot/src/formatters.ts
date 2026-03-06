@@ -86,7 +86,10 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         if (githubUser.location) L.push(`📍 ${esc(githubUser.location)}`);
         if (githubUser.blog) L.push(`🌐 <a href="${esc(githubUser.blog)}">${esc(githubUser.blog.replace(/^https?:\/\//, '').slice(0, 40))}</a>`);
     } else {
-        L.push(`👤 GitHub ID: ${esc(event.githubUserId ?? 'unknown')}`);
+        const ghIdLink = event.githubUserId
+            ? `GitHub ID ${esc(event.githubUserId)}`
+            : 'unknown';
+        L.push(`👤 ${ghIdLink}`);
     }
 
     // ━━ CA + TRADING LINKS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

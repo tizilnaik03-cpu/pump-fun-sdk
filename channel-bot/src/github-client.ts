@@ -291,16 +291,20 @@ async function resolveUserIdViaList(userId: string): Promise<GitHubUserInfo | nu
     if (!Number.isInteger(numId) || numId <= 0) return null;
 
     try {
-        const since = numId - 1;
-        const resp = await fetch(`${GITHUB_API}/users?since=${since}&per_page=1`, {
+        // Use a window of 20 to handle gaps from deleted accounts
+        const since = Math.max(0, numId - 1);
+        const resp = await fetch(`${GITHUB_API}/users?since=${since}&per_page=20`, {
             headers: authHeaders(),
             signal: AbortSignal.timeout(8_000),
         });
         if (!resp.ok) return null;
         const list = (await resp.json()) as Array<Record<string, unknown>>;
         const match = list.find((u) => Number(u.id) === numId);
-        if (!match?.login) return null;
-        // Now fetch the full profile by username (public endpoint)
+        if (!match?.login) {
+            log.warn('GitHub: user ID %s not found in list (since=%d, returned %d)', userId, since, list.length);
+            return null;
+        }
+        // Fetch the full profile by username (public endpoint)
         return await fetchGitHubUser(String(match.login));
     } catch {
         return null;
