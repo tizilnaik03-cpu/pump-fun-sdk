@@ -570,3 +570,12 @@ function formatDuration(seconds: number): string {
     return `${Math.floor(seconds / 86400)}d ${Math.floor((seconds % 86400) / 3600)}h`;
 }
 
+/** Extract @handle from a Twitter/X URL. Returns "@handle" or null. */
+function extractTwitterHandle(url: string): string | null {
+    const match = url.match(/(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)/i);
+    if (match && match[1] && !['home', 'search', 'explore', 'settings', 'i'].includes(match[1].toLowerCase())) {
+        return `@${match[1]}`;
+    }
+    return null;
+}
+

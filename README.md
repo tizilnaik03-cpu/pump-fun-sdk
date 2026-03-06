@@ -40,7 +40,7 @@ Token Creation &nbsp;·&nbsp; Bonding Curves &nbsp;·&nbsp; AMM Trading &nbsp;·
 
 <br>
 
-[**Docs**](docs/getting-started.md) &nbsp;·&nbsp; [**npm**](https://www.npmjs.com/package/@pump-fun/pump-sdk) &nbsp;·&nbsp; [**API Ref**](docs/api-reference.md) &nbsp;·&nbsp; [**Examples**](docs/examples.md) &nbsp;·&nbsp; [**Tutorials**](tutorials/) &nbsp;·&nbsp; [**MCP Server**](mcp-server/) &nbsp;·&nbsp; [**Telegram Bot**](telegram-bot/) &nbsp;·&nbsp; [**Live Dashboard**](live/)
+[**Docs**](docs/getting-started.md) &nbsp;·&nbsp; [**Ecosystem**](docs/ecosystem.md) &nbsp;·&nbsp; [**npm**](https://www.npmjs.com/package/@pump-fun/pump-sdk) &nbsp;·&nbsp; [**API Ref**](docs/api-reference.md) &nbsp;·&nbsp; [**Examples**](docs/examples.md) &nbsp;·&nbsp; [**Tutorials**](tutorials/) &nbsp;·&nbsp; [**MCP Server**](mcp-server/) &nbsp;·&nbsp; [**Telegram Bot**](telegram-bot/) &nbsp;·&nbsp; [**Live Dashboard**](live/)
 
 </div>
 
@@ -1013,6 +1013,7 @@ bash docs/run-all-tests.sh         # Run comprehensive cross-language tests
 
 | Guide | Description |
 |-------|-------------|
+| [Ecosystem Overview](docs/ecosystem.md) | Map of every component — SDK, bots, dashboards, generators |
 | [Getting Started](docs/getting-started.md) | Installation, setup, and first transaction |
 | [End-to-End Workflow](docs/end-to-end-workflow.md) | Full lifecycle: create → buy → graduate → migrate → fees → rewards |
 | [Architecture](docs/architecture.md) | SDK structure, lifecycle, and design patterns |
