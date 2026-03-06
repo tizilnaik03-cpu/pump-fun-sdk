@@ -270,3 +270,4 @@ Aggregates data from 15+ DeFi sources (CoinGecko, DexScreener, GeckoTerminal, Bi
 5. **Type safety** — Full TypeScript types for all on-chain account structures via Anchor IDL types.
 6. **Comprehensive coverage** — 42 instruction builders spanning 4 programs, with 47 matching MCP tools for AI agent integration.
 
+
