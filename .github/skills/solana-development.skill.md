@@ -239,3 +239,4 @@ if (reserves.isZero()) { ... }
 - `BN` division truncates (floor division) — use ceiling division for fee calculations
 - Commitment levels matter: `confirmed` vs `finalized` affects account state freshness
 
+
