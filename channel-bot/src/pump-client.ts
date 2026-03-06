@@ -163,9 +163,20 @@ async function fetchTokenInfoPump(mint: string): Promise<TokenInfo | null> {
         const realSolReserves = Number(raw.real_sol_reserves ?? 0) / LAMPORTS_PER_SOL;
         const curveProgress = complete ? 100 : Math.min(99, (realSolReserves / 85) * 100);
 
-        // Extract GitHub URLs from description
         const description = String(raw.description ?? '');
-        const githubUrls = extractGithubUrls(description);
+        const website = raw.website ? String(raw.website) : '';
+        const twitter = raw.twitter ? String(raw.twitter) : '';
+        const telegram = raw.telegram ? String(raw.telegram) : '';
+        const metadataUri = String(raw.metadata_uri ?? raw.uri ?? '');
+
+        // Extract GitHub URLs from ALL fields: description, website, socials, metadata
+        const githubUrls = extractGithubUrls(
+            [description, website, twitter, telegram, metadataUri].join(' '),
+        );
+        // Also check if the website itself is a GitHub URL
+        if (website && /github\.com/i.test(website) && !githubUrls.some(u => u === website)) {
+            githubUrls.push(website);
+        }
 
         // Timestamps from API are ms — normalize to seconds
         const createdTs = Number(raw.created_timestamp ?? 0);
@@ -205,9 +216,9 @@ async function fetchTokenInfoPump(mint: string): Promise<TokenInfo | null> {
             isNsfw: Boolean(raw.nsfw),
             isBanned: Boolean(raw.is_banned),
             isHackathon: Boolean(raw.is_hackathon),
-            website: raw.website ? String(raw.website) : undefined,
-            twitter: raw.twitter ? String(raw.twitter) : undefined,
-            telegram: raw.telegram ? String(raw.telegram) : undefined,
+            website: website || undefined,
+            twitter: twitter || undefined,
+            telegram: telegram || undefined,
             githubUrls,
         };
     } catch (err) {
