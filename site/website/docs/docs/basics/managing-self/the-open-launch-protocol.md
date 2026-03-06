@@ -48,3 +48,4 @@ window.parent.OLPreturn(data, sessionReqID)
 * `sessionReqID` is the requestor window UID we saved when the application got triggered of OLP.
 
 The OLP return function can be used anywhere in your application, allowing time-intensive operations to get carried out.
+
