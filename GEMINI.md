@@ -81,3 +81,4 @@ The Pump SDK (`@pump-fun/pump-sdk`) is a TypeScript SDK for the Pump protocol on
 - If a terminal appears unresponsive, kill it and create a new one rather than retrying in the same terminal
 - **Failure to kill terminals is a blocking violation** — treat it as seriously as a security issue
 
+
