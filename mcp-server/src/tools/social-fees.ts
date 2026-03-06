@@ -25,9 +25,9 @@ export async function buildCreateFeeSharing(
   try {
     const creator = new PublicKey(params.creator);
     const mint = new PublicKey(params.mint);
-    const pool = params.pool ? new PublicKey(params.pool) : undefined;
+    const pool = params.pool ? new PublicKey(params.pool) : null;
 
-    const instruction = PUMP_SDK.createFeeSharingConfig({
+    const instruction = await PUMP_SDK.createFeeSharingConfig({
       creator,
       mint,
       pool,
@@ -66,16 +66,15 @@ export async function buildUpdateShareholders(
 
     const mint = new PublicKey(params.mint);
     const authority = new PublicKey(params.authority);
-    const currentShareholders = params.currentShareholders.map((s) => ({
-      address: new PublicKey(s.address),
-      shareBps: s.shareBps,
-    }));
+    const currentShareholders = params.currentShareholders.map((s) =>
+      new PublicKey(s.address)
+    );
     const newShareholders = params.newShareholders.map((s) => ({
       address: new PublicKey(s.address),
       shareBps: s.shareBps,
     }));
 
-    const instruction = PUMP_SDK.updateFeeShares({
+    const instruction = await PUMP_SDK.updateFeeShares({
       authority,
       mint,
       currentShareholders,
@@ -108,7 +107,7 @@ export async function buildRevokeAdmin(
     const mint = new PublicKey(params.mint);
     const authority = new PublicKey(params.authority);
 
-    const instruction = PUMP_SDK.revokeFeeSharingAuthorityInstruction({
+    const instruction = await PUMP_SDK.revokeFeeSharingAuthorityInstruction({
       authority,
       mint,
     });
@@ -142,7 +141,7 @@ export async function getShareholders(
     return success({
       mint: params.mint,
       configAddress: configPda.toBase58(),
-      authority: config.authority.toBase58(),
+      admin: config.admin.toBase58(),
       shareholders: config.shareholders.map((s: any) => ({
         address: s.address.toBase58(),
         shareBps: s.shareBps,
@@ -168,8 +167,11 @@ export async function getDistributableAmount(
     const result = await sdk.getMinimumDistributableFee(mint);
 
     return success({
-      minimumDistributable: formatBN(result.minimumDistributableFee),
-      minimumDistributableSol: lamportsToSol(result.minimumDistributableFee),
+      distributableFees: formatBN(result.distributableFees),
+      distributableFeesSol: lamportsToSol(result.distributableFees),
+      minimumRequired: formatBN(result.minimumRequired),
+      canDistribute: result.canDistribute,
+      isGraduated: result.isGraduated,
     });
   } catch (e: unknown) {
     return error(`Failed to get distributable amount: ${getErrorMessage(e)}`);
