@@ -203,3 +203,4 @@ const balance = await onlineSdk.getCreatorVaultBalanceBothPrograms(creator);
 - Basis points use integer arithmetic — you cannot have fractional bps (33.33% must be 3333 bps, with 1 bps allocated elsewhere)
 - `feeSharingConfigPda` is per-mint — each token has its own sharing config
 
+
