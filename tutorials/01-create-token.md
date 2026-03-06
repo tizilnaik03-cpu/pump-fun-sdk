@@ -141,3 +141,4 @@ createToken();
 - [Tutorial 2: Buy Tokens from the Bonding Curve](./02-buy-tokens.md)
 - [Tutorial 4: Create and Buy in One Transaction](./04-create-and-buy.md)
 - [Tutorial 7: Set Up Fee Sharing](./07-fee-sharing.md)
+
