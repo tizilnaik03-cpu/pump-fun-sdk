@@ -10,16 +10,16 @@ Before asking for help, check the docs — your answer might already be there:
 
 | Resource | What it covers |
 |----------|----------------|
-| [README](README.md) | Quick start, installation, usage examples |
-| [Getting Started](docs/getting-started.md) | First-time setup walkthrough |
-| [Architecture](docs/architecture.md) | SDK design, lifecycle, program IDs |
-| [API Reference](docs/api-reference.md) | Every class, function, and type |
-| [Examples](docs/examples.md) | Practical code snippets |
-| [Fee Sharing](docs/fee-sharing.md) | Creator fee distribution guide |
-| [Token Incentives](docs/token-incentives.md) | Volume-based rewards guide |
-| [Troubleshooting](docs/TROUBLESHOOTING.md) | Common issues and fixes |
-| [FAQ](FAQ.md) | Frequently asked questions |
-| [Migration Guide](docs/MIGRATION.md) | Upgrading between versions |
+| [README](../README.md) | Quick start, installation, usage examples |
+| [Getting Started](./getting-started.md) | First-time setup walkthrough |
+| [Architecture](./architecture.md) | SDK design, lifecycle, program IDs |
+| [API Reference](./api-reference.md) | Every class, function, and type |
+| [Examples](./examples.md) | Practical code snippets |
+| [Fee Sharing](./fee-sharing.md) | Creator fee distribution guide |
+| [Token Incentives](./token-incentives.md) | Volume-based rewards guide |
+| [Troubleshooting](./TROUBLESHOOTING.md) | Common issues and fixes |
+| [FAQ](./faq.md) | Frequently asked questions |
+| [Migration Guide](./MIGRATION.md) | Upgrading between versions |
 
 ---
 

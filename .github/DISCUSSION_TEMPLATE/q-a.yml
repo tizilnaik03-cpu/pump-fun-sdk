@@ -4,7 +4,7 @@ body:
     attributes:
       value: |
         # ❓ Q&A
-        Ask questions about pump-fun-sdk. Check the [FAQ](../../FAQ.md) and [Troubleshooting](../../docs/TROUBLESHOOTING.md) first!
+        Ask questions about pump-fun-sdk. Check the [FAQ](../../docs/faq.md) and [Troubleshooting](../../docs/TROUBLESHOOTING.md) first!
   - type: textarea
     id: question
     attributes:

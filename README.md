@@ -237,7 +237,7 @@ const updateIx = await PUMP_SDK.updateFeeShares({
 
 ## 📚 API Reference
 
-See [API.md](./API.md) for the complete API documentation with full TypeScript signatures, parameters, and examples.
+See [docs/api-reference.md](./docs/api-reference.md) for the complete API documentation with full TypeScript signatures, parameters, and examples.
 
 ### Core Classes
 
@@ -372,7 +372,7 @@ Yes. The SDK has no Node.js-specific dependencies. The ESM build works in modern
 
 ## 🏗️ Architecture
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed system design, data flow diagrams, and module explanations.
+See [docs/architecture.md](./docs/architecture.md) for detailed system design, data flow diagrams, and module explanations.
 
 ---
 
