@@ -220,3 +220,4 @@ export function formatTokenAmount(raw: number): string {
     if (val >= 1) return val.toFixed(2);
     return val.toFixed(6);
 }
+
