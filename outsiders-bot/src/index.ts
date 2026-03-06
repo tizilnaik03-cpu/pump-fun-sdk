@@ -1,11 +1,12 @@
 // ── Outsiders Bot — Entry Point ────────────────────────────────────
 
 import { loadConfig } from './config.js';
-import { initDb, closeDb } from './db.js';
+import { initDb, closeDb, getActiveCalls } from './db.js';
 import { setLogLevel, log } from './logger.js';
 import { setApiBase } from './token-service.js';
 import { createBot } from './bot.js';
 import { startAthTracker, stopAthTracker } from './ath-tracker.js';
+import { startHealthServer, stopHealthServer } from './health.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -32,6 +33,7 @@ async function main(): Promise<void> {
   // Graceful shutdown
   const shutdown = async () => {
     log.info('Shutting down…');
+    stopHealthServer();
     stopAthTracker();
     await bot.stop();
     closeDb();
@@ -40,6 +42,15 @@ async function main(): Promise<void> {
 
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
+
+  // Health server
+  const startedAt = Date.now();
+  startHealthServer({
+    startedAt,
+    getStats: () => ({
+      activeCalls: getActiveCalls().length,
+    }),
+  });
 
   // Start polling
   await bot.start({

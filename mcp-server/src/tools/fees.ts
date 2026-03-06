@@ -43,10 +43,12 @@ export async function getFeeTier(
     return success({
       marketCapLamports: formatBN(marketCap),
       marketCapSol: lamportsToSol(marketCap),
-      buyFeeBps: tier.buyFeeBps,
-      sellFeeBps: tier.sellFeeBps,
-      buyFeePercent: formatBps(tier.buyFeeBps),
-      sellFeePercent: formatBps(tier.sellFeeBps),
+      lpFeeBps: tier.lpFeeBps.toNumber(),
+      protocolFeeBps: tier.protocolFeeBps.toNumber(),
+      creatorFeeBps: tier.creatorFeeBps.toNumber(),
+      lpFeePercent: formatBps(tier.lpFeeBps.toNumber()),
+      protocolFeePercent: formatBps(tier.protocolFeeBps.toNumber()),
+      creatorFeePercent: formatBps(tier.creatorFeeBps.toNumber()),
     });
   } catch (e: unknown) {
     return error(`Failed to get fee tier: ${getErrorMessage(e)}`);
@@ -92,8 +94,8 @@ export async function getFeeBreakdown(
       tradeAmount: formatBN(amount),
       totalFee: formatBN(fee),
       totalFeeSol: lamportsToSol(fee),
-      buyFeeBps: feesBps.buyFeeBps,
-      sellFeeBps: feesBps.sellFeeBps,
+      protocolFeeBps: feesBps.protocolFeeBps.toNumber(),
+      creatorFeeBps: feesBps.creatorFeeBps.toNumber(),
       side: params.side,
     });
   } catch (e: unknown) {
@@ -137,8 +139,11 @@ export async function getMinDistributableFee(
     const result = await sdk.getMinimumDistributableFee(mint);
 
     return success({
-      minimumDistributable: formatBN(result.minimumDistributableFee),
-      minimumDistributableSol: lamportsToSol(result.minimumDistributableFee),
+      distributableFees: formatBN(result.distributableFees),
+      distributableFeesSol: lamportsToSol(result.distributableFees),
+      minimumRequired: formatBN(result.minimumRequired),
+      canDistribute: result.canDistribute,
+      isGraduated: result.isGraduated,
     });
   } catch (e: unknown) {
     return error(`Failed to get minimum distributable fee: ${getErrorMessage(e)}`);
@@ -182,11 +187,7 @@ export async function buildDistributeFees(
 
     return success({
       instructions: instructionsToJson(result.instructions),
-      shareholders: result.shareholders.map((s) => ({
-        address: s.address.toBase58(),
-        shareBps: s.shareBps,
-        sharePercent: formatBps(s.shareBps),
-      })),
+      isGraduated: result.isGraduated,
     });
   } catch (e: unknown) {
     return error(`Failed to build distribute fees instructions: ${getErrorMessage(e)}`);
@@ -233,16 +234,15 @@ export async function buildUpdateFeeShares(
       return error(`Shareholder BPS must total 10000, got ${totalBps}`);
     }
 
-    const currentShareholders = params.currentShareholders.map((s) => ({
-      address: new PublicKey(s.address),
-      shareBps: s.shareBps,
-    }));
+    const currentShareholders = params.currentShareholders.map((s) =>
+      new PublicKey(s.address)
+    );
     const newShareholders = params.newShareholders.map((s) => ({
       address: new PublicKey(s.address),
       shareBps: s.shareBps,
     }));
 
-    const instruction = PUMP_SDK.updateFeeShares({
+    const instruction = await PUMP_SDK.updateFeeShares({
       authority,
       mint,
       currentShareholders,

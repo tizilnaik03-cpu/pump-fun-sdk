@@ -114,9 +114,10 @@ export async function getPriceImpact(
 
     return success({
       side: params.side,
-      impactPercentage: result.impactPercentage.toString(),
-      priceBeforeTrade: result.preBuyPrice.toString(),
-      priceAfterTrade: result.postBuyPrice.toString(),
+      impactBps: result.impactBps,
+      priceBeforeTrade: formatBN(result.priceBefore),
+      priceAfterTrade: formatBN(result.priceAfter),
+      outputAmount: formatBN(result.outputAmount),
     });
   } catch (e: unknown) {
     return error(`Failed to calculate price impact: ${getErrorMessage(e)}`);
@@ -162,9 +163,10 @@ export async function getTokenPriceTool(
   try {
     const result = await sdk.fetchTokenPrice(params.mint);
     return success({
-      buyPricePerToken: result.buyPricePerToken.toString(),
-      sellPricePerToken: result.sellPricePerToken.toString(),
-      spread: result.spread.toString(),
+      buyPricePerToken: formatBN(result.buyPricePerToken),
+      sellPricePerToken: formatBN(result.sellPricePerToken),
+      marketCap: formatBN(result.marketCap),
+      isGraduated: result.isGraduated,
     });
   } catch (e: unknown) {
     return error(`Failed to get token price: ${getErrorMessage(e)}`);
@@ -187,13 +189,12 @@ export async function getBondingCurveSummaryTool(
       virtualTokenReserves: formatBN(summary.virtualTokenReserves),
       realSolReserves: formatBN(summary.realSolReserves),
       realTokenReserves: formatBN(summary.realTokenReserves),
-      tokenTotalSupply: formatBN(summary.tokenTotalSupply),
-      complete: summary.complete,
-      marketCapLamports: formatBN(summary.marketCapLamports),
-      marketCapSol: lamportsToSol(summary.marketCapLamports),
-      buyPricePerToken: summary.buyPricePerToken.toString(),
-      sellPricePerToken: summary.sellPricePerToken.toString(),
-      graduationProgress: summary.graduationProgress.toString(),
+      isGraduated: summary.isGraduated,
+      marketCapLamports: formatBN(summary.marketCap),
+      marketCapSol: lamportsToSol(summary.marketCap),
+      buyPricePerToken: formatBN(summary.buyPricePerToken),
+      sellPricePerToken: formatBN(summary.sellPricePerToken),
+      progressBps: summary.progressBps,
     });
   } catch (e: unknown) {
     return error(`Failed to get bonding curve summary: ${getErrorMessage(e)}`);
@@ -212,10 +213,11 @@ export async function getGraduationProgressTool(
   try {
     const result = await sdk.fetchGraduationProgress(params.mint);
     return success({
-      progressPercentage: result.progressPercentage.toString(),
-      currentRealSolReserves: formatBN(result.currentRealSolReserves),
-      targetRealSolReserves: formatBN(result.targetRealSolReserves),
-      isComplete: result.isComplete,
+      progressBps: result.progressBps,
+      isGraduated: result.isGraduated,
+      tokensRemaining: formatBN(result.tokensRemaining),
+      tokensTotal: formatBN(result.tokensTotal),
+      solAccumulated: formatBN(result.solAccumulated),
     });
   } catch (e: unknown) {
     return error(`Failed to get graduation progress: ${getErrorMessage(e)}`);
@@ -236,9 +238,9 @@ export async function getAmmQuote(
   try {
     const pool = await sdk.fetchPool(params.mint);
     return success({
-      pool: pool.baseMint.toBase58(),
-      baseReserve: formatBN(pool.baseReserve),
-      quoteReserve: formatBN(pool.quoteReserve),
+      baseMint: pool.baseMint.toBase58(),
+      quoteMint: pool.quoteMint.toBase58(),
+      lpSupply: formatBN(pool.lpSupply),
       side: params.side,
       note: "Use build_amm_swap for executable instructions",
     });

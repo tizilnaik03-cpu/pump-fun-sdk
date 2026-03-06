@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, canonicalPumpPoolPda } from "@pump-fun/pump-sdk";
 import type { OnlinePumpSdk } from "@pump-fun/pump-sdk";
 import { publicKeySchema, bnStringSchema } from "../utils/validation.js";
-import { lamportsToSol, rawToTokens, formatBN, instructionsToJson } from "../utils/formatting.js";
+import { formatBN, instructionsToJson } from "../utils/formatting.js";
 import { success, error, getErrorMessage } from "../types.js";
 import type { ToolResult } from "../types.js";
 
@@ -18,14 +18,17 @@ export async function getAmmPool(
   params: z.infer<typeof getAmmPoolSchema>
 ): Promise<ToolResult> {
   try {
-    const pool = await sdk.fetchPool(params.mint);
+    const mint = new PublicKey(params.mint);
+    const pool = await sdk.fetchPool(mint);
+    const poolAddress = canonicalPumpPoolPda(mint);
     return success({
-      poolAddress: pool.address.toBase58(),
+      poolAddress: poolAddress.toBase58(),
       baseMint: pool.baseMint.toBase58(),
       quoteMint: pool.quoteMint.toBase58(),
-      baseReserve: formatBN(pool.baseReserve),
-      quoteReserve: formatBN(pool.quoteReserve),
+      lpMint: pool.lpMint.toBase58(),
       lpSupply: formatBN(pool.lpSupply),
+      creator: pool.creator.toBase58(),
+      coinCreator: pool.coinCreator.toBase58(),
     });
   } catch (e: unknown) {
     return error(`Failed to get AMM pool: ${getErrorMessage(e)}`);
@@ -42,12 +45,13 @@ export async function getAmmReserves(
   params: z.infer<typeof getAmmReservesSchema>
 ): Promise<ToolResult> {
   try {
-    const pool = await sdk.fetchPool(params.mint);
+    const mint = new PublicKey(params.mint);
+    const pool = await sdk.fetchPool(mint);
     return success({
-      baseReserve: formatBN(pool.baseReserve),
-      baseReserveTokens: rawToTokens(pool.baseReserve),
-      quoteReserve: formatBN(pool.quoteReserve),
-      quoteReserveSol: lamportsToSol(pool.quoteReserve),
+      poolBaseTokenAccount: pool.poolBaseTokenAccount.toBase58(),
+      poolQuoteTokenAccount: pool.poolQuoteTokenAccount.toBase58(),
+      lpSupply: formatBN(pool.lpSupply),
+      note: "Reserve balances are held in the SPL token accounts above. Query them via RPC for live amounts.",
     });
   } catch (e: unknown) {
     return error(`Failed to get AMM reserves: ${getErrorMessage(e)}`);
@@ -64,17 +68,15 @@ export async function getAmmPrice(
   params: z.infer<typeof getAmmPriceSchema>
 ): Promise<ToolResult> {
   try {
-    const pool = await sdk.fetchPool(params.mint);
-    // price = quoteReserve / baseReserve (SOL per token)
-    const priceLamportsPerRaw = pool.quoteReserve
-      .mul(new BN(1_000_000))
-      .div(pool.baseReserve);
+    const mint = new PublicKey(params.mint);
+    const priceInfo = await sdk.fetchTokenPrice(mint);
 
     return success({
-      pricePerToken: lamportsToSol(priceLamportsPerRaw),
-      baseReserve: formatBN(pool.baseReserve),
-      quoteReserve: formatBN(pool.quoteReserve),
-      note: "Price derived from constant product formula (quoteReserve/baseReserve).",
+      buyPricePerToken: formatBN(priceInfo.buyPricePerToken),
+      sellPricePerToken: formatBN(priceInfo.sellPricePerToken),
+      marketCap: formatBN(priceInfo.marketCap),
+      isGraduated: priceInfo.isGraduated,
+      note: "Prices in lamports per token unit.",
     });
   } catch (e: unknown) {
     return error(`Failed to get AMM price: ${getErrorMessage(e)}`);
@@ -97,11 +99,11 @@ export async function buildAmmDeposit(
   try {
     const mint = new PublicKey(params.mint);
     const user = new PublicKey(params.user);
-    const pool = await sdk.fetchPool(mint);
 
-    const instruction = PUMP_SDK.ammDepositInstruction({
+    const poolAddress = canonicalPumpPoolPda(mint);
+    const instruction = await PUMP_SDK.ammDepositInstruction({
       user,
-      pool: pool.address,
+      pool: poolAddress,
       mint,
       maxBaseAmountIn: new BN(params.maxBaseAmountIn),
       maxQuoteAmountIn: new BN(params.maxQuoteAmountIn),
@@ -110,7 +112,7 @@ export async function buildAmmDeposit(
 
     return success({
       instructions: instructionsToJson([instruction]),
-      pool: pool.address.toBase58(),
+      pool: poolAddress.toBase58(),
     });
   } catch (e: unknown) {
     return error(`Failed to build AMM deposit: ${getErrorMessage(e)}`);
@@ -133,11 +135,11 @@ export async function buildAmmWithdraw(
   try {
     const mint = new PublicKey(params.mint);
     const user = new PublicKey(params.user);
-    const pool = await sdk.fetchPool(mint);
 
-    const instruction = PUMP_SDK.ammWithdrawInstruction({
+    const poolAddress = canonicalPumpPoolPda(mint);
+    const instruction = await PUMP_SDK.ammWithdrawInstruction({
       user,
-      pool: pool.address,
+      pool: poolAddress,
       mint,
       lpTokenAmountIn: new BN(params.lpTokenAmountIn),
       minBaseAmountOut: new BN(params.minBaseAmountOut),
@@ -146,7 +148,7 @@ export async function buildAmmWithdraw(
 
     return success({
       instructions: instructionsToJson([instruction]),
-      pool: pool.address.toBase58(),
+      pool: poolAddress.toBase58(),
     });
   } catch (e: unknown) {
     return error(`Failed to build AMM withdraw: ${getErrorMessage(e)}`);

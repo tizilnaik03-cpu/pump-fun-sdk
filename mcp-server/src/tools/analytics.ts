@@ -178,9 +178,10 @@ export async function getGraduationStatus(
     return success({
       mint: params.mint,
       graduated,
-      progressPercentage: progress.progressPercentage.toString(),
-      currentRealSolReserves: formatBN(progress.currentRealSolReserves),
-      targetRealSolReserves: formatBN(progress.targetRealSolReserves),
+      progressBps: progress.progressBps,
+      isGraduated: progress.isGraduated,
+      tokensRemaining: formatBN(progress.tokensRemaining),
+      solAccumulated: formatBN(progress.solAccumulated),
     });
   } catch (e: unknown) {
     return error(`Failed to get graduation status: ${getErrorMessage(e)}`);
