@@ -200,3 +200,4 @@ export function generateNonce(): string {
   return bs58.encode(bytes);
 }
 
+
