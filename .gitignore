@@ -3,10 +3,14 @@ dist/
 coverage/
 .env
 .env.*
+!.env.example
 *.log
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
+
+# Lock files
+package-lock.json
 
 # IDE
 .idea/
@@ -16,6 +20,7 @@ Thumbs.db
 
 # Rust
 rust/target/
+rust/Cargo.lock
 
 # Keypairs — never commit
 *.keypair
@@ -28,9 +33,13 @@ id_*.json
 # ESLint cache
 .eslintcache
 
+# Temp / backup files
+*.bak
+*.tmp
+*.orig
+*.csv
+
 # BBB docs (external)
 bb-llms-full.txt.md
 
-
-rust/Cargo.lock
 
