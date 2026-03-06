@@ -258,11 +258,8 @@ npm run build         # Build succeeds
 ### TypeScript Issues
 
 ```bash
-# Detailed type errors
-npx tsc --noEmit --pretty
-
-# Check a specific file
-npx tsc --noEmit src/sdk.ts
+# Run the project's type checker
+npm run typecheck
 ```
 
 ### Test Debugging
