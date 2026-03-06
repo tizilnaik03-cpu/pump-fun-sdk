@@ -572,3 +572,4 @@ echo '{"jsonrpc":"2.0","id":3,"method":"resources/read","params":{"uri":"solana:
 - Test resource listing with multiple keypairs
 - Test invalid URI handling
 
+
