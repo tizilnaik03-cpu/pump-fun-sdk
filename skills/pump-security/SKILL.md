@@ -111,3 +111,4 @@ Key categories:
 - `chmod` after `write` has a race window — prefer `fchmod` or umask
 - Error messages must not include secret key material
 - `cargo audit` may miss recently disclosed CVEs — supplement with manual review
+
