@@ -41,3 +41,4 @@ If you have ideas on how this could be implemented, share them here:
 ## Additional Context
 
 Add any other context, mockups, or screenshots about the feature request here.
+
