@@ -61,3 +61,4 @@ server.listen(PORT, () => {
   console.log(`🚀 Pump Fun SDK Bare Server running on port ${PORT}`);
   console.log(`   Bare endpoint: http://localhost:${PORT}/bare/`);
 });
+
