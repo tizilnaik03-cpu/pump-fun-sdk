@@ -85,3 +85,4 @@ validate_base58() {
 - `mktemp` patterns differ between macOS and Linux
 - `read -r` is essential to prevent backslash interpretation
 - Always use `[[ ]]` over `[ ]` for conditionals
+
