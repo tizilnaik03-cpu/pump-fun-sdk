@@ -8,6 +8,7 @@ export const MCP_VERSION = "2024-11-05";
 // ── Tool Result ──
 
 export interface ToolResult {
+  [key: string]: unknown;
   content: { type: "text"; text: string }[];
   isError?: boolean;
 }
@@ -35,6 +36,7 @@ export function getErrorMessage(e: unknown): string {
 // ── Resource / Prompt Results ──
 
 export interface ResourceResult {
+  [key: string]: unknown;
   contents: Array<{
     uri: string;
     mimeType?: string;
@@ -43,6 +45,7 @@ export interface ResourceResult {
 }
 
 export interface PromptResult {
+  [key: string]: unknown;
   description?: string;
   messages: Array<{
     role: "user" | "assistant";
