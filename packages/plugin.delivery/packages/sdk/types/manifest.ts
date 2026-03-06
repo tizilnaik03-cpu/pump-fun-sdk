@@ -104,3 +104,4 @@ export interface SperaxOSPluginManifest {
   };
   version?: '1';
 }
+
