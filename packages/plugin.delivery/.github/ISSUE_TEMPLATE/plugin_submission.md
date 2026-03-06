@@ -65,3 +65,4 @@ Add screenshots showing your plugin in action.
 ## Additional Notes
 
 Add any other notes or context about your plugin here.
+
