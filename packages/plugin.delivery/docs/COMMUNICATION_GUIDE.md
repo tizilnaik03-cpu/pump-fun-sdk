@@ -1019,3 +1019,4 @@ console.log('Settings header:', settingsHeader);
 - [SDK API Reference](./SDK_API_REFERENCE.md) - Full SDK documentation
 - [Plugin Types Guide](./PLUGIN_TYPES.md) - Choose the right type
 - [Standalone Plugin Communication](#standalone-plugin-communication) - Advanced patterns
+
