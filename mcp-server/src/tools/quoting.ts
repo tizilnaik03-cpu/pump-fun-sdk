@@ -14,7 +14,7 @@ import {
 import type { OnlinePumpSdk } from "@pump-fun/pump-sdk";
 import { publicKeySchema, bnStringSchema } from "../utils/validation.js";
 import { lamportsToSol, rawToTokens, formatBN } from "../utils/formatting.js";
-import { success, error } from "../types.js";
+import { success, error, getErrorMessage } from "../types.js";
 import type { ToolResult } from "../types.js";
 
 // ── get_buy_quote ──
@@ -50,8 +50,8 @@ export async function getBuyQuote(
       outputUnit: "raw tokens",
       outputTokens: rawToTokens(tokensOut),
     });
-  } catch (e: any) {
-    return error(`Failed to get buy quote: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get buy quote: ${getErrorMessage(e)}`);
   }
 }
 
@@ -88,8 +88,8 @@ export async function getSellQuote(
       outputUnit: "lamports",
       outputSol: lamportsToSol(solOut),
     });
-  } catch (e: any) {
-    return error(`Failed to get sell quote: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get sell quote: ${getErrorMessage(e)}`);
   }
 }
 
@@ -118,8 +118,8 @@ export async function getPriceImpact(
       priceBeforeTrade: result.preBuyPrice.toString(),
       priceAfterTrade: result.postBuyPrice.toString(),
     });
-  } catch (e: any) {
-    return error(`Failed to calculate price impact: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to calculate price impact: ${getErrorMessage(e)}`);
   }
 }
 
@@ -145,8 +145,8 @@ export async function getMarketCap(
       marketCapLamports: formatBN(mcap),
       marketCapSol: lamportsToSol(mcap),
     });
-  } catch (e: any) {
-    return error(`Failed to get market cap: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get market cap: ${getErrorMessage(e)}`);
   }
 }
 
@@ -166,8 +166,8 @@ export async function getTokenPriceTool(
       sellPricePerToken: result.sellPricePerToken.toString(),
       spread: result.spread.toString(),
     });
-  } catch (e: any) {
-    return error(`Failed to get token price: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get token price: ${getErrorMessage(e)}`);
   }
 }
 
@@ -195,8 +195,8 @@ export async function getBondingCurveSummaryTool(
       sellPricePerToken: summary.sellPricePerToken.toString(),
       graduationProgress: summary.graduationProgress.toString(),
     });
-  } catch (e: any) {
-    return error(`Failed to get bonding curve summary: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get bonding curve summary: ${getErrorMessage(e)}`);
   }
 }
 
@@ -217,8 +217,8 @@ export async function getGraduationProgressTool(
       targetRealSolReserves: formatBN(result.targetRealSolReserves),
       isComplete: result.isComplete,
     });
-  } catch (e: any) {
-    return error(`Failed to get graduation progress: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get graduation progress: ${getErrorMessage(e)}`);
   }
 }
 
@@ -242,7 +242,7 @@ export async function getAmmQuote(
       side: params.side,
       note: "Use build_amm_swap for executable instructions",
     });
-  } catch (e: any) {
-    return error(`Failed to get AMM quote: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get AMM quote: ${getErrorMessage(e)}`);
   }
 }

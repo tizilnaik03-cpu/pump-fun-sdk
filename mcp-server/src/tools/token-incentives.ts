@@ -5,7 +5,7 @@ import { PUMP_SDK } from "@pump-fun/pump-sdk";
 import type { OnlinePumpSdk } from "@pump-fun/pump-sdk";
 import { publicKeySchema } from "../utils/validation.js";
 import { formatBN, rawToTokens, instructionsToJson } from "../utils/formatting.js";
-import { success, error } from "../types.js";
+import { success, error, getErrorMessage } from "../types.js";
 import type { ToolResult } from "../types.js";
 
 // ── get_unclaimed_tokens ──
@@ -26,8 +26,8 @@ export async function getUnclaimedTokens(
       unclaimedRaw: formatBN(unclaimed),
       unclaimedTokens: rawToTokens(unclaimed),
     });
-  } catch (e: any) {
-    return error(`Failed to get unclaimed tokens: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get unclaimed tokens: ${getErrorMessage(e)}`);
   }
 }
 
@@ -49,8 +49,8 @@ export async function getCurrentDayTokens(
       currentDayRaw: formatBN(tokens),
       currentDayTokens: rawToTokens(tokens),
     });
-  } catch (e: any) {
-    return error(`Failed to get current day tokens: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get current day tokens: ${getErrorMessage(e)}`);
   }
 }
 
@@ -73,8 +73,8 @@ export async function getVolumeStats(
       totalClaimed: formatBN(stats.totalClaimed),
       totalUnclaimed: formatBN(stats.totalUnclaimed),
     });
-  } catch (e: any) {
-    return error(`Failed to get volume stats: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get volume stats: ${getErrorMessage(e)}`);
   }
 }
 
@@ -97,8 +97,8 @@ export async function buildClaimIncentives(
       instructions: instructionsToJson(instructions),
       note: "Claims token incentives from both Pump and PumpAMM programs.",
     });
-  } catch (e: any) {
-    return error(`Failed to build claim incentives: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build claim incentives: ${getErrorMessage(e)}`);
   }
 }
 
@@ -119,7 +119,7 @@ export async function buildClaimCashback(
       instructions: instructionsToJson([instruction]),
       note: "Claims accumulated cashback rewards.",
     });
-  } catch (e: any) {
-    return error(`Failed to build claim cashback: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build claim cashback: ${getErrorMessage(e)}`);
   }
 }

@@ -4,7 +4,7 @@ import { bondingCurveMarketCap } from "@pump-fun/pump-sdk";
 import type { OnlinePumpSdk } from "@pump-fun/pump-sdk";
 import { publicKeySchema } from "../utils/validation.js";
 import { lamportsToSol, formatBN } from "../utils/formatting.js";
-import { success, error } from "../types.js";
+import { success, error, getErrorMessage } from "../types.js";
 import type { ToolResult } from "../types.js";
 
 // ── search_tokens ──
@@ -21,8 +21,8 @@ export async function searchTokens(
       query: params.query,
       note: "Token search requires an indexer or the PumpFun API. Use the PumpFun website or a third-party API like Birdeye/DexScreener to search by name/symbol. Once you have the mint address, use get_token_info.",
     });
-  } catch (e: any) {
-    return error(`Token search failed: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Token search failed: ${getErrorMessage(e)}`);
   }
 }
 
@@ -44,8 +44,8 @@ export async function getTokenMetadataUri(
       creator: bondingCurve.creator.toBase58(),
       note: "The metadata URI is stored in the Metaplex metadata account. Use @metaplex-foundation/mpl-token-metadata to fetch the full metadata JSON including name, symbol, image, and description.",
     });
-  } catch (e: any) {
-    return error(`Failed to get token metadata URI: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get token metadata URI: ${getErrorMessage(e)}`);
   }
 }
 
@@ -67,7 +67,7 @@ export async function getTokenSocials(
       creator: bondingCurve.creator.toBase58(),
       note: "Social links are stored in the off-chain metadata JSON. Fetch the metadata URI from the Metaplex account, then parse the JSON for twitter, telegram, website, and discord fields.",
     });
-  } catch (e: any) {
-    return error(`Failed to get token socials: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get token socials: ${getErrorMessage(e)}`);
   }
 }

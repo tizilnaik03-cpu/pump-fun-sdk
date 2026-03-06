@@ -8,7 +8,7 @@ import {
 import type { OnlinePumpSdk } from "@pump-fun/pump-sdk";
 import { publicKeySchema, shareholderSchema, platformSchema } from "../utils/validation.js";
 import { formatBps, instructionsToJson, lamportsToSol, formatBN } from "../utils/formatting.js";
-import { success, error } from "../types.js";
+import { success, error, getErrorMessage } from "../types.js";
 import type { ToolResult } from "../types.js";
 
 // ── build_create_fee_sharing ──
@@ -37,8 +37,8 @@ export async function buildCreateFeeSharing(
       instructions: instructionsToJson([instruction]),
       feeSharingConfigPda: feeSharingConfigPda(mint).toBase58(),
     });
-  } catch (e: any) {
-    return error(`Failed to build create fee sharing: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build create fee sharing: ${getErrorMessage(e)}`);
   }
 }
 
@@ -89,8 +89,8 @@ export async function buildUpdateShareholders(
         sharePercent: formatBps(s.shareBps),
       })),
     });
-  } catch (e: any) {
-    return error(`Failed to build update shareholders: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build update shareholders: ${getErrorMessage(e)}`);
   }
 }
 
@@ -118,8 +118,8 @@ export async function buildRevokeAdmin(
       warning:
         "This PERMANENTLY locks the fee sharing configuration. No further changes will be possible.",
     });
-  } catch (e: any) {
-    return error(`Failed to build revoke admin: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build revoke admin: ${getErrorMessage(e)}`);
   }
 }
 
@@ -149,8 +149,8 @@ export async function getShareholders(
         sharePercent: formatBps(s.shareBps),
       })),
     });
-  } catch (e: any) {
-    return error(`Failed to get shareholders: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get shareholders: ${getErrorMessage(e)}`);
   }
 }
 
@@ -171,8 +171,8 @@ export async function getDistributableAmount(
       minimumDistributable: formatBN(result.minimumDistributableFee),
       minimumDistributableSol: lamportsToSol(result.minimumDistributableFee),
     });
-  } catch (e: any) {
-    return error(`Failed to get distributable amount: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get distributable amount: ${getErrorMessage(e)}`);
   }
 }
 
@@ -193,7 +193,7 @@ export async function buildClaimShare(
       instructions: instructionsToJson(result.instructions),
       note: "This distributes fees to all shareholders. Each shareholder receives their proportional share.",
     });
-  } catch (e: any) {
-    return error(`Failed to build claim share: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build claim share: ${getErrorMessage(e)}`);
   }
 }

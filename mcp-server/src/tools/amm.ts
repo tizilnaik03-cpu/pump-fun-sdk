@@ -5,7 +5,7 @@ import { PUMP_SDK } from "@pump-fun/pump-sdk";
 import type { OnlinePumpSdk } from "@pump-fun/pump-sdk";
 import { publicKeySchema, bnStringSchema } from "../utils/validation.js";
 import { lamportsToSol, rawToTokens, formatBN, instructionsToJson } from "../utils/formatting.js";
-import { success, error } from "../types.js";
+import { success, error, getErrorMessage } from "../types.js";
 import type { ToolResult } from "../types.js";
 
 // ── get_amm_pool ──
@@ -27,8 +27,8 @@ export async function getAmmPool(
       quoteReserve: formatBN(pool.quoteReserve),
       lpSupply: formatBN(pool.lpSupply),
     });
-  } catch (e: any) {
-    return error(`Failed to get AMM pool: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get AMM pool: ${getErrorMessage(e)}`);
   }
 }
 
@@ -49,8 +49,8 @@ export async function getAmmReserves(
       quoteReserve: formatBN(pool.quoteReserve),
       quoteReserveSol: lamportsToSol(pool.quoteReserve),
     });
-  } catch (e: any) {
-    return error(`Failed to get AMM reserves: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get AMM reserves: ${getErrorMessage(e)}`);
   }
 }
 
@@ -76,8 +76,8 @@ export async function getAmmPrice(
       quoteReserve: formatBN(pool.quoteReserve),
       note: "Price derived from constant product formula (quoteReserve/baseReserve).",
     });
-  } catch (e: any) {
-    return error(`Failed to get AMM price: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get AMM price: ${getErrorMessage(e)}`);
   }
 }
 
@@ -112,8 +112,8 @@ export async function buildAmmDeposit(
       instructions: instructionsToJson([instruction]),
       pool: pool.address.toBase58(),
     });
-  } catch (e: any) {
-    return error(`Failed to build AMM deposit: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build AMM deposit: ${getErrorMessage(e)}`);
   }
 }
 
@@ -148,7 +148,7 @@ export async function buildAmmWithdraw(
       instructions: instructionsToJson([instruction]),
       pool: pool.address.toBase58(),
     });
-  } catch (e: any) {
-    return error(`Failed to build AMM withdraw: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build AMM withdraw: ${getErrorMessage(e)}`);
   }
 }

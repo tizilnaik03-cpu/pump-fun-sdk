@@ -7,7 +7,7 @@ import {
 import type { OnlinePumpSdk } from "@pump-fun/pump-sdk";
 import { publicKeySchema, bnStringSchema, slippageSchema } from "../utils/validation.js";
 import { instructionsToJson } from "../utils/formatting.js";
-import { success, error } from "../types.js";
+import { success, error, getErrorMessage } from "../types.js";
 import type { ToolResult } from "../types.js";
 
 // ── build_buy_instructions ──
@@ -58,8 +58,8 @@ export async function buildBuyInstructions(
       estimatedTokensOut: amount.toString(),
       slippage: params.slippage,
     });
-  } catch (e: any) {
-    return error(`Failed to build buy instructions: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build buy instructions: ${getErrorMessage(e)}`);
   }
 }
 
@@ -110,8 +110,8 @@ export async function buildSellInstructions(
       estimatedSolOut: solAmount.toString(),
       slippage: params.slippage,
     });
-  } catch (e: any) {
-    return error(`Failed to build sell instructions: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build sell instructions: ${getErrorMessage(e)}`);
   }
 }
 
@@ -147,8 +147,8 @@ export async function buildCreateToken(
       mintSecretKey: Array.from(mint.secretKey),
       note: "The mint keypair must sign the transaction. Include mintSecretKey as a signer.",
     });
-  } catch (e: any) {
-    return error(`Failed to build create token instructions: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build create token instructions: ${getErrorMessage(e)}`);
   }
 }
 
@@ -203,8 +203,8 @@ export async function buildCreateAndBuy(
       estimatedTokensOut: amount.toString(),
       note: "The mint keypair must sign the transaction.",
     });
-  } catch (e: any) {
-    return error(`Failed to build create+buy instructions: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build create+buy instructions: ${getErrorMessage(e)}`);
   }
 }
 
@@ -251,8 +251,8 @@ export async function buildAmmSwap(
       instructions: instructionsToJson([instruction]),
       side: params.side,
     });
-  } catch (e: any) {
-    return error(`Failed to build AMM swap: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build AMM swap: ${getErrorMessage(e)}`);
   }
 }
 
@@ -282,7 +282,7 @@ export async function buildMigrateInstructions(
       instructions: instructionsToJson([instruction]),
       note: "This migrates the token from bonding curve to PumpAMM pool.",
     });
-  } catch (e: any) {
-    return error(`Failed to build migrate instructions: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build migrate instructions: ${getErrorMessage(e)}`);
   }
 }

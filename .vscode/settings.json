@@ -1,5 +1,36 @@
 {
     "telemetry.feedback.enabled": false,
     "telemetry.editStats.enabled": false,
-    "chat.editing.autoOpenFileOnApply": "never"
+    "chat.editing.autoOpenFileOnApply": "never",
+
+    // --- Performance: exclude heavy directories from file watching ---
+    "files.watcherExclude": {
+        "**/node_modules/**": true,
+        "**/dist/**": true,
+        "**/coverage/**": true,
+        "**/.git/objects/**": true,
+        "**/rust/target/**": true,
+        "**/site/**": true,
+        "**/website/**": true
+    },
+
+    // --- Performance: exclude from search & file explorer ---
+    "files.exclude": {
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/coverage": true,
+        "**/rust/target": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/coverage": true,
+        "**/rust/target": true,
+        "**/site": true,
+        "**/website": true
+    },
+
+    // --- TypeScript: only load the root project by default ---
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.disableAutomaticTypeAcquisition": true
 }

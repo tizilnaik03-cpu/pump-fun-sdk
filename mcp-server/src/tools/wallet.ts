@@ -3,7 +3,7 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
 import nacl from "tweetnacl";
 import { publicKeySchema } from "../utils/validation.js";
-import { success, error } from "../types.js";
+import { success, error, getErrorMessage } from "../types.js";
 import type { ToolResult } from "../types.js";
 
 // ── generate_keypair ──
@@ -185,8 +185,8 @@ export async function restoreKeypair(
       publicKey: keypair.publicKey.toBase58(),
       restored: true,
     });
-  } catch (e: any) {
-    return error(`Failed to restore keypair: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to restore keypair: ${getErrorMessage(e)}`);
   } finally {
     if (keypair) {
       keypair.secretKey.fill(0);
@@ -224,8 +224,8 @@ export async function signMessage(
       signature: signatureBase58,
       note: "Use verify_signature to verify this signature.",
     });
-  } catch (e: any) {
-    return error(`Signing failed: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Signing failed: ${getErrorMessage(e)}`);
   } finally {
     if (secretKey) {
       secretKey.fill(0);
@@ -256,7 +256,7 @@ export async function verifySignature(
       message: params.message,
       signaturePrefix: params.signature.substring(0, 20) + "...",
     });
-  } catch (e: any) {
-    return error(`Verification failed: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Verification failed: ${getErrorMessage(e)}`);
   }
 }

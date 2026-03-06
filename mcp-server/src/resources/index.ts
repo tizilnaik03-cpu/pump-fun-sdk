@@ -1,13 +1,12 @@
-import { PUMP_PROGRAM_ID, PUMP_AMM_PROGRAM_ID, PUMP_FEE_PROGRAM_ID, MAX_SHAREHOLDERS } from "@pump-fun/pump-sdk";
-import { PublicKey } from "@solana/web3.js";
 import {
   PUMP_PROGRAM_ID,
   PUMP_AMM_PROGRAM_ID,
   PUMP_FEE_PROGRAM_ID,
+  MAX_SHAREHOLDERS,
 } from "@pump-fun/pump-sdk";
-import type { PublicKey } from "@solana/web3.js";
-import type { ServerState } from "../types.js";
-import { readKeypairResource } from "./keypair.js";
+import { PublicKey } from "@solana/web3.js";
+import type { ResourceResult, ServerState } from "../types.js";
+import { readKeypairResource, listKeypairResources } from "./keypair.js";
 
 export const RESOURCES = [
   {
@@ -24,24 +23,32 @@ export const RESOURCES = [
   },
 ];
 
-export function handleReadResource(uri: string, state: ServerState): ResourceResult {
+export const RESOURCE_TEMPLATES = [
+  {
+    uriTemplate: "solana://keypair/{id}",
+    name: "Generated Keypair",
+    description:
+      "A keypair generated during this session (public key only — private key never exposed)",
+    mimeType: "application/json",
+  },
+  {
+    uriTemplate: "solana://address/{pubkey}",
+    name: "Address Info",
+    description: "Validate and inspect a Solana address",
+    mimeType: "application/json",
+  },
+];
+
+export { listKeypairResources };
+
+export function handleReadResource(
+  uri: string,
+  state: ServerState,
+): ResourceResult {
   // solana://keypair/{id}
   const keypairMatch = uri.match(/^solana:\/\/keypair\/(.+)$/);
   if (keypairMatch) {
-    const id = keypairMatch[1]!;
-    const keypair = state.generatedKeypairs.get(id);
-    if (!keypair) {
-      throw new Error(`Keypair not found: ${id}`);
-    }
-    return {
-      contents: [
-        {
-          uri,
-          mimeType: "application/json",
-          text: JSON.stringify({ id, publicKey: keypair.publicKey }, null, 2),
-        },
-      ],
-    };
+    return readKeypairResource(keypairMatch[1]!, state);
   }
 
   // solana://address/{pubkey}
@@ -57,7 +64,14 @@ export function handleReadResource(uri: string, state: ServerState): ResourceRes
             uri,
             mimeType: "application/json",
             text: JSON.stringify(
-              { address: pubkey.toBase58(), valid: true, isOnCurve, isPda: !isOnCurve },
+              {
+                address: pubkey.toBase58(),
+                valid: true,
+                isOnCurve,
+                type: isOnCurve
+                  ? "standard_keypair"
+                  : "program_derived_address",
+              },
               null,
               2,
             ),
@@ -91,7 +105,7 @@ export function handleReadResource(uri: string, state: ServerState): ResourceRes
                 pumpFees: PUMP_FEE_PROGRAM_ID,
               },
               null,
-              2
+              2,
             ),
           },
         ],

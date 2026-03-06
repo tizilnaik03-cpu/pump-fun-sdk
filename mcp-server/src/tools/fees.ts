@@ -12,7 +12,7 @@ import type { OnlinePumpSdk } from "@pump-fun/pump-sdk";
 import { publicKeySchema, bnStringSchema, shareholderSchema } from "../utils/validation.js";
 import { lamportsToSol, formatBN, formatBps } from "../utils/formatting.js";
 import { instructionsToJson } from "../utils/formatting.js";
-import { success, error } from "../types.js";
+import { success, error, getErrorMessage } from "../types.js";
 import type { ToolResult } from "../types.js";
 
 // ── get_fee_tier ──
@@ -48,8 +48,8 @@ export async function getFeeTier(
       buyFeePercent: formatBps(tier.buyFeeBps),
       sellFeePercent: formatBps(tier.sellFeeBps),
     });
-  } catch (e: any) {
-    return error(`Failed to get fee tier: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get fee tier: ${getErrorMessage(e)}`);
   }
 }
 
@@ -96,8 +96,8 @@ export async function getFeeBreakdown(
       sellFeeBps: feesBps.sellFeeBps,
       side: params.side,
     });
-  } catch (e: any) {
-    return error(`Failed to get fee breakdown: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get fee breakdown: ${getErrorMessage(e)}`);
   }
 }
 
@@ -118,8 +118,8 @@ export async function getCreatorVaultBalance(
       balanceLamports: formatBN(balance),
       balanceSol: lamportsToSol(balance),
     });
-  } catch (e: any) {
-    return error(`Failed to get creator vault balance: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get creator vault balance: ${getErrorMessage(e)}`);
   }
 }
 
@@ -140,8 +140,8 @@ export async function getMinDistributableFee(
       minimumDistributable: formatBN(result.minimumDistributableFee),
       minimumDistributableSol: lamportsToSol(result.minimumDistributableFee),
     });
-  } catch (e: any) {
-    return error(`Failed to get minimum distributable fee: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get minimum distributable fee: ${getErrorMessage(e)}`);
   }
 }
 
@@ -162,8 +162,8 @@ export async function buildCollectCreatorFees(
       instructions: instructionsToJson(instructions),
       note: "Collects creator fees from both Pump and PumpAMM programs.",
     });
-  } catch (e: any) {
-    return error(`Failed to build collect fees instructions: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build collect fees instructions: ${getErrorMessage(e)}`);
   }
 }
 
@@ -188,8 +188,8 @@ export async function buildDistributeFees(
         sharePercent: formatBps(s.shareBps),
       })),
     });
-  } catch (e: any) {
-    return error(`Failed to build distribute fees instructions: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build distribute fees instructions: ${getErrorMessage(e)}`);
   }
 }
 
@@ -207,8 +207,8 @@ export async function getFeeSharingConfig(
       mint: params.mint,
       note: "Use get_shareholders to see the current shareholder list and distribution.",
     });
-  } catch (e: any) {
-    return error(`Failed to get fee sharing config: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get fee sharing config: ${getErrorMessage(e)}`);
   }
 }
 
@@ -256,7 +256,7 @@ export async function buildUpdateFeeShares(
         sharePercent: formatBps(s.shareBps),
       })),
     });
-  } catch (e: any) {
-    return error(`Failed to build update fee shares: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to build update fee shares: ${getErrorMessage(e)}`);
   }
 }

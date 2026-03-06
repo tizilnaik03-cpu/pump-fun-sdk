@@ -8,7 +8,7 @@ import {
 import type { OnlinePumpSdk } from "@pump-fun/pump-sdk";
 import { publicKeySchema } from "../utils/validation.js";
 import { lamportsToSol, rawToTokens, formatBN } from "../utils/formatting.js";
-import { success, error } from "../types.js";
+import { success, error, getErrorMessage } from "../types.js";
 import type { ToolResult } from "../types.js";
 
 // ── get_bonding_curve_state ──
@@ -33,8 +33,8 @@ export async function getBondingCurveState(
       complete: bondingCurve.complete,
       creator: bondingCurve.creator.toBase58(),
     });
-  } catch (e: any) {
-    return error(`Failed to get bonding curve state: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get bonding curve state: ${getErrorMessage(e)}`);
   }
 }
 
@@ -65,8 +65,8 @@ export async function getTokenInfo(
       virtualSolReserves: lamportsToSol(bondingCurve.virtualSolReserves),
       virtualTokenReserves: rawToTokens(bondingCurve.virtualTokenReserves),
     });
-  } catch (e: any) {
-    return error(`Failed to get token info: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get token info: ${getErrorMessage(e)}`);
   }
 }
 
@@ -89,8 +89,8 @@ export async function getCreatorProfile(
       vaultBalanceSol: lamportsToSol(vaultBalance),
       note: "Use RPC token accounts query for full launch history.",
     });
-  } catch (e: any) {
-    return error(`Failed to get creator profile: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get creator profile: ${getErrorMessage(e)}`);
   }
 }
 
@@ -108,8 +108,8 @@ export async function getTokenHolders(
       mint: params.mint,
       note: "Token holder data requires RPC getProgramAccounts with token filter. Use getTokenLargestAccounts on your Solana connection for top holders.",
     });
-  } catch (e: any) {
-    return error(`Failed to get token holders: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get token holders: ${getErrorMessage(e)}`);
   }
 }
 
@@ -127,8 +127,8 @@ export async function getRecentTrades(
       mint: params.mint,
       note: "Recent trades require parsing transaction history. Use getSignaturesForAddress on the bonding curve PDA and decode TradeEvent from each transaction's logs.",
     });
-  } catch (e: any) {
-    return error(`Failed to get recent trades: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get recent trades: ${getErrorMessage(e)}`);
   }
 }
 
@@ -157,8 +157,8 @@ export async function getSolUsdPrice(
       source: "Jupiter Price API v2",
       timestamp: new Date().toISOString(),
     });
-  } catch (e: any) {
-    return error(`Failed to get SOL/USD price: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get SOL/USD price: ${getErrorMessage(e)}`);
   }
 }
 
@@ -182,7 +182,7 @@ export async function getGraduationStatus(
       currentRealSolReserves: formatBN(progress.currentRealSolReserves),
       targetRealSolReserves: formatBN(progress.targetRealSolReserves),
     });
-  } catch (e: any) {
-    return error(`Failed to get graduation status: ${e.message}`);
+  } catch (e: unknown) {
+    return error(`Failed to get graduation status: ${getErrorMessage(e)}`);
   }
 }
