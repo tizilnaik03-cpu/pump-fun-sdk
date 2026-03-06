@@ -15,7 +15,7 @@ import { createBot, createClaimHandler, createCreatorChangeHandler } from './bot
 import type { TokenLaunchMonitorLike, PumpEventMonitorLike } from './bot.js';
 import {
     formatTokenLaunchNotification,
-    formatGraduationNotification,
+    formatGraduationNotificationWithToken,
     formatTradeAlertNotification,
     formatFeeDistributionNotification,
 } from './formatters.js';
@@ -126,9 +126,27 @@ async function main(): Promise<void> {
                 }
             };
 
+            /** Broadcast graduation with enriched token data. */
+            const broadcastGraduation = async (event: GraduationEvent) => {
+                if (!bot) return;
+                const monitors = getActiveMonitors();
+                const message = await formatGraduationNotificationWithToken(event);
+                for (const entry of monitors) {
+                    if (!entry.alerts.graduations) continue;
+                    try {
+                        await bot.api.sendMessage(entry.chatId, message, {
+                            parse_mode: 'HTML',
+                            link_preview_options: { is_disabled: true },
+                        });
+                    } catch (err) {
+                        log.error('Failed to send graduation notification to chat %d:', entry.chatId, err);
+                    }
+                }
+            };
+
             eventMonitor = new PumpEventMonitor(
                 config,
-                (event: GraduationEvent) => broadcastToMonitors('graduations', formatGraduationNotification, event),
+                (event: GraduationEvent) => broadcastGraduation(event),
                 (event: TradeAlertEvent) => broadcastToMonitors('whales', formatTradeAlertNotification, event),
                 (event: FeeDistributionEvent) => broadcastToMonitors('feeDistributions', formatFeeDistributionNotification, event),
             );

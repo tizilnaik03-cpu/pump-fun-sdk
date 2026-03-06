@@ -6,7 +6,7 @@
 
 import type { CreatorChangeEvent, FeeClaimEvent, FeeDistributionEvent, GraduationEvent, MonitorState, PumpEventMonitorState, TokenLaunchEvent, TokenLaunchMonitorState, TradeAlertEvent, WatchEntry } from './types.js';
 import type { FeeTierInfo, PumpTokenInfo, QuoteResult } from './pump-client.js';
-import { formatSol, formatTokenAmount } from './pump-client.js';
+import { formatSol, formatTokenAmount, fetchTokenInfo } from './pump-client.js';
 
 // ============================================================================
 // Fee Claim Notification
@@ -363,37 +363,150 @@ export function formatMonitorStatus(state: TokenLaunchMonitorState, activeSubscr
 // Graduation Notification
 // ============================================================================
 
-/** Rich HTML notification for a token graduating from bonding curve to AMM. */
-export function formatGraduationNotification(event: GraduationEvent): string {
-    const mint = shortAddr(event.mintAddress);
-    const user = shortAddr(event.user);
+/**
+ * Rich HTML notification for a token graduating from bonding curve to AMM.
+ * If token info is available, displays name, symbol, market cap, price,
+ * graduation speed, social links, and trading bot quick links.
+ */
+export function formatGraduationNotification(event: GraduationEvent, token?: PumpTokenInfo | null): string {
+    const L: string[] = [];
     const timeStr = formatTime(event.timestamp);
 
-    const solscanTx = `https://solscan.io/tx/${event.txSignature}`;
-    const solscanMint = `https://solscan.io/token/${event.mintAddress}`;
-    const pumpfun = `https://pump.fun/coin/${event.mintAddress}`;
+    // ━━ HEADER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push(`🎓 <b>TOKEN GRADUATED</b>`);
+    L.push('');
 
-    let details = '';
-    if (event.isMigration) {
-        details =
-            `💰 <b>SOL Migrated:</b> ${event.solAmount?.toFixed(2) ?? '?'} SOL\n` +
-            `🏊 <b>Migration Fee:</b> ${event.poolMigrationFee?.toFixed(4) ?? '?'} SOL\n` +
-            (event.poolAddress
-                ? `🔗 <b>AMM Pool:</b> <code>${shortAddr(event.poolAddress)}</code>\n`
-                : '');
+    // ━━ TOKEN IDENTITY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const coinName = token?.name ? escapeHtml(token.name) : 'Unknown';
+    const coinTicker = token?.symbol ? escapeHtml(token.symbol) : '???';
+    const pumpfunUrl = `https://pump.fun/coin/${event.mintAddress}`;
+    const pumpLink = `<a href="${pumpfunUrl}">${coinName}</a>`;
+
+    // Graduation speed indicator
+    let speedEmoji = '';
+    let timeSpent = '';
+    if (token && token.createdTimestamp > 0) {
+        const seconds = event.timestamp - token.createdTimestamp;
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (seconds < 30) {
+            speedEmoji = '⚡️⚡️⚡️ ';
+            timeSpent = `${seconds}s`;
+        } else if (seconds < 60) {
+            speedEmoji = '⚡️⚡️ ';
+            timeSpent = `${seconds}s`;
+        } else if (seconds < 120) {
+            speedEmoji = '⚡️ ';
+            timeSpent = `${minutes}m`;
+        } else if (days > 3) {
+            speedEmoji = '💤 ';
+            timeSpent = days > 0 ? `${days}d ${hours % 24}h` : `${hours}h ${minutes % 60}m`;
+        } else if (hours > 0) {
+            timeSpent = `${hours}h ${minutes % 60}m`;
+        } else {
+            timeSpent = `${minutes}m`;
+        }
     }
 
-    return (
-        `🎓 <b>Token Graduated!</b>\n\n` +
-        `🧬 <b>CA:</b> <code>${event.mintAddress}</code>\n` +
-        `👤 <b>Triggered by:</b> <code>${user}</code>\n` +
-        `📈 <b>Type:</b> ${event.isMigration ? 'AMM Migration' : 'Bonding Curve Complete'}\n` +
-        details +
-        `🕐 <b>Time:</b> ${timeStr}\n\n` +
-        `🔗 <a href="${solscanTx}">View TX</a> · ` +
-        `<a href="${solscanMint}">Solscan</a> · ` +
-        `<a href="${pumpfun}">pump.fun</a>`
+    L.push(`💊 ${speedEmoji}<b>${pumpLink}</b>  <code>$${coinTicker}</code>`);
+    L.push(`🧬 <b>CA:</b> <code>${event.mintAddress}</code>`);
+    if (timeSpent) {
+        L.push(`⏱️ <b>Bonding Curve:</b> ${timeSpent}`);
+    }
+
+    // ━━ MIGRATION DETAILS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push('');
+    L.push(`📈 <b>Type:</b> ${event.isMigration ? 'AMM Migration' : 'Bonding Curve Complete'}`);
+    if (event.isMigration && event.solAmount != null) {
+        L.push(`💰 <b>SOL Migrated:</b> ${event.solAmount.toFixed(2)} SOL`);
+    }
+    if (event.poolMigrationFee != null) {
+        L.push(`🏊 <b>Migration Fee:</b> ${event.poolMigrationFee.toFixed(4)} SOL`);
+    }
+    if (event.poolAddress) {
+        const poolLink = `<a href="https://solscan.io/account/${event.poolAddress}">${shortAddr(event.poolAddress)}</a>`;
+        L.push(`🔗 <b>AMM Pool:</b> ${poolLink}`);
+    }
+    const userLink = `<a href="https://pump.fun/profile/${event.user}">${shortAddr(event.user)}</a>`;
+    L.push(`👤 <b>Triggered by:</b> ${userLink}`);
+
+    // ━━ MARKET INFO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (token) {
+        L.push('');
+        if (token.usdMarketCap > 0) {
+            const mcStr = token.usdMarketCap >= 1_000_000
+                ? `$${(token.usdMarketCap / 1_000_000).toFixed(2)}M`
+                : token.usdMarketCap >= 1_000
+                    ? `$${(token.usdMarketCap / 1_000).toFixed(1)}K`
+                    : `$${token.usdMarketCap.toFixed(0)}`;
+            L.push(`💹 <b>Market Cap:</b> ${mcStr}`);
+        } else if (token.marketCapSol > 0) {
+            L.push(`💹 <b>Market Cap:</b> ~${token.marketCapSol.toFixed(1)} SOL`);
+        }
+        if (token.priceSol > 0) {
+            const priceStr = token.priceSol < 0.000001
+                ? token.priceSol.toExponential(2)
+                : token.priceSol.toFixed(9).replace(/\.?0+$/, '');
+            L.push(`💵 <b>Price:</b> ${priceStr} SOL`);
+        }
+        if (token.creator) {
+            const devLink = `<a href="https://pump.fun/profile/${token.creator}">${shortAddr(token.creator)}</a>`;
+            L.push(`🧑‍💻 <b>Creator:</b> ${devLink}`);
+        }
+    }
+
+    // ━━ SOCIALS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (token) {
+        const socials: string[] = [];
+        if (token.website) socials.push(`<a href="${escapeHtml(token.website)}">Website</a>`);
+        if (token.twitter) {
+            const handle = token.twitter.replace(/.*twitter\.com\/|.*x\.com\//, '').replace(/\/+$/, '');
+            socials.push(`<a href="${escapeHtml(token.twitter)}">𝕏 @${escapeHtml(handle)}</a>`);
+        }
+        if (token.telegram) socials.push(`<a href="${escapeHtml(token.telegram)}">Telegram</a>`);
+        if (socials.length > 0) {
+            L.push(`🔗 <b>Socials:</b> ${socials.join(' · ')}`);
+        }
+    }
+
+    // ━━ TRADING BOT QUICK LINKS ━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push('');
+    const mint = event.mintAddress;
+    L.push(
+        `🤖 ` +
+        `<a href="https://photon-sol.tinyastro.io/en/lp/${mint}">Photon</a> · ` +
+        `<a href="https://t.me/solana_bullx_bot?start=${mint}">BullX</a> · ` +
+        `<a href="https://t.me/paris_trojanbot?start=r-pumpdotfun-${mint}">Trojan</a> · ` +
+        `<a href="https://t.me/BananaGunSolana_bot?start=${mint}">Banana</a>`,
     );
+
+    // ━━ LINKS & TIMESTAMP ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push('');
+    const solscanTx = `https://solscan.io/tx/${event.txSignature}`;
+    const solscanMint = `https://solscan.io/token/${event.mintAddress}`;
+    const dexScreener = `https://dexscreener.com/solana/${event.mintAddress}`;
+    L.push(
+        `🔍 <a href="${solscanTx}">TX</a> · ` +
+        `<a href="${pumpfunUrl}">Pump.fun</a> · ` +
+        `<a href="${solscanMint}">Solscan</a> · ` +
+        `<a href="${dexScreener}">DexScreener</a>`,
+    );
+    L.push(`🕐 ${timeStr}`);
+
+    return L.join('\n');
+}
+
+/** Async wrapper that fetches token info then formats the graduation notification. */
+export async function formatGraduationNotificationWithToken(event: GraduationEvent): Promise<string> {
+    let token: PumpTokenInfo | null = null;
+    try {
+        token = await fetchTokenInfo(event.mintAddress);
+    } catch {
+        // Proceed without token info
+    }
+    return formatGraduationNotification(event, token);
 }
 
 // ============================================================================

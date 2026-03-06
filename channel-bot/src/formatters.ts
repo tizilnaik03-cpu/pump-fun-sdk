@@ -6,7 +6,7 @@
  */
 
 import type { GitHubUserInfo } from './github-client.js';
-import type { CreatorProfile, TokenInfo } from './pump-client.js';
+import type { CreatorProfile, TokenInfo, TokenHolderInfo, TokenTradeInfo } from './pump-client.js';
 import type {
     FeeClaimEvent,
     FeeDistributionEvent,
@@ -256,11 +256,17 @@ export function formatLaunchFeed(
 // Graduation
 // ============================================================================
 
+export interface GraduationEnrichment {
+    holders?: TokenHolderInfo | null;
+    trades?: TokenTradeInfo | null;
+}
+
 export function formatGraduationFeed(
     event: GraduationEvent,
     token: TokenInfo | null,
     creator: CreatorProfile | null,
     solUsdPrice: number,
+    enrichment?: GraduationEnrichment,
 ): { imageUrl: string | null; caption: string } {
     const L: string[] = [];
 
@@ -345,6 +351,23 @@ export function formatGraduationFeed(
         }
         if (token.athMarketCap > 0 && token.athMarketCap > token.usdMarketCap) {
             L.push(`     ATH: $${formatCompact(token.athMarketCap)}`);
+        }
+
+        // Community & activity metrics
+        if (enrichment?.holders && enrichment.holders.totalHolders > 0) {
+            L.push(`     Holders: ${enrichment.holders.totalHolders.toLocaleString()}`);
+        }
+        if (enrichment?.trades && enrichment.trades.recentTradeCount > 0) {
+            const volStr = enrichment.trades.recentVolumeSol >= 1
+                ? `${enrichment.trades.recentVolumeSol.toFixed(1)} SOL`
+                : `${enrichment.trades.recentVolumeSol.toFixed(4)} SOL`;
+            L.push(`     Recent Volume: ${volStr} (${enrichment.trades.recentTradeCount} trades)`);
+        }
+        if (token.replyCount > 0) {
+            L.push(`     Replies: ${token.replyCount}`);
+        }
+        if (token.kothTimestamp > 0) {
+            L.push(`     👑 KotH: ${timeAgo(token.kothTimestamp)}`);
         }
     }
 
