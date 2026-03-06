@@ -270,11 +270,18 @@ export class ClaimMonitor {
         this.processedSignatures.add(signature);
         this.trimProcessedCache();
 
-        // Scan all log lines for relevant events
-        const SOCIAL_FEE_CLAIMED_DISC = '3212c141edd2eaec';
+        // Scan all log lines for relevant events.
+        // NOTE: claim_social_fee_pda does NOT emit a CPI event — it returns a
+        // SocialFeePdaClaimed struct. Detect it via Anchor's instruction log line
+        // instead of a "Program data:" discriminator.
         let hasClaimIx = false;
 
         for (const line of logs) {
+            // Detect claim_social_fee_pda via Anchor instruction log
+            if (!hasClaimIx && line.includes('Program log: Instruction: ClaimSocialFeePda')) {
+                hasClaimIx = true;
+            }
+
             if (!line.includes('Program data:')) continue;
             const b64 = line.split('Program data: ')[1]?.trim();
             if (!b64) continue;
@@ -283,9 +290,7 @@ export class ClaimMonitor {
                 if (bytes.length < 8) continue;
                 const disc = Buffer.from(bytes.subarray(0, 8)).toString('hex');
 
-                if (disc === SOCIAL_FEE_CLAIMED_DISC) {
-                    hasClaimIx = true;
-                } else if (disc === CREATE_FEE_SHARING_CONFIG_EVENT_DISC) {
+                if (disc === CREATE_FEE_SHARING_CONFIG_EVENT_DISC) {
                     this.socialFeeIndex.updateFromCreateEvent(bytes);
                 } else if (disc === UPDATE_FEE_SHARES_EVENT_DISC) {
                     this.socialFeeIndex.updateFromUpdateSharesEvent(bytes);

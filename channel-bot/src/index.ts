@@ -3,7 +3,6 @@
  *
  * A read-only Telegram channel feed that broadcasts:
  *   - GitHub social fee PDA first-claims
- *   - Creator fee claims (>= 1 SOL, first per wallet)
  *   - Token graduations (bonding curve complete / AMM migration)
  *
  * Run:
@@ -16,12 +15,12 @@ import { Bot, type BotError } from 'grammy';
 import { loadConfig } from './config.js';
 import { ClaimMonitor } from './claim-monitor.js';
 import { EventMonitor } from './event-monitor.js';
-import { isFirstClaimByGithubUser, isFirstClaimByWallet, loadPersistedClaims } from './claim-tracker.js';
-import { fetchCreatorProfile, fetchTokenInfo, fetchTopHolders, fetchTokenTrades, fetchDevWalletInfo, fetchSolUsdPrice, fetchPoolLiquidity, fetchBundleInfo } from './pump-client.js';
+import { isFirstClaimByGithubUser, loadPersistedClaims } from './claim-tracker.js';
+import { fetchTokenInfo, fetchTopHolders, fetchTokenTrades, fetchDevWalletInfo, fetchSolUsdPrice, fetchPoolLiquidity, fetchBundleInfo } from './pump-client.js';
 import { fetchGitHubUserById } from './github-client.js';
 import { fetchXProfile } from './x-client.js';
-import { formatGitHubClaimFeed, formatCreatorClaimFeed, formatGraduationFeed } from './formatters.js';
-import type { ClaimFeedContext, CreatorClaimContext } from './formatters.js';
+import { formatGitHubClaimFeed, formatGraduationFeed } from './formatters.js';
+import type { ClaimFeedContext } from './formatters.js';
 import { log, setLogLevel } from './logger.js';
 import { startHealthServer, stopHealthServer } from './health.js';
 import { maskUrl } from './rpc-fallback.js';
@@ -98,23 +97,11 @@ async function main(): Promise<void> {
     }
 
     // ── Pipeline Counters ─────────────────────────────────────────────
-    const pipeline = { total: 0, creatorClaims: 0, socialClaims: 0, firstClaim: 0, posted: 0, skippedCashback: 0, skippedDust: 0 };
+    const pipeline = { total: 0, socialClaims: 0, firstClaim: 0, posted: 0, skippedCashback: 0 };
     setInterval(() => {
-        log.info('Pipeline: %d total → %d creator/%d social → %d first → %d posted (skip: %d cashback, %d dust)',
-            pipeline.total, pipeline.creatorClaims, pipeline.socialClaims,
-            pipeline.firstClaim, pipeline.posted, pipeline.skippedCashback, pipeline.skippedDust);
+        log.info('Pipeline: %d total → %d social → %d first → %d posted (skip: %d cashback)',
+            pipeline.total, pipeline.socialClaims, pipeline.firstClaim, pipeline.posted, pipeline.skippedCashback);
     }, 60_000);
-
-    /** Minimum SOL for creator fee claims to be posted. */
-    const MIN_CREATOR_CLAIM_SOL = 1.0;
-
-    /** Creator claim types we post about. */
-    const CREATOR_CLAIM_TYPES: ReadonlySet<string> = new Set([
-        'collect_creator_fee',
-        'collect_coin_creator_fee',
-        'distribute_creator_fees',
-        'transfer_creator_fees_to_pump',
-    ]);
 
     // ── Claim Monitor ────────────────────────────────────────────────
     const claimMonitor = new ClaimMonitor(config, async (event: FeeClaimEvent) => {
@@ -164,43 +151,7 @@ async function main(): Promise<void> {
             pipeline.posted++;
             log.info('✅ Posted GitHub claim by %s (%s) to %s',
                 event.githubUserId, githubUser?.login ?? '?', config.channelId);
-            return;
         }
-
-        // ── Path B: Creator fee claims (first per wallet, >= 1 SOL) ──
-        if (!CREATOR_CLAIM_TYPES.has(event.claimType)) return;
-        pipeline.creatorClaims++;
-
-        if (event.amountSol < MIN_CREATOR_CLAIM_SOL) {
-            pipeline.skippedDust++;
-            return;
-        }
-
-        if (!isFirstClaimByWallet(event.claimerWallet)) return;
-        pipeline.firstClaim++;
-
-        log.info('📤 First creator claim by %s — %.4f SOL (%s)',
-            event.claimerWallet.slice(0, 8), event.amountSol, event.claimType);
-
-        const [creator, solUsdPrice] = await Promise.all([
-            fetchCreatorProfile(event.claimerWallet),
-            fetchSolUsdPrice(),
-        ]);
-
-        const creatorCtx: CreatorClaimContext = {
-            event,
-            solUsdPrice,
-            creator,
-        };
-
-        const { imageUrl: cImg, caption: cCaption } = formatCreatorClaimFeed(creatorCtx);
-        if (cImg) {
-            await postPhotoToChannel(cImg, cCaption);
-        } else {
-            await postToChannel(cCaption);
-        }
-        pipeline.posted++;
-        log.info('✅ Posted creator claim by %s to %s', event.claimerWallet.slice(0, 8), config.channelId);
       } catch (err) {
         log.error('Claim handler error: %s', err);
       }
