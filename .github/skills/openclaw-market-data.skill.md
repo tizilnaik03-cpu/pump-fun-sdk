@@ -201,3 +201,4 @@ The bonding curve uses $x \cdot y = k$ pricing:
 - Forgetting that `virtualReserves` include a virtual offset — they're larger than `realReserves`
 - Not handling `null` `feeConfig` — falls back to flat fee rates from `Global`
 - Assuming market cap is in SOL — it's in lamports (divide by 1e9 for SOL)
+
