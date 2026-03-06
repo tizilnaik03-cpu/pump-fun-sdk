@@ -229,6 +229,70 @@
             "path": ".github/skills/testing-quality.skill.md",
             "applyTo": "tests/**,src/**/*.test.*,rust/tests/**",
             "tags": ["testing", "jest", "cargo-test", "quality", "integration"]
+        },
+        {
+            "id": "pump-official-docs",
+            "name": "Pump Official Protocol Docs — Agent Reference",
+            "description": "Reference the official Pump protocol documentation (from pump-fun/pump-public-docs) when implementing or modifying on-chain interaction code for bonding curve, AMM, fee, or creator fee logic.",
+            "path": ".github/skills/pump-official-docs.skill.md",
+            "applyTo": "src/**,mcp-server/**,telegram-bot/**,channel-bot/**,tests/**,tutorials/**",
+            "tags": ["pump-sdk", "protocol", "documentation", "official"]
+        },
+        {
+            "id": "pump-official-program",
+            "name": "Pump Official Program — Bonding Curve State & Instructions",
+            "description": "Official Pump bonding curve program documentation: Global/BondingCurve state, create/create_v2/buy/sell/migrate instructions, fee calculation, extendAccount, mayhem mode, and Token2022.",
+            "path": ".github/skills/pump-official-program.skill.md",
+            "applyTo": "src/**,mcp-server/**,telegram-bot/**,channel-bot/**,tests/**,tutorials/**",
+            "tags": ["pump", "bonding-curve", "instructions", "state", "official"]
+        },
+        {
+            "id": "pump-official-swap",
+            "name": "PumpSwap AMM Official — Pool State, Swap, Deposit, Withdraw",
+            "description": "Official PumpSwap AMM program documentation: GlobalConfig/Pool state, swap/deposit/withdraw instructions, canonical pool detection, LP tokens, and creator fee accounts.",
+            "path": ".github/skills/pump-official-swap.skill.md",
+            "applyTo": "src/**,mcp-server/**,telegram-bot/**,channel-bot/**,tests/**,tutorials/**",
+            "tags": ["pumpswap", "amm", "pool", "swap", "liquidity", "official"]
+        },
+        {
+            "id": "pump-official-cashback",
+            "name": "Pump Cashback — UserVolumeAccumulator & Claim Instructions",
+            "description": "Official Pump cashback documentation: cashback flag on create_v2, UserVolumeAccumulator PDAs, remaining accounts for trading cashback coins, claim_cashback instructions.",
+            "path": ".github/skills/pump-official-cashback.skill.md",
+            "applyTo": "src/**,mcp-server/**,telegram-bot/**,channel-bot/**,tests/**,tutorials/**",
+            "tags": ["cashback", "rewards", "volume", "accumulator", "official"]
+        },
+        {
+            "id": "pump-official-creator-fee",
+            "name": "Pump Creator Fee — Bonding Curve Creator Vault & Fee Collection",
+            "description": "Official Pump creator fee documentation: BondingCurve::creator field, creator_vault PDA, extendAccount requirement, collectCreatorFee instruction, and fee calculation with creator_fee_basis_points.",
+            "path": ".github/skills/pump-official-creator-fee.skill.md",
+            "applyTo": "src/**,mcp-server/**,telegram-bot/**,channel-bot/**,tests/**,tutorials/**",
+            "tags": ["creator-fee", "vault", "bonding-curve", "collection", "official"]
+        },
+        {
+            "id": "pump-official-swap-creator-fee",
+            "name": "PumpSwap Creator Fee — AMM Pool Creator Vault & Canonical Pools",
+            "description": "Official PumpSwap creator fee documentation: Pool::coin_creator field, coin_creator_vault_authority PDA, extendAccount for pools, canonical pool detection, collectCoinCreatorFee instruction.",
+            "path": ".github/skills/pump-official-swap-creator-fee.skill.md",
+            "applyTo": "src/**,mcp-server/**,telegram-bot/**,channel-bot/**,tests/**,tutorials/**",
+            "tags": ["creator-fee", "amm", "canonical-pool", "vault", "official"]
+        },
+        {
+            "id": "pump-official-swap-sdk",
+            "name": "PumpSwap SDK — AMM UI Integration & Autocomplete Helpers",
+            "description": "Official PumpSwap SDK documentation: PumpAmmSdk/PumpAmmInternalSdk/PumpAmmAdminSdk structure, swap/deposit/withdraw flows, autocomplete helpers for UI input balancing.",
+            "path": ".github/skills/pump-official-swap-sdk.skill.md",
+            "applyTo": "src/**,mcp-server/**,telegram-bot/**,channel-bot/**,tests/**,tutorials/**",
+            "tags": ["pumpswap", "sdk", "ui", "autocomplete", "swap", "official"]
+        },
+        {
+            "id": "pump-official-faq",
+            "name": "Pump FAQ — CU Optimization & PDA Bump Effects",
+            "description": "Official Pump FAQ: compute unit optimization for buy/sell, PDA bump seed effects on CU usage, static CU limit recommendation (100,000), why not to simulate before trading.",
+            "path": ".github/skills/pump-official-faq.skill.md",
+            "applyTo": "src/**,mcp-server/**,telegram-bot/**,channel-bot/**,tests/**,tutorials/**",
+            "tags": ["faq", "optimization", "compute-units", "pda", "performance", "official"]
         }
     ]
 }

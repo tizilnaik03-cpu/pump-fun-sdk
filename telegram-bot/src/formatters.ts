@@ -466,7 +466,7 @@ export function formatFeeDistributionNotification(event: FeeDistributionEvent): 
 
     return (
         `💎 <b>Creator Fees Distributed!</b>\n\n` +
-        `🪙 <b>Token:</b> <a href="${solscanMint}"><code>${mint}</code></a>\n` +
+        `� <b>CA:</b> <code>${event.mintAddress}</code>\n` +
         `💰 <b>Distributed:</b> ${event.distributedSol.toFixed(4)} SOL\n` +
         `👤 <b>Admin:</b> <code>${admin}</code>\n` +
         `👥 <b>Shareholders (${event.shareholders.length}):</b>\n` +

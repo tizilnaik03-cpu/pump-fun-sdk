@@ -16,46 +16,22 @@ export function loadConfig(): BotConfig {
         );
     }
 
-    const solanaRpcUrl =
-        process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-
-    const extraUrls = process.env.SOLANA_RPC_URLS
-        ? process.env.SOLANA_RPC_URLS.split(',').map((s) => s.trim()).filter(Boolean)
-        : [];
-    const solanaRpcUrls = [solanaRpcUrl, ...extraUrls.filter((u) => u !== solanaRpcUrl)];
-
-    let solanaWsUrl = process.env.SOLANA_WS_URL;
-    if (!solanaWsUrl) {
-        try {
-            const url = new URL(solanaRpcUrl);
-            url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-            solanaWsUrl = url.toString();
-        } catch {
-            // leave undefined — monitor will use polling
-        }
-    }
-
-    const pollIntervalSeconds = Number.parseInt(
-        process.env.POLL_INTERVAL_SECONDS || '15',
-        10,
-    );
+    const relayWsUrl = process.env.RELAY_WS_URL || 'ws://localhost:3099/ws';
 
     const logLevel = (process.env.LOG_LEVEL || 'info') as BotConfig['logLevel'];
 
-        const twitterBearerToken = process.env.TWITTER_BEARER_TOKEN;
+    const twitterBearerToken = process.env.TWITTER_BEARER_TOKEN;
 
-        const twitterInfluencerIds = process.env.TWITTER_INFLUENCER_IDS
-            ? process.env.TWITTER_INFLUENCER_IDS.split(',').map((s) => s.trim()).filter(Boolean)
-            : [];
+    const twitterInfluencerIds = process.env.TWITTER_INFLUENCER_IDS
+        ? process.env.TWITTER_INFLUENCER_IDS.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
 
     return {
         logLevel,
-        pollIntervalSeconds,
-        solanaRpcUrl,
-        solanaRpcUrls,
-        solanaWsUrl,
+        relayWsUrl,
         telegramToken,
-            twitterBearerToken,
-            twitterInfluencerIds,
+        twitterBearerToken,
+        twitterInfluencerIds,
     };
+}
 }
