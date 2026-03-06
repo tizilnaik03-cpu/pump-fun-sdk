@@ -17,3 +17,4 @@
     "IPFS_GATEWAY": { "default": "https://cf-ipfs.com/ipfs/", "description": "IPFS gateway for metadata" }
   }
 }
+
