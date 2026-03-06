@@ -143,3 +143,4 @@ The `uri` parameter should point to a JSON file following Metaplex token metadat
 - Not fetching `Global` state before bundling a buy — the buy instruction needs fee configuration
 - Setting `creator` to the wrong address — this permanently determines fee recipient until admin override
 - Using JavaScript `number` for amounts instead of `BN` — causes precision loss for large values
+
