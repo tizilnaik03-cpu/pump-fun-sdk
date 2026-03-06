@@ -97,3 +97,4 @@ export function isFirstClaimOnToken(mint: string): boolean {
 export function getTrackedCount(): number {
     return claimHistory.size;
 }
+
