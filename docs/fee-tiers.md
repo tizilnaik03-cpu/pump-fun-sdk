@@ -195,3 +195,4 @@ If you pass `feeConfig: null`, the SDK falls back to the global flat fee rates.
 - [Fee Sharing](./fee-sharing.md) — Splitting creator fees among shareholders
 - [Mayhem Mode](./mayhem-mode.md) — Alternate fee routing
 - [API Reference](./api-reference.md) — Full function signatures
+
