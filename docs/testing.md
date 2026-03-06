@@ -181,6 +181,86 @@ Fuzz test fixtures are in `tests/fixtures/`:
 
 ---
 
+## OnlinePumpSdk Integration Test
+
+A TypeScript integration test exercises the full `buyInstructions` → `sellInstructions` flow against mainnet, spending real SOL.
+
+**File**: `tests/integration/test-online-sdk-buy-sell.ts`
+
+### What it tests
+
+1. `OnlinePumpSdk.fetchBuyState(mint, user)` — fetches bonding curve state and auto-detects token program (SPL Token or Token-2022)
+2. `OnlinePumpSdk.buyInstructions(...)` — builds and submits a real buy transaction
+3. `OnlinePumpSdk.fetchSellState(mint, user, tokenProgram)` — fetches post-buy state
+4. `OnlinePumpSdk.sellInstructions(...)` — builds and submits a real sell transaction
+
+The test asserts both transactions confirm on-chain and the final token balance returns to zero.
+
+### Prerequisites
+
+- A funded Solana mainnet wallet (≥ 0.02 SOL recommended)
+- A token mint with an **active** (non-graduated) bonding curve
+- A reliable RPC endpoint ([Helius](https://dev.helius.xyz) free tier works well)
+
+### Running the test
+
+```bash
+SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=<YOUR_KEY> \
+WALLET_SECRET_KEY=<base58-secret-key> \
+PUMP_TEST_MINT=<active-bonding-curve-mint> \
+  npx ts-node tests/integration/test-online-sdk-buy-sell.ts
+```
+
+### Environment variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `WALLET_SECRET_KEY` | Yes | — | Base58-encoded keypair private key |
+| `PUMP_TEST_MINT` | Yes | — | Token mint with an active bonding curve |
+| `SOLANA_RPC_URL` | No | `https://api.mainnet-beta.solana.com` | RPC endpoint |
+| `SOL_AMOUNT` | No | `10000000` (0.01 SOL) | Lamports to spend on the buy |
+
+### Expected output
+
+```
+RPC:    https://mainnet.helius-rpc.com/?api-key=...
+Wallet: <pubkey>
+Mint:   <mint>
+Buy:    0.01 SOL
+
+Wallet balance: 0.12 SOL
+
+Fetching on-chain state ...
+  virtual SOL reserves:   30330621010
+  virtual token reserves: 1061303692439991
+
+Buying 0.01 SOL → ~345479189165 tokens
+  BUY tx: https://solscan.io/tx/<sig>
+  BUY confirmed ✓
+
+Fetching post-buy sell state ...
+  Token balance after buy: 345479189165
+
+Selling 345479189165 tokens → ~0.009... SOL
+  SELL tx: https://solscan.io/tx/<sig>
+  SELL confirmed ✓
+
+Final wallet balance: 0.11... SOL
+Net SOL spent (buy + sell fees): 0.00... SOL
+
+✓ Buy and sell completed successfully.
+```
+
+### Token-2022 note
+
+Pump tokens may use either the classic SPL Token program or Token-2022. `fetchBuyState` and `fetchSellState` automatically detect the correct program from the mint account owner — no manual configuration required. The detected `tokenProgram` is returned in the state objects and should always be spread into `buyInstructions`/`sellInstructions` via `...buyState` / `...sellState`.
+
+### RPC reliability
+
+Public RPC endpoints (`api.mainnet-beta.solana.com`) are rate-limited and may return stale blockhashes. For reliable test execution use a dedicated RPC provider. Free tiers from [Helius](https://dev.helius.xyz) are sufficient.
+
+---
+
 ## Run All Tests at Once
 
 A convenience script runs every test suite:

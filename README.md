@@ -137,7 +137,7 @@ const createIx = await PUMP_SDK.createV2Instruction({
 ```typescript
 import { Connection, PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { getBuyTokenAmountFromSolAmount, OnlinePumpSdk } from "@pump-fun/pump-sdk";
 
 const connection = new Connection("https://api.mainnet-beta.solana.com");
 const sdk = new OnlinePumpSdk(connection);
@@ -145,22 +145,38 @@ const sdk = new OnlinePumpSdk(connection);
 const mint = new PublicKey("TokenMintAddress...");
 const user = wallet.publicKey;
 
-// Fetch all required state in one call
-const buyState = await sdk.fetchBuyState(mint, user);
+// Fetch all required state in parallel — buyState includes tokenProgram (auto-detected)
+const [buyState, global, feeConfig] = await Promise.all([
+  sdk.fetchBuyState(mint, user),
+  sdk.fetchGlobal(),
+  sdk.fetchFeeConfig(),
+]);
 
-// Buy with 0.1 SOL
+assert(!buyState.bondingCurve.complete, "Token has already graduated to AMM");
+
+// Calculate expected tokens for 0.1 SOL
 const solAmount = new BN(100_000_000); // 0.1 SOL in lamports
+const expectedTokens = getBuyTokenAmountFromSolAmount({
+  global,
+  feeConfig,
+  mintSupply: buyState.bondingCurve.tokenTotalSupply,
+  bondingCurve: buyState.bondingCurve,
+  amount: solAmount,
+});
 
+// buyState spreads: bondingCurveAccountInfo, bondingCurve, associatedUserAccountInfo, tokenProgram
 const buyIxs = await sdk.buyInstructions({
   ...buyState,
   mint,
   user,
-  amount: new BN(0),      // set to 0 when using solAmount
+  amount: expectedTokens,
   solAmount,
   slippage: 0.05,         // 5% slippage tolerance
 });
-// buyIxs is TransactionInstruction[] — compose into a Transaction
+// buyIxs is TransactionInstruction[] — compose into a VersionedTransaction and send
 ```
+
+> **Note**: `fetchBuyState` auto-detects whether the token uses SPL Token or Token-2022 and returns `tokenProgram` accordingly. Always spread `...buyState` into `buyInstructions` to ensure the correct program is used.
 
 ### Sell Tokens
 
@@ -171,13 +187,14 @@ import { getSellSolAmountFromTokenAmount, OnlinePumpSdk } from "@pump-fun/pump-s
 const sdk = new OnlinePumpSdk(connection);
 
 // Fetch required state in parallel
+// Pass buyState.tokenProgram if you have it to avoid a second mint account fetch
 const [sellState, global, feeConfig] = await Promise.all([
   sdk.fetchSellState(mint, user),
   sdk.fetchGlobal(),
   sdk.fetchFeeConfig(),
 ]);
 
-const tokenAmount = new BN(1_000_000); // 1 token (6 decimals)
+const tokenAmount = new BN(1_000_000_000); // amount in raw units (6 decimals)
 const expectedSol = getSellSolAmountFromTokenAmount({
   global,
   feeConfig,
@@ -186,6 +203,7 @@ const expectedSol = getSellSolAmountFromTokenAmount({
   amount: tokenAmount,
 });
 
+// sellState spreads: bondingCurveAccountInfo, bondingCurve, tokenProgram
 const sellIxs = await sdk.sellInstructions({
   ...sellState,
   mint,
@@ -196,7 +214,7 @@ const sellIxs = await sdk.sellInstructions({
 });
 ```
 
-> **Tip**: Use `sdk.sellAllInstructions({ mint, user })` to sell your entire balance in one call.
+> **Note**: `fetchSellState` returns `tokenProgram` (auto-detected from the mint). Always spread `...sellState` into `sellInstructions`.
 
 ### Check Graduation Progress
 
