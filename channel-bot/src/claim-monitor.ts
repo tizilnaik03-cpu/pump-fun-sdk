@@ -16,6 +16,7 @@ import bs58 from 'bs58';
 
 import type { ChannelBotConfig } from './config.js';
 import { log } from './logger.js';
+import { RpcFallback } from './rpc-fallback.js';
 import type { FeeClaimEvent, ClaimType } from './types.js';
 import {
     CLAIM_INSTRUCTIONS,
@@ -98,7 +99,7 @@ function sleep(ms: number): Promise<void> {
 // ============================================================================
 
 export class ClaimMonitor {
-    private connection: Connection;
+    private rpc: RpcFallback;
     private wsConnection?: Connection;
     private config: ChannelBotConfig;
     private onClaim: (event: FeeClaimEvent) => void;
@@ -119,10 +120,13 @@ export class ClaimMonitor {
     constructor(config: ChannelBotConfig, onClaim: (event: FeeClaimEvent) => void) {
         this.config = config;
         this.onClaim = onClaim;
-        this.connection = new Connection(config.solanaRpcUrl, {
+        this.rpc = new RpcFallback(config.solanaRpcUrls, {
             commitment: 'confirmed',
             disableRetryOnRateLimit: true,
         });
+        if (config.solanaRpcUrls.length > 1) {
+            log.info('Claim monitor: %d RPC endpoints configured (fallback enabled)', config.solanaRpcUrls.length);
+        }
         this.programPubkeys = MONITORED_PROGRAM_IDS.map((id) => new PublicKey(id));
         this.rpcQueue = new RpcQueue((sig) => this.processTransaction(sig));
     }
@@ -172,6 +176,8 @@ export class ClaimMonitor {
             claimsDetected: this.claimsDetected,
             processedSignatures: this.processedSignatures.size,
             mode: this.wsSubscriptionIds.length > 0 ? 'websocket' : 'polling',
+            rpcEndpoints: this.rpc.size,
+            activeRpc: maskRpcUrl(this.rpc.currentUrl),
             uptimeMs: this.startedAt ? Date.now() - this.startedAt : 0,
         };
     }
@@ -179,7 +185,7 @@ export class ClaimMonitor {
     // ── WebSocket ────────────────────────────────────────────────────
 
     private async startWebSocket(): Promise<void> {
-        this.wsConnection = new Connection(this.config.solanaRpcUrl, {
+        this.wsConnection = new Connection(this.rpc.currentUrl, {
             commitment: 'confirmed',
             wsEndpoint: this.config.solanaWsUrl,
             disableRetryOnRateLimit: true,
@@ -292,7 +298,7 @@ export class ClaimMonitor {
             const lastSig = this.lastSignatures.get(programId);
             if (lastSig) opts.until = lastSig;
 
-            const sigs = await this.connection.getSignaturesForAddress(pubkey, opts);
+            const sigs = await this.rpc.withFallback((conn) => conn.getSignaturesForAddress(pubkey, opts));
             if (sigs.length === 0) continue;
 
             this.lastSignatures.set(programId, sigs[0]!.signature);
@@ -311,10 +317,10 @@ export class ClaimMonitor {
 
     private async processTransaction(signature: string): Promise<void> {
         try {
-            const tx = await this.connection.getParsedTransaction(signature, {
+            const tx = await this.rpc.withFallback((conn) => conn.getParsedTransaction(signature, {
                 commitment: 'confirmed',
                 maxSupportedTransactionVersion: 0,
-            });
+            }));
             if (!tx?.meta || tx.meta.err) return;
 
             const instructions = tx.transaction.message.instructions;
@@ -491,6 +497,15 @@ export class ClaimMonitor {
             const arr = [...this.processedSignatures];
             this.processedSignatures = new Set(arr.slice(arr.length - this.MAX_PROCESSED_CACHE / 2));
         }
+    }
+}
+
+function maskRpcUrl(url: string): string {
+    try {
+        const u = new URL(url);
+        return u.hostname;
+    } catch {
+        return url.slice(0, 30);
     }
 }
 

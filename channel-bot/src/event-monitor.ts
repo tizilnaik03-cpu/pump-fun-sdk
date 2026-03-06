@@ -23,6 +23,7 @@ import bs58 from 'bs58';
 
 import type { ChannelBotConfig } from './config.js';
 import { log } from './logger.js';
+import { RpcFallback } from './rpc-fallback.js';
 import type {
     FeeDistributionEvent,
     GraduationEvent,
@@ -54,7 +55,7 @@ const WS_HEARTBEAT_TIMEOUT_MS = 90_000;
 // ============================================================================
 
 export class EventMonitor {
-    private connection: Connection;
+    private rpc: RpcFallback;
     private wsConnection?: Connection;
     private config: ChannelBotConfig;
     private programPubkey: PublicKey;
@@ -87,7 +88,12 @@ export class EventMonitor {
         this.onGraduation = onGraduation;
         this.onWhale = onWhale;
         this.onFeeDistribution = onFeeDistribution;
-        this.connection = new Connection(config.solanaRpcUrl, 'confirmed');
+        this.rpc = new RpcFallback(config.solanaRpcUrls, {
+            commitment: 'confirmed',
+        });
+        if (config.solanaRpcUrls.length > 1) {
+            log.info('Event monitor: %d RPC endpoints configured (fallback enabled)', config.solanaRpcUrls.length);
+        }
         this.programPubkey = new PublicKey(PUMP_PROGRAM_ID);
     }
 
@@ -128,7 +134,7 @@ export class EventMonitor {
     // ── WebSocket ────────────────────────────────────────────────────
 
     private async startWebSocket(): Promise<void> {
-        this.wsConnection = new Connection(this.config.solanaRpcUrl, {
+        this.wsConnection = new Connection(this.rpc.currentUrl, {
             commitment: 'confirmed',
             wsEndpoint: this.config.solanaWsUrl,
         });
@@ -217,7 +223,7 @@ export class EventMonitor {
                 const opts: SignaturesForAddressOptions = { limit: 20 };
                 if (this.lastSignature) opts.until = this.lastSignature;
 
-                const sigs = await this.connection.getSignaturesForAddress(this.programPubkey, opts);
+                const sigs = await this.rpc.withFallback((conn) => conn.getSignaturesForAddress(this.programPubkey, opts));
                 if (sigs.length > 0) this.lastSignature = sigs[0]!.signature;
 
                 for (const sigInfo of sigs) {
@@ -240,10 +246,10 @@ export class EventMonitor {
 
     private async fetchAndProcessLogs(signature: string): Promise<void> {
         try {
-            const tx = await this.connection.getParsedTransaction(signature, {
+            const tx = await this.rpc.withFallback((conn) => conn.getParsedTransaction(signature, {
                 commitment: 'confirmed',
                 maxSupportedTransactionVersion: 0,
-            });
+            }));
             if (!tx?.meta || tx.meta.err) return;
 
             const logMessages = tx.meta.logMessages ?? [];
