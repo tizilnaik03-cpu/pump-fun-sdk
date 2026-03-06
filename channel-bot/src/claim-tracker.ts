@@ -4,8 +4,8 @@
  * Tracks claim history per wallet+token to show "first claim"
  * vs "claim #N" and total claimed amounts in the channel feed.
  *
- * Persists the tokenFirstClaim set to disk so restarts don't
- * re-alert on already-seen tokens.
+ * Persists wallet first-claim sets to disk so restarts don't
+ * re-alert on already-seen wallets.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -34,6 +34,9 @@ const claimHistory = new Map<string, ClaimRecord>();
 /** Tracks which tokens have had ANY claim (key: mint) */
 const tokenFirstClaim = new Set<string>();
 
+/** Tracks which wallets have ever claimed (key: wallet address) */
+const walletFirstClaim = new Set<string>();
+
 /** Max entries before eviction of oldest */
 const MAX_ENTRIES = 50_000;
 
@@ -41,11 +44,12 @@ const MAX_ENTRIES = 50_000;
 
 const DATA_DIR = process.env.DATA_DIR || join(process.cwd(), 'data');
 const FIRST_CLAIMS_FILE = join(DATA_DIR, 'first-claims.json');
+const WALLET_FIRST_CLAIMS_FILE = join(DATA_DIR, 'wallet-first-claims.json');
 const SAVE_DEBOUNCE_MS = 5_000;
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** Load persisted first-claim set from disk on startup. */
+/** Load persisted first-claim sets from disk on startup. */
 export function loadPersistedClaims(): void {
     try {
         if (!existsSync(DATA_DIR)) {
@@ -61,12 +65,22 @@ export function loadPersistedClaims(): void {
                 log.info('Loaded %d persisted first-claim tokens', tokenFirstClaim.size);
             }
         }
+        if (existsSync(WALLET_FIRST_CLAIMS_FILE)) {
+            const raw = readFileSync(WALLET_FIRST_CLAIMS_FILE, 'utf8');
+            const wallets: unknown = JSON.parse(raw);
+            if (Array.isArray(wallets)) {
+                for (const w of wallets) {
+                    if (typeof w === 'string') walletFirstClaim.add(w);
+                }
+                log.info('Loaded %d persisted first-claim wallets', walletFirstClaim.size);
+            }
+        }
     } catch (err) {
         log.warn('Failed to load persisted claims: %s', err);
     }
 }
 
-/** Save first-claim set to disk (debounced). */
+/** Save first-claim sets to disk (debounced). */
 function scheduleSave(): void {
     if (saveTimer) return;
     saveTimer = setTimeout(() => {
@@ -76,10 +90,14 @@ function scheduleSave(): void {
                 mkdirSync(DATA_DIR, { recursive: true });
             }
             const arr = [...tokenFirstClaim];
-            // Keep only the most recent entries to prevent unbounded growth
             const toSave = arr.length > MAX_ENTRIES ? arr.slice(arr.length - MAX_ENTRIES) : arr;
             writeFileSync(FIRST_CLAIMS_FILE, JSON.stringify(toSave), 'utf8');
-            log.debug('Persisted %d first-claim tokens to disk', toSave.length);
+
+            const walletArr = [...walletFirstClaim];
+            const walletToSave = walletArr.length > MAX_ENTRIES ? walletArr.slice(walletArr.length - MAX_ENTRIES) : walletArr;
+            writeFileSync(WALLET_FIRST_CLAIMS_FILE, JSON.stringify(walletToSave), 'utf8');
+
+            log.debug('Persisted %d first-claim tokens + %d wallets to disk', toSave.length, walletToSave.length);
         } catch (err) {
             log.warn('Failed to persist claims: %s', err);
         }
@@ -165,6 +183,21 @@ export function isFirstClaimOnToken(mint: string): boolean {
     if (tokenFirstClaim.size > MAX_ENTRIES) {
         const first = tokenFirstClaim.values().next().value;
         if (first) tokenFirstClaim.delete(first);
+    }
+    return true;
+}
+
+/**
+ * Returns true if this is the first-ever claim by this wallet (any token).
+ * Marks the wallet as seen so subsequent calls return false.
+ */
+export function isFirstClaimByWallet(wallet: string): boolean {
+    if (walletFirstClaim.has(wallet)) return false;
+    walletFirstClaim.add(wallet);
+    scheduleSave();
+    if (walletFirstClaim.size > MAX_ENTRIES) {
+        const first = walletFirstClaim.values().next().value;
+        if (first) walletFirstClaim.delete(first);
     }
     return true;
 }

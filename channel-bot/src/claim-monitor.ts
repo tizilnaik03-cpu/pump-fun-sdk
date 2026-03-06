@@ -125,6 +125,7 @@ export class ClaimMonitor {
     private wsHeartbeatTimer?: ReturnType<typeof setInterval>;
     private wsEventsReceived = 0;
     private claimTxProcessed = 0;
+    private claimsByType = new Map<string, number>();
 
     constructor(config: ChannelBotConfig, onClaim: (event: FeeClaimEvent) => void) {
         this.config = config;
@@ -224,8 +225,11 @@ export class ClaimMonitor {
                 log.warn('Claim monitor WS silent for %ds — reconnecting...', Math.floor(elapsed / 1000));
                 this.reconnectWebSocket();
             } else {
-                log.info('WS heartbeat: %d events, %d claims queued, %d detected (uptime %s)',
+                const typeBreakdown = [...this.claimsByType.entries()]
+                    .map(([type, count]) => `${type}=${count}`).join(', ');
+                log.info('WS heartbeat: %d events, %d claims queued, %d detected [%s] (uptime %s)',
                     this.wsEventsReceived, this.claimTxProcessed, this.claimsDetected,
+                    typeBreakdown || 'none',
                     formatUptime(Date.now() - this.startedAt));
             }
         }, WS_HEARTBEAT_INTERVAL_MS);
@@ -354,6 +358,13 @@ export class ClaimMonitor {
                 );
                 if (event) {
                     this.claimsDetected++;
+                    const typeCount = (this.claimsByType.get(event.claimType) ?? 0) + 1;
+                    this.claimsByType.set(event.claimType, typeCount);
+                    log.info('Claim #%d: type=%s mint=%s wallet=%s amount=%.4f SOL',
+                        this.claimsDetected, event.claimType,
+                        event.tokenMint?.slice(0, 8) || '(none)',
+                        event.claimerWallet?.slice(0, 8) || '?',
+                        event.amountSol);
                     this.onClaim(event);
                 }
             }

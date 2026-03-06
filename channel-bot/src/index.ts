@@ -15,7 +15,7 @@ import { Bot } from 'grammy';
 import { loadConfig } from './config.js';
 import { ClaimMonitor } from './claim-monitor.js';
 import { EventMonitor } from './event-monitor.js';
-import { recordClaim, isFirstClaimOnToken, loadPersistedClaims } from './claim-tracker.js';
+import { recordClaim, isFirstClaimByWallet, loadPersistedClaims } from './claim-tracker.js';
 import type { ClaimPriceSnapshot } from './claim-tracker.js';
 import { fetchTokenInfo, fetchCreatorProfile, fetchTokenHolders, fetchTokenTrades, fetchSolUsdPrice } from './pump-client.js';
 import { fetchRepoFromUrls, fetchGitHubUserFromUrls } from './github-client.js';
@@ -114,12 +114,29 @@ async function main(): Promise<void> {
       try {
         if (!config.feed.claims) return;
 
+        log.info('Claim event: type=%s wallet=%s mint=%s amount=%.4f SOL',
+            event.claimType, event.claimerWallet?.slice(0, 8) ?? '?',
+            event.tokenMint?.slice(0, 8) ?? '(none)', event.amountSol);
+
         // Skip wallet-level claims with no token mint (cashback, collect_creator_fee)
         const mint = event.tokenMint;
-        if (!mint) return;
+        if (!mint) {
+            log.info('  → Skipped: no token mint (wallet-level %s claim)', event.claimType);
+            return;
+        }
 
-        // Only post the first-ever claim on each token
-        if (!isFirstClaimOnToken(mint)) return;
+        // Only post the first-ever claim by each wallet
+        const wallet = event.claimerWallet;
+        if (!wallet) {
+            log.info('  → Skipped: no wallet address');
+            return;
+        }
+        if (!isFirstClaimByWallet(wallet)) {
+            log.info('  → Skipped: wallet %s already claimed before', wallet.slice(0, 8));
+            return;
+        }
+
+        log.info('  → ✅ First-ever claim by %s — proceeding to enrich & post', wallet.slice(0, 8));
 
         // Fetch token info first — needed for the GitHub gate
         const token = await fetchTokenInfo(event.tokenMint);
@@ -127,9 +144,10 @@ async function main(): Promise<void> {
         // GitHub gate: skip tokens with no GitHub URLs in description
         if (config.requireGithub) {
             if (!token?.githubUrls?.length) {
-                log.info('Skipping claim for %s — no GitHub URLs (requireGithub=true)', mint.slice(0, 8));
+                log.info('  → Skipped: no GitHub URLs in token %s description (requireGithub=true)', mint.slice(0, 8));
                 return;
             }
+            log.info('  → GitHub URLs found: %s', token.githubUrls.join(', '));
         }
 
         // Enrich with remaining data in parallel
@@ -183,6 +201,10 @@ async function main(): Promise<void> {
         };
 
         const { imageUrl, caption } = formatClaimFeed(ctx);
+
+        log.info('📤 Posting to %s: %s $%s (%.4f SOL) — %s',
+            config.channelId, token?.name ?? 'Unknown', token?.symbol ?? '???',
+            event.amountSol, imageUrl ? 'with photo' : 'text only');
 
         if (imageUrl) {
             await postPhotoToChannel(imageUrl, caption);
