@@ -111,3 +111,4 @@ const Render = memo(() => {
 Render.displayName = 'ClothesRecommendation';
 
 export default Render;
+
