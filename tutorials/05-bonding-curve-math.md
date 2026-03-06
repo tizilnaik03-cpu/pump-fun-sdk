@@ -164,3 +164,4 @@ console.table(pricePoints);
 
 - [Tutorial 9: Understanding the Fee System](./09-fee-system.md)
 - [Tutorial 6: Token Migration to PumpAMM](./06-migration.md)
+
