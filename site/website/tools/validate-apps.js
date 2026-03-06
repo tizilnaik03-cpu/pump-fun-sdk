@@ -576,3 +576,4 @@ main().catch((err) => {
     console.error('Validator crashed:', err);
     process.exit(2);
 });
+
