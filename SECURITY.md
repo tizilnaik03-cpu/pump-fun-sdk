@@ -127,3 +127,4 @@ The following are out of scope:
 
 We appreciate security researchers who help keep pump-fun-sdk safe. Reporters of valid vulnerabilities will be credited in [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md) (with permission).
 
+
