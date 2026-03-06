@@ -16,6 +16,7 @@ import { loadConfig } from './config.js';
 import { ClaimMonitor } from './claim-monitor.js';
 import { EventMonitor } from './event-monitor.js';
 import { recordClaim, isFirstClaimOnToken, loadPersistedClaims } from './claim-tracker.js';
+import type { ClaimPriceSnapshot } from './claim-tracker.js';
 import { fetchTokenInfo, fetchCreatorProfile, fetchTokenHolders, fetchTokenTrades, fetchSolUsdPrice } from './pump-client.js';
 import { fetchRepoFromUrls, fetchGitHubUserFromUrls } from './github-client.js';
 import { generateClaimSummary } from './groq-client.js';
@@ -153,12 +154,19 @@ async function main(): Promise<void> {
             ])
             : [null, null];
 
-        // Record claim history
+        // Record claim history with price snapshot for tracking
+        const priceSnapshot: ClaimPriceSnapshot = {
+            priceSol: token?.priceSol ?? 0,
+            priceUsd: (token?.priceSol ?? 0) * solUsdPrice,
+            mcapUsd: token?.usdMarketCap ?? 0,
+            curveProgress: token?.curveProgress ?? 0,
+        };
         const record = recordClaim(
             event.claimerWallet,
             mint,
             event.amountSol,
             event.timestamp,
+            priceSnapshot,
         );
 
         // Generate AI summary

@@ -34,11 +34,11 @@ export interface ClaimFeedContext {
 }
 
 /**
- * Compact first-claim card — glanceable, dense, clickable.
+ * Compact first-claim card — competitor-style dense layout.
  * Returns { imageUrl, caption } so caller can send photo or text.
  */
 export function formatClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | null; caption: string } {
-    const { event, token, creator, claimRecord, holders, trades, solUsdPrice, githubRepo, githubUser, aiSummary } = ctx;
+    const { event, token, creator, holders, trades, solUsdPrice, githubRepo, githubUser, aiSummary } = ctx;
     const lines: string[] = [];
     const mint = event.tokenMint;
 
@@ -48,59 +48,68 @@ export function formatClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | nul
         ? `<a href="https://pump.fun/coin/${mint}">${esc(coinName)}</a>`
         : esc(coinName);
 
-    // ── Header: token + status at a glance ───────────────────────────
-    const statusBadge = token?.complete ? ' ⭐' : token?.curveProgress ? ` 📈${token.curveProgress.toFixed(0)}%` : '';
-    const mcapTag = token?.usdMarketCap ? ` [$${formatCompact(token.usdMarketCap)}]` : '';
-    const ageTag = token?.createdTimestamp ? ` · ${timeAgo(token.createdTimestamp)}` : '';
+    // ── Header ────────────────────────────────────────────────────────
+    const mcapTag = token?.usdMarketCap ? `${formatCompact(token.usdMarketCap)}` : '';
+    const pctTag = token?.complete ? '' : token?.curveProgress ? `/${token.curveProgress.toFixed(0)}%` : '';
+    const mcapFull = mcapTag ? ` [${mcapTag}${pctTag}]` : '';
+    const statusIcon = token?.complete ? ' ⭐' : '';
 
-    lines.push(`🐙 <b>${pumpLink}</b> $${esc(coinTicker)}${mcapTag}${statusBadge}`);
+    lines.push(`🐙 <b>${pumpLink}</b>${mcapFull} <b>$${esc(coinTicker)}</b>${statusIcon}`);
 
-    // Price line
+    // ── Price & Market ────────────────────────────────────────────────
+    const ageTag = token?.createdTimestamp ? timeAgo(token.createdTimestamp) : '';
     if (token?.priceSol && token.priceSol > 0) {
-        const usdPrice = solUsdPrice > 0 ? ` · $${formatPriceUsd(token.priceSol * solUsdPrice)}` : '';
-        lines.push(`💰 ${formatPriceSol(token.priceSol)} SOL${usdPrice}${ageTag}`);
-    } else if (token?.createdTimestamp) {
-        lines.push(`📊 Age: ${timeAgo(token.createdTimestamp)}`);
+        const usdStr = solUsdPrice > 0 ? `$${formatPriceUsd(token.priceSol * solUsdPrice)}` : '';
+        lines.push(`💲 USD: ${usdStr || formatPriceSol(token.priceSol) + ' SOL'}`);
+    }
+    if (token?.usdMarketCap) {
+        const fdv = formatCompact(token.usdMarketCap);
+        lines.push(`💎 FDV: ${fdv}${ageTag ? ` · Age: ${ageTag}` : ''}`);
+    } else if (ageTag) {
+        lines.push(`📊 Age: ${ageTag}`);
     }
 
-    // Market stats: vol · trades · holders — one compact line
+    // Volume / Trades / Holders
     {
         const ms: string[] = [];
-        if (trades && trades.recentVolumeSol > 0) ms.push(`💦 ${formatCompact(trades.recentVolumeSol)} SOL`);
-        if (trades && trades.recentTradeCount > 0) ms.push(`🅑 ${trades.recentTradeCount}`);
-        if (holders && holders.totalHolders > 0) ms.push(`👥 ${holders.totalHolders}`);
-        if (ms.length > 0) lines.push(ms.join(' · '));
+        if (trades && trades.recentVolumeSol > 0) ms.push(`Vol: ${formatCompact(trades.recentVolumeSol)} SOL`);
+        if (trades && trades.recentTradeCount > 0) ms.push(`Trades: ${trades.recentTradeCount}`);
+        if (holders && holders.totalHolders > 0) ms.push(`Holders: ${holders.totalHolders}`);
+        if (ms.length > 0) lines.push(`📊 ${ms.join(' · ')}`);
     }
 
-    // CA — full, copyable
+    // ── Bonding Curve Progress Bar ────────────────────────────────────
+    if (token && !token.complete && token.curveProgress > 0) {
+        const pct = Math.min(99, Math.round(token.curveProgress));
+        const filled = Math.round(pct / 10);
+        const bar = '█'.repeat(filled) + '░'.repeat(10 - filled);
+        lines.push(`📈 [${bar}] ${pct}%`);
+    } else if (token?.complete) {
+        lines.push(`🎓 Graduated → AMM`);
+    }
+
+    // ── CA ─────────────────────────────────────────────────────────────
     if (mint) lines.push(`<code>${mint}</code>`);
 
-    // -- Fee Claim
+    // ── Fee Claim ─────────────────────────────────────────────────────
     lines.push('');
     {
         const claimSol = event.amountSol.toFixed(4);
         const claimUsd = solUsdPrice > 0 ? ` ($${(event.amountSol * solUsdPrice).toFixed(2)})` : '';
         const isSelf = token?.creator === event.claimerWallet;
         const claimerTag = isSelf ? '👤 Self' : '👻 3rd-party';
-
         lines.push(`🏦 <b>${claimSol} SOL</b>${claimUsd} · ${claimerTag}`);
 
-        // Show GitHub username as claimer if available
-        if (githubUser) {
-            const ghLink = `<a href="${esc(githubUser.htmlUrl)}">${esc(githubUser.login)}</a>`;
-            lines.push(`  ↳ 🐙 ${ghLink}`);
-        }
         const claimerLink = `<a href="https://pump.fun/profile/${event.claimerWallet}">${shortAddr(event.claimerWallet)}</a>`;
         lines.push(`  ↳ ${claimerLink}`);
 
-        // Launch → Claim duration
         if (token && token.createdTimestamp > 0 && event.timestamp > 0) {
             const diff = event.timestamp - token.createdTimestamp;
             if (diff >= 0) lines.push(`  ↳ ⏱ Launch→Claim: <b>${formatDuration(diff)}</b>`);
         }
     }
 
-    // -- Creator
+    // ── Creator ────────────────────────────────────────────────────────
     {
         const creatorWallet = token?.creator ?? '';
         if (creatorWallet) {
@@ -114,11 +123,9 @@ export function formatClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | nul
                 if (creator.totalLaunches > 0) parts.push(`🚀 ${creator.totalLaunches}`);
                 const graduated = creator.recentCoins.filter((c) => c.complete).length;
                 if (graduated > 0) parts.push(`🎓 ${graduated}`);
-                if (creator.followers > 0) parts.push(`${creator.followers} fol`);
-                if (creator.scamEstimate > 0) parts.push(`⚠️ ${creator.scamEstimate} scams`);
+                if (creator.scamEstimate > 0) parts.push(`⚠️ ${creator.scamEstimate} rugs`);
                 if (parts.length > 0) lines.push(parts.join(' · '));
 
-                // Recent coins as compact ticker list
                 const others = creator.recentCoins.filter((c) => c.mint !== mint).slice(0, 5);
                 if (others.length > 0) {
                     const tickers = others.map((c) => {
@@ -131,7 +138,7 @@ export function formatClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | nul
         }
     }
 
-    // -- GitHub
+    // ── GitHub ─────────────────────────────────────────────────────────
     if (githubUser || githubRepo) {
         lines.push('');
         if (githubUser) {
@@ -148,7 +155,6 @@ export function formatClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | nul
                 lines.push(`  <i>${esc(bio)}</i>`);
             }
 
-            // GitHub user socials — one compact line
             const ghSocials: string[] = [];
             if (githubUser.twitterUsername) ghSocials.push(`<a href="https://x.com/${esc(githubUser.twitterUsername)}">𝕏 ${esc(githubUser.twitterUsername)}</a>`);
             if (githubUser.blog) ghSocials.push(`<a href="${esc(githubUser.blog)}">🌐</a>`);
@@ -179,7 +185,7 @@ export function formatClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | nul
         lines.push(`🐙 ${token.githubUrls.slice(0, 2).map((u) => `<a href="${esc(u)}">GitHub</a>`).join(' · ')}`);
     }
 
-    // -- Token Socials — compact
+    // ── Socials ────────────────────────────────────────────────────────
     {
         const socials: string[] = [];
         if (token?.twitter) {
@@ -188,22 +194,21 @@ export function formatClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | nul
         }
         if (token?.telegram) socials.push(`<a href="${esc(token.telegram)}">💬 TG</a>`);
         if (token?.website) socials.push(`<a href="${esc(token.website)}">🌐 Web</a>`);
-        if (creator && creator.followers > 0) socials.push(`${formatCompact(creator.followers)} fol`);
         if (socials.length > 0) lines.push(`🔗 ${socials.join(' · ')}`);
 
         if (token?.description) {
-            const desc = token.description.length > 120 ? token.description.slice(0, 117) + '...' : token.description;
+            const desc = token.description.length > 100 ? token.description.slice(0, 97) + '...' : token.description;
             lines.push(`  <i>${esc(desc)}</i>`);
         }
     }
 
-    // -- AI Summary
+    // ── AI Summary ────────────────────────────────────────────────────
     if (aiSummary) {
         lines.push('');
-        lines.push(`🤖 <i>${esc(aiSummary)}</i>`);
+        lines.push(`🤖 <i>"${esc(aiSummary)}"</i>`);
     }
 
-    // -- Links: trade + explore
+    // ── Links ──────────────────────────────────────────────────────────
     lines.push('');
     if (mint) {
         lines.push(`💹 <a href="https://pump.fun/coin/${mint}">Pump</a> · <a href="https://gmgn.ai/sol/token/${mint}&ref=nichxbt">GMGN</a> · <a href="https://axiom.trade/@nich/${mint}">Axiom</a> · <a href="https://dexscreener.com/solana/${mint}">DEX</a> · <a href="https://photon-sol.tinyastro.io/en/lp/${mint}">Photon</a> · <a href="https://bullx.io/terminal?chainId=1399811149&address=${mint}">BullX</a>`);

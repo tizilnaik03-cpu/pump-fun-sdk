@@ -21,6 +21,11 @@ export interface ClaimRecord {
     firstClaimTimestamp: number;
     /** Timestamp of the most recent claim (unix seconds) */
     lastClaimTimestamp: number;
+    /** Price snapshot at claim time */
+    claimPriceSol: number;
+    claimPriceUsd: number;
+    claimMcapUsd: number;
+    claimCurveProgress: number;
 }
 
 /** Key: "wallet:mint" */
@@ -87,6 +92,13 @@ function makeKey(wallet: string, mint: string): string {
     return `${wallet}:${mint}`;
 }
 
+export interface ClaimPriceSnapshot {
+    priceSol: number;
+    priceUsd: number;
+    mcapUsd: number;
+    curveProgress: number;
+}
+
 /**
  * Record a new claim and return the updated record.
  * Returns the state AFTER recording (so claimCount=1 means first-ever claim).
@@ -96,6 +108,7 @@ export function recordClaim(
     mint: string,
     amountSol: number,
     timestamp: number,
+    priceSnapshot?: ClaimPriceSnapshot,
 ): ClaimRecord {
     const key = makeKey(wallet, mint);
     const existing = claimHistory.get(key);
@@ -112,6 +125,10 @@ export function recordClaim(
         totalClaimedSol: amountSol,
         firstClaimTimestamp: timestamp,
         lastClaimTimestamp: timestamp,
+        claimPriceSol: priceSnapshot?.priceSol ?? 0,
+        claimPriceUsd: priceSnapshot?.priceUsd ?? 0,
+        claimMcapUsd: priceSnapshot?.mcapUsd ?? 0,
+        claimCurveProgress: priceSnapshot?.curveProgress ?? 0,
     };
     claimHistory.set(key, record);
 
