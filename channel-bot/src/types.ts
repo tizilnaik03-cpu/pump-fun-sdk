@@ -151,3 +151,4 @@ export interface FeeDistributionEvent {
     distributedSol: number;
     shareholders: Array<{ address: string; shareBps: number }>;
 }
+
