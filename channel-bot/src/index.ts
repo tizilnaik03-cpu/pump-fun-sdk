@@ -17,7 +17,7 @@ import { ClaimMonitor } from './claim-monitor.js';
 import { EventMonitor } from './event-monitor.js';
 import { recordClaim, isFirstClaimOnToken } from './claim-tracker.js';
 import { fetchTokenInfo, fetchCreatorProfile, fetchTokenHolders, fetchTokenTrades, fetchSolUsdPrice } from './pump-client.js';
-import { fetchRepoFromUrls } from './github-client.js';
+import { fetchRepoFromUrls, fetchGitHubUserFromUrls } from './github-client.js';
 import { generateClaimSummary } from './groq-client.js';
 import type { ClaimSummaryInput } from './groq-client.js';
 import {
@@ -105,10 +105,13 @@ async function main(): Promise<void> {
             creatorProfile = await fetchCreatorProfile(token.creator);
         }
 
-        // Fetch GitHub repo info if token has GitHub URLs
-        const githubRepo = token?.githubUrls?.length
-            ? await fetchRepoFromUrls(token.githubUrls)
-            : null;
+        // Fetch GitHub repo info + user profile if token has GitHub URLs
+        const [githubRepo, githubUser] = token?.githubUrls?.length
+            ? await Promise.all([
+                fetchRepoFromUrls(token.githubUrls),
+                fetchGitHubUserFromUrls(token.githubUrls),
+            ])
+            : [null, null];
 
         // Record claim history
         const record = recordClaim(
@@ -146,6 +149,10 @@ async function main(): Promise<void> {
             githubLastPush: githubRepo?.lastPushAgo ?? null,
             githubDescription: githubRepo?.description ?? null,
             githubIsFork: githubRepo?.isFork ?? null,
+            githubUserLogin: githubUser?.login ?? null,
+            githubUserFollowers: githubUser?.followers ?? null,
+            githubUserRepos: githubUser?.publicRepos ?? null,
+            githubUserCreatedAt: githubUser?.createdAt ?? null,
         };
 
         const aiSummary = await generateClaimSummary(summaryInput);
@@ -159,6 +166,7 @@ async function main(): Promise<void> {
             trades,
             solUsdPrice,
             githubRepo,
+            githubUser,
             aiSummary,
         };
 

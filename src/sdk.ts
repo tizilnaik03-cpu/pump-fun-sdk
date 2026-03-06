@@ -95,6 +95,9 @@ import {
   TransferFeeSharingAuthorityEvent,
   SocialFeePdaCreatedEvent,
   SocialFeePdaClaimedEvent,
+  Platform,
+  SUPPORTED_SOCIAL_PLATFORMS,
+  platformToString,
 } from "./state";
 
 /** Create an Anchor Program instance for the Pump bonding curve program. */
@@ -1915,6 +1918,10 @@ export class PumpSdk {
 
   /**
    * Create a social fee PDA for referral/social fee sharing.
+   *
+   * @param params.payer - Any signer account that pays for the transaction.
+   * @param params.userId - Must be the GitHub user id returned by `https://api.github.com/users/<github-username>`.
+   * @param params.platform - Only `github` is supported at the moment. Check `SUPPORTED_SOCIAL_PLATFORMS`.
    */
   async createSocialFeePdaInstruction({
     payer,
@@ -1923,12 +1930,22 @@ export class PumpSdk {
   }: {
     payer: PublicKey;
     userId: string;
-    platform: number;
+    platform: Platform;
   }): Promise<TransactionInstruction> {
+    if (!SUPPORTED_SOCIAL_PLATFORMS.includes(platform)) {
+      const supportedPlatformNames = SUPPORTED_SOCIAL_PLATFORMS.map(
+        (supportedPlatform) => platformToString(supportedPlatform),
+      ).join(", ");
+      throw new Error(
+        `Unsupported platform "${platform}" for userId "${userId}". Supported platforms: ${supportedPlatformNames}.`,
+      );
+    }
+
     return await this.offlinePumpFeeProgram.methods
       .createSocialFeePda(userId, platform)
       .accountsPartial({
         payer,
+        socialFeePda: socialFeePdaHelper(userId, platform),
       })
       .instruction();
   }
@@ -1945,7 +1962,7 @@ export class PumpSdk {
     recipient: PublicKey;
     socialClaimAuthority: PublicKey;
     userId: string;
-    platform: number;
+    platform: Platform;
   }): Promise<TransactionInstruction> {
     return await this.offlinePumpFeeProgram.methods
       .claimSocialFeePda(userId, platform)
@@ -1954,6 +1971,173 @@ export class PumpSdk {
         socialClaimAuthority,
       })
       .instruction();
+  }
+
+  /**
+   * Normalize social shareholders — resolve social handles to PDAs
+   * and collect any PDAs that need to be created.
+   */
+  normalizeSocialShareholders({
+    newShareholders,
+  }: {
+    newShareholders: Array<{
+      shareBps: number;
+      address?: PublicKey;
+      userId?: string;
+      platform?: Platform;
+    }>;
+  }): {
+    normalizedShareholders: Shareholder[];
+    socialRecipientsToCreate: Map<string, { userId: string; platform: Platform }>;
+  } {
+    const socialRecipientsToCreate = new Map<
+      string,
+      { userId: string; platform: Platform }
+    >();
+    const normalizedShareholders: Shareholder[] = newShareholders.map(
+      (shareholder) => {
+        if (shareholder.address) {
+          return {
+            address: shareholder.address,
+            shareBps: shareholder.shareBps,
+          };
+        }
+
+        if (
+          typeof shareholder.userId === "string" &&
+          typeof shareholder.platform === "number"
+        ) {
+          if (!SUPPORTED_SOCIAL_PLATFORMS.includes(shareholder.platform)) {
+            const supportedPlatformNames = SUPPORTED_SOCIAL_PLATFORMS.map(
+              (platform) => platformToString(platform),
+            ).join(", ");
+            throw new Error(
+              `Unsupported platform "${shareholder.platform}" for userId "${shareholder.userId}". Supported platforms: ${supportedPlatformNames}.`,
+            );
+          }
+
+          const recipientPda = socialFeePdaHelper(
+            shareholder.userId,
+            shareholder.platform,
+          );
+          socialRecipientsToCreate.set(recipientPda.toBase58(), {
+            userId: shareholder.userId,
+            platform: shareholder.platform,
+          });
+
+          return {
+            address: recipientPda,
+            shareBps: shareholder.shareBps,
+          };
+        }
+
+        throw new Error(
+          "Each new shareholder must provide either an address or both userId and platform.",
+        );
+      },
+    );
+
+    return {
+      normalizedShareholders,
+      socialRecipientsToCreate,
+    };
+  }
+
+  /**
+   * Wrapper around `updateFeeShares` that resolves social recipients and
+   * initializes any missing social recipient PDAs before updating fee shares.
+   *
+   * Warning:
+   * - sharing config must exist for that mint
+   * - `userId` must be the GitHub user id returned by `https://api.github.com/users/<github-username>`.
+   * - Only `github` is supported at the moment. Check `SUPPORTED_SOCIAL_PLATFORMS`
+   */
+  async updateSharingConfigWithSocialRecipients({
+    authority,
+    mint,
+    currentShareholders,
+    newShareholders,
+  }: {
+    authority: PublicKey;
+    mint: PublicKey;
+    currentShareholders: PublicKey[];
+    newShareholders: Array<{
+      shareBps: number;
+      address?: PublicKey;
+      userId?: string;
+      platform?: Platform;
+    }>;
+  }): Promise<TransactionInstruction[]> {
+    const instructions: TransactionInstruction[] = [];
+    const { normalizedShareholders, socialRecipientsToCreate } =
+      this.normalizeSocialShareholders({ newShareholders });
+
+    for (const recipient of socialRecipientsToCreate.values()) {
+      instructions.push(
+        await this.createSocialFeePdaInstruction({
+          payer: authority,
+          userId: recipient.userId,
+          platform: recipient.platform,
+        }),
+      );
+    }
+
+    instructions.push(
+      await this.updateFeeShares({
+        authority,
+        mint,
+        currentShareholders,
+        newShareholders: normalizedShareholders,
+      }),
+    );
+
+    return instructions;
+  }
+
+  /**
+   * Wrapper around `createFeeSharingConfig` that resolves social recipients and
+   * initializes any missing social recipient PDAs.
+   *
+   * Warning:
+   * - `userId` must be the GitHub user id returned by `https://api.github.com/users/<github-username>`.
+   * - Only `github` is supported at the moment. Check `SUPPORTED_SOCIAL_PLATFORMS`
+   */
+  async createSharingConfigWithSocialRecipients({
+    creator,
+    mint,
+    pool,
+    newShareholders,
+  }: {
+    creator: PublicKey;
+    mint: PublicKey;
+    pool: PublicKey | null;
+    newShareholders: Array<{
+      shareBps: number;
+      address?: PublicKey;
+      userId?: string;
+      platform?: Platform;
+    }>;
+  }): Promise<TransactionInstruction[]> {
+    const instructions: TransactionInstruction[] = [];
+
+    instructions.push(
+      await this.createFeeSharingConfig({
+        creator,
+        mint,
+        pool,
+      }),
+    );
+
+    instructions.push(
+      ...(await this.updateSharingConfigWithSocialRecipients({
+        authority: creator,
+        mint,
+        currentShareholders: [creator],
+        newShareholders,
+      })),
+    );
+
+    return instructions;
   }
 
   /**

@@ -84,6 +84,7 @@ interface CacheEntry<T> {
 
 const REPO_CACHE_TTL = 600_000; // 10 minutes
 const repoCache = new Map<string, CacheEntry<GitHubRepoInfo | null>>();
+const userCache = new Map<string, CacheEntry<GitHubUserInfo | null>>();
 
 function getCached<T>(cache: Map<string, CacheEntry<T>>, key: string): T | undefined {
     const entry = cache.get(key);
@@ -207,6 +208,71 @@ export async function fetchRepoFromUrls(githubUrls: string[]): Promise<GitHubRep
         if (info) return info;
     }
     return null;
+}
+
+/**
+ * Fetch GitHub user profile for the owner of the first valid GitHub URL.
+ */
+export async function fetchGitHubUserFromUrls(githubUrls: string[]): Promise<GitHubUserInfo | null> {
+    for (const url of githubUrls.slice(0, 2)) {
+        const parsed = parseGitHubRepo(url);
+        if (!parsed) continue;
+        const user = await fetchGitHubUser(parsed.owner);
+        if (user) return user;
+    }
+    return null;
+}
+
+/** Fetch GitHub user profile. Returns null if user not found or API fails. */
+export async function fetchGitHubUser(username: string): Promise<GitHubUserInfo | null> {
+    const key = username.toLowerCase();
+    const cached = getCached(userCache, key);
+    if (cached !== undefined) return cached;
+
+    try {
+        const resp = await fetch(`${GITHUB_API}/users/${encodeURIComponent(username)}`, {
+            headers: authHeaders(),
+            signal: AbortSignal.timeout(8_000),
+        });
+
+        if (!resp.ok) {
+            if (resp.status === 404) {
+                setCache(userCache, key, null, REPO_CACHE_TTL);
+                return null;
+            }
+            if (resp.status === 403 || resp.status === 429) {
+                log.warn('GitHub API rate limited (%d) for user %s', resp.status, username);
+                return null;
+            }
+            log.warn('GitHub API %d for user %s', resp.status, username);
+            return null;
+        }
+
+        const raw = (await resp.json()) as Record<string, unknown>;
+
+        const info: GitHubUserInfo = {
+            login: String(raw.login ?? username),
+            name: raw.name ? String(raw.name) : null,
+            bio: raw.bio ? String(raw.bio) : null,
+            htmlUrl: String(raw.html_url ?? `https://github.com/${username}`),
+            avatarUrl: String(raw.avatar_url ?? ''),
+            publicRepos: Number(raw.public_repos ?? 0),
+            followers: Number(raw.followers ?? 0),
+            following: Number(raw.following ?? 0),
+            company: raw.company ? String(raw.company) : null,
+            location: raw.location ? String(raw.location) : null,
+            blog: raw.blog ? String(raw.blog) : null,
+            twitterUsername: raw.twitter_username ? String(raw.twitter_username) : null,
+            createdAt: String(raw.created_at ?? ''),
+            hireable: Boolean(raw.hireable),
+        };
+
+        setCache(userCache, key, info, REPO_CACHE_TTL);
+        return info;
+    } catch (err) {
+        log.error('GitHub user fetch failed for %s: %s', username, err);
+        return null;
+    }
 }
 
 // ============================================================================

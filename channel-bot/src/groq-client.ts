@@ -33,6 +33,10 @@ export interface ClaimSummaryInput {
     githubLastPush: string | null;
     githubDescription: string | null;
     githubIsFork: boolean | null;
+    githubUserLogin: string | null;
+    githubUserFollowers: number | null;
+    githubUserRepos: number | null;
+    githubUserCreatedAt: string | null;
 }
 
 /**
@@ -118,6 +122,13 @@ function buildFactString(input: ClaimSummaryInput): string {
         if (input.githubIsFork) lines.push(`⚠ This is a fork`);
     } else {
         lines.push('No GitHub repo linked');
+    }
+
+    if (input.githubUserLogin) {
+        lines.push(`GitHub user: ${input.githubUserLogin}`);
+        if (input.githubUserFollowers != null) lines.push(`GitHub followers: ${input.githubUserFollowers}`);
+        if (input.githubUserRepos != null) lines.push(`GitHub public repos: ${input.githubUserRepos}`);
+        if (input.githubUserCreatedAt) lines.push(`GitHub account created: ${input.githubUserCreatedAt}`);
     }
 
     return lines.join('\n');

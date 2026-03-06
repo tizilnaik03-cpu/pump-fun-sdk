@@ -1,6 +1,6 @@
 # Pump SDK Tutorials
 
-> 19 hands-on tutorials for building on the Pump protocol with `@pump-fun/pump-sdk`.
+> 27 hands-on tutorials for building on the Pump protocol with `@pump-fun/pump-sdk`.
 
 ## Getting Started
 
@@ -24,6 +24,12 @@ npm install @pump-fun/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
          11 Trading Bot → 16 Monitoring Claims → 17 Dashboard
                                 ↓
               18 Telegram Bot → 19 CoinGecko Integration
+                                ↓
+      20 MCP Server → 21 WebSocket Feeds → 22 Channel Bot
+                                ↓
+    23 Mayhem Mode → 24 Cross-Program → 27 Cashback & Social
+                                ↓
+           25 DeFi Agents → 26 Live Dashboards
 ```
 
 **Just want to build something specific?** Jump directly:
@@ -39,6 +45,12 @@ npm install @pump-fun/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
 | Generate vanity addresses | [Tutorial 13](./13-vanity-addresses.md) |
 | Add paywalled APIs | [Tutorial 14](./14-x402-paywalled-apis.md) |
 | Understand the math | [Tutorial 05](./05-bonding-curve-math.md) |
+| Build an AI agent | [Tutorial 20](./20-mcp-server-ai-agents.md) |
+| Stream real-time data | [Tutorial 21](./21-websocket-realtime-feeds.md) |
+| Broadcast to Telegram | [Tutorial 22](./22-channel-bot-setup.md) |
+| Use Mayhem Mode | [Tutorial 23](./23-mayhem-mode-trading.md) |
+| Trade across programs | [Tutorial 24](./24-cross-program-trading.md) |
+| Deploy live dashboards | [Tutorial 26](./26-live-dashboard-deployment.md) |
 
 ## Tutorials
 
@@ -95,6 +107,29 @@ npm install @pump-fun/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
 | 17 | [Build a Monitoring Website](./17-monitoring-website.md) | Live dashboard, real-time bonding curve UI, WebSocket integration | Advanced |
 | 18 | [Telegram Bot](./18-telegram-bot.md) | Price alerts, claim checking, graduation notifications, grammY framework | Advanced |
 | 19 | [CoinGecko Integration](./19-coingecko-integration.md) | SOL/USD prices, token discovery, price comparison, API usage | Intermediate |
+
+### AI & Agents
+
+| # | Tutorial | Topics | Difficulty |
+|---|---------|--------|------------|
+| 20 | [MCP Server for AI Agents](./20-mcp-server-ai-agents.md) | Model Context Protocol, tool schemas, Claude/GPT integration, non-custodial | Advanced |
+| 25 | [DeFi Agents Integration](./25-defi-agents-integration.md) | 43 agent definitions, multi-agent routing, OpenAI/Anthropic, agent API | Intermediate |
+
+### Real-Time Streaming
+
+| # | Tutorial | Topics | Difficulty |
+|---|---------|--------|------------|
+| 21 | [WebSocket Real-Time Feeds](./21-websocket-realtime-feeds.md) | Relay server, browser/Node.js clients, launch filtering, custom relay | Intermediate |
+| 22 | [Channel Bot — Telegram Broadcasting](./22-channel-bot-setup.md) | Read-only Telegram feed, event decoding, discriminators, Docker/Railway | Advanced |
+| 26 | [Live Dashboard Deployment](./26-live-dashboard-deployment.md) | Terminal UI, trade analytics, whale alerts, Vercel/Docker deploy | Beginner |
+
+### Advanced Trading
+
+| # | Tutorial | Topics | Difficulty |
+|---|---------|--------|------------|
+| 23 | [Mayhem Mode Trading](./23-mayhem-mode-trading.md) | Mayhem PDAs, Token-2022, fee tier differences, vault routing | Advanced |
+| 24 | [Cross-Program Trading](./24-cross-program-trading.md) | Pump → PumpAMM lifecycle, graduation detection, unified trading, BothPrograms | Intermediate |
+| 27 | [Cashback & Social Fee PDAs](./27-cashback-social-fees.md) | Cashback rewards, volume accumulators, social fee PDAs, identity linking | Intermediate |
 
 ## Prerequisites
 

@@ -1,6 +1,42 @@
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 
+/**
+ * Platform identifiers for social handle mappings.
+ */
+export enum Platform {
+  Pump = 0,
+  X = 1,
+  GitHub = 2,
+}
+
+export const SUPPORTED_SOCIAL_PLATFORMS = [Platform.GitHub];
+
+export const stringToPlatform = (value: string): Platform => {
+  const normalized = value.trim().toUpperCase();
+  const entry = Object.entries(Platform).find(
+    ([key, val]) => typeof val === "number" && key.toUpperCase() === normalized,
+  );
+  if (entry) {
+    return entry[1] as Platform;
+  }
+  const validNames = Object.entries(Platform)
+    .filter(([, val]) => typeof val === "number")
+    .map(([key]) => key.toUpperCase())
+    .join(", ");
+  throw new Error(
+    `Unknown platform "${value}". Expected one of: ${validNames}`,
+  );
+};
+
+export const platformToString = (platform: Platform): string => {
+  const name = Platform[platform];
+  if (name !== undefined) {
+    return name;
+  }
+  throw new Error(`Unknown platform value: ${platform}`);
+};
+
 export interface Global {
   // unused
   initialized: boolean;
