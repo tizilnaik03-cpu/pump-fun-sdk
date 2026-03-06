@@ -225,3 +225,4 @@ Use the `slippage` parameter in `buyInstructions()` / `sellInstructions()` to se
 - [Token Lifecycle](../README.md#-token-lifecycle) — Full lifecycle from creation to AMM
 - [API Reference](./api-reference.md) — Complete function signatures
 - [Examples](./examples.md) — Working code samples
+
