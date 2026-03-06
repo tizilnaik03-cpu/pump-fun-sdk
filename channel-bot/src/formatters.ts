@@ -103,7 +103,9 @@ export function formatClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | nul
     L.push(`  ↳ Type: ${esc(event.claimLabel)}`);
     const isSelf = token?.creator === event.claimerWallet;
     const claimerTag = isSelf ? '👤 Creator' : '👻 3rd-party';
-    const claimerName = `<a href="${esc(githubUser!.htmlUrl)}">${esc(githubUser!.login)}</a>`;
+    const claimerName = githubUser
+        ? `<a href="${esc(githubUser.htmlUrl)}">${esc(githubUser.login)}</a>`
+        : `<code>${shortAddr(event.claimerWallet)}</code>`;
     L.push(`  ↳ Claimed by ${claimerName} (${claimerTag})`);
     if (token && token.createdTimestamp > 0 && event.timestamp > 0) {
         const diff = event.timestamp - token.createdTimestamp;
@@ -146,26 +148,26 @@ export function formatClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | nul
     }
 
     // ━━ GITHUB ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    L.push('');
-    {
-        const userLink = `<a href="${esc(githubUser!.htmlUrl)}">${esc(githubUser!.login)}</a>`;
-        const nameTag = githubUser!.name ? ` (${esc(githubUser!.name)})` : '';
+    if (githubUser) {
+        L.push('');
+        const userLink = `<a href="${esc(githubUser.htmlUrl)}">${esc(githubUser.login)}</a>`;
+        const nameTag = githubUser.name ? ` (${esc(githubUser.name)})` : '';
         L.push(`🐙 ${userLink}${nameTag}`);
-        if (githubUser!.publicRepos > 0) L.push(`📦 Repos: ${githubUser!.publicRepos}`);
+        if (githubUser.publicRepos > 0) L.push(`📦 Repos: ${githubUser.publicRepos}`);
         const ghFollow: string[] = [];
-        if (githubUser!.followers > 0) ghFollow.push(`${githubUser!.followers} followers`);
-        if (githubUser!.following > 0) ghFollow.push(`${githubUser!.following} following`);
+        if (githubUser.followers > 0) ghFollow.push(`${githubUser.followers} followers`);
+        if (githubUser.following > 0) ghFollow.push(`${githubUser.following} following`);
         if (ghFollow.length > 0) L.push(`👁 ${ghFollow.join(' · ')}`);
-        if (githubUser!.createdAt) L.push(`📅 Joined: ${timeAgo(new Date(githubUser!.createdAt).getTime() / 1000)}`);
-        if (githubUser!.company) L.push(`🏢 ${esc(githubUser!.company)}`);
-        if (githubUser!.bio) {
-            const bio = githubUser!.bio.length > 80 ? githubUser!.bio.slice(0, 77) + '...' : githubUser!.bio;
+        if (githubUser.createdAt) L.push(`📅 Joined: ${timeAgo(new Date(githubUser.createdAt).getTime() / 1000)}`);
+        if (githubUser.company) L.push(`🏢 ${esc(githubUser.company)}`);
+        if (githubUser.bio) {
+            const bio = githubUser.bio.length > 80 ? githubUser.bio.slice(0, 77) + '...' : githubUser.bio;
             L.push(`  <i>${esc(bio)}</i>`);
         }
         const ghSocials: string[] = [];
-        if (githubUser!.twitterUsername) ghSocials.push(`<a href="https://x.com/${esc(githubUser!.twitterUsername)}">𝕏 ${esc(githubUser!.twitterUsername)}</a>`);
-        if (githubUser!.blog) ghSocials.push(`<a href="${esc(githubUser!.blog)}">🌐 ${esc(githubUser!.blog.replace(/^https?:\/\//, '').slice(0, 40))}</a>`);
-        if (githubUser!.location) ghSocials.push(`📍 ${esc(githubUser!.location)}`);
+        if (githubUser.twitterUsername) ghSocials.push(`<a href="https://x.com/${esc(githubUser.twitterUsername)}">𝕏 ${esc(githubUser.twitterUsername)}</a>`);
+        if (githubUser.blog) ghSocials.push(`<a href="${esc(githubUser.blog)}">🌐 ${esc(githubUser.blog.replace(/^https?:\/\//, '').slice(0, 40))}</a>`);
+        if (githubUser.location) ghSocials.push(`📍 ${esc(githubUser.location)}`);
         if (ghSocials.length > 0) L.push(`  ↳ ${ghSocials.join(' · ')}`);
     }
     if (githubRepo) {
