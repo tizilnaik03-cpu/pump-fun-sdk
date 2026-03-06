@@ -39,3 +39,4 @@ export const addCategory = async (json) => {
 
   return json;
 };
+
