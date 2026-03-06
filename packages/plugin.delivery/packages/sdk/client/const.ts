@@ -19,3 +19,4 @@ export enum PluginChannel {
   updatePluginSettings = 'speraxos:update-plugin-settings',
   updatePluginState = 'speraxos:update-plugin-state',
 }
+
