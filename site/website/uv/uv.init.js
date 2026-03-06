@@ -169,3 +169,4 @@
     };
 
 })(typeof window !== 'undefined' ? window : self);
+
