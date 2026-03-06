@@ -374,30 +374,6 @@ Yes. The SDK has no Node.js-specific dependencies. The ESM build works in modern
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed system design, data flow diagrams, and module explanations.
 
-```
-┌─────────────────────────────────────────────────────┐
-│                   Your Application                   │
-├─────────────────────────────────────────────────────┤
-│              @pump-fun/pump-sdk                      │
-│  ┌──────────────┐  ┌──────────────────────────┐     │
-│  │   PumpSdk    │  │    OnlinePumpSdk          │     │
-│  │  (offline)   │  │  (extends PumpSdk + RPC)  │     │
-│  └──────┬───────┘  └──────────┬───────────────┘     │
-│         │                     │                      │
-│  ┌──────┴─────────────────────┴───────────────┐     │
-│  │  Instruction Builders (TransactionInstruction[]) │
-│  └──────────────────┬─────────────────────────┘     │
-├─────────────────────┼───────────────────────────────┤
-│                     ▼                                │
-│  ┌────────────┐ ┌──────────┐ ┌───────────────┐     │
-│  │   Pump     │ │ PumpAMM  │ │   PumpFees    │     │
-│  │  Program   │ │ Program  │ │   Program     │     │
-│  └────────────┘ └──────────┘ └───────────────┘     │
-├─────────────────────────────────────────────────────┤
-│                  Solana Blockchain                    │
-└─────────────────────────────────────────────────────┘
-```
-
 ---
 
 ## 🤝 Contributing
