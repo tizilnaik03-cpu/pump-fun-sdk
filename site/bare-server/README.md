@@ -94,3 +94,4 @@ Example:
 // In browser.html or UV config
 const BARE_SERVER = "https://your-bare-server.vercel.app/bare/";
 ```
+
