@@ -23,3 +23,4 @@ const after = db.apps.length;
 
 fs.writeFileSync(dbPath, JSON.stringify(db, null, 6) + '\n');
 console.log(`Removed ${before - after} entries. Before: ${before}, After: ${after}`);
+
