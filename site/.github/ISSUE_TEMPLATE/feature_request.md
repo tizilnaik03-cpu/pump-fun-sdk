@@ -39,3 +39,4 @@ How important is this feature to you?
 - [ ] I have searched existing issues/feature requests
 - [ ] This feature doesn't already exist in Pump Fun SDK
 - [ ] I would be willing to help implement this feature
+
