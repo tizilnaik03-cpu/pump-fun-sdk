@@ -48,3 +48,4 @@ export const formatFilenames = () => {
   }
   consola.success('clean');
 };
+
