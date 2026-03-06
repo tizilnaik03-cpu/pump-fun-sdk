@@ -21,3 +21,4 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
           inactive-label: 'Inactive'
           inactive-day: 30
+
