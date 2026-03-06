@@ -247,3 +247,4 @@ $(whoami)
 - `shred` doesn't work on all filesystems (journaled, copy-on-write, SSD with TRIM)
 - Base58 validation must check each character individually — regex alone may miss edge cases
 
+
