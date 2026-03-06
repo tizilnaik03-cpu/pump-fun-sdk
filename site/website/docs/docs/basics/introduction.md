@@ -41,3 +41,4 @@ The user can turn off any of these namespaces for your application; this will ca
 {% hint style="info" %}
 The upcoming PumpOS Panels in Pump Nav would have a different syntax from the applications, which would allow them to function best in a widget-like fashion.
 {% endhint %}
+
