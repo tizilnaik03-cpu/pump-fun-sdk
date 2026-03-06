@@ -96,3 +96,4 @@ vercel --prod
 ```
 
 Update manifest URLs for production and remove the `gateway` field.
+
