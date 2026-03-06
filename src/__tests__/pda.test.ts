@@ -1,3 +1,4 @@
+import { NATIVE_MINT } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 
 import {
@@ -46,7 +47,7 @@ describe("pda", () => {
   // ── Derived PDAs ───────────────────────────────────────────────────
 
   describe("derived PDAs", () => {
-    const mint = new PublicKey("So11111111111111111111111111111111");
+    const mint = NATIVE_MINT;
 
     it("bondingCurvePda is deterministic", () => {
       const a = bondingCurvePda(mint);

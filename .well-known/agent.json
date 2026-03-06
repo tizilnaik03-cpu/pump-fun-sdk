@@ -30,6 +30,20 @@
         "ai_plugin": ".well-known/ai-plugin.json"
     },
     "skills_directory": ".github/skills/",
+    "skill_loading": {
+        "strategy": "scoped",
+        "description": "Skills use applyTo YAML frontmatter to restrict loading to relevant file patterns. Only skills matching the current editing context should be loaded."
+    },
+    "context_guidance": {
+        "quick_reference": "llms.txt",
+        "full_reference": "llms-full.txt",
+        "recommendation": "Use llms.txt by default. Only load llms-full.txt when full API details, event types, or architecture context is needed."
+    },
+    "mcp_status": {
+        "implemented": false,
+        "design_docs": "prompts/mcp-server/",
+        "note": "mcp-server/ directory does not exist. Do not reference MCP tools as available."
+    },
     "programs": {
         "pump": {
             "id": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",

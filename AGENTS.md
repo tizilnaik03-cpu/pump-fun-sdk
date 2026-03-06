@@ -58,21 +58,7 @@ The repository also includes:
 
 ## Agent Skill Files
 
-See `.github/skills/` for 28 detailed skill documents covering every domain:
-- `pump-sdk-core.skill.md` — Core SDK patterns
-- `bonding-curve.skill.md` / `bonding-curve-math.skill.md` — AMM math
-- `token-lifecycle.skill.md` — Create, trade, migrate
-- `fee-system.skill.md` / `fee-sharing.skill.md` — Fee system
-- `token-incentives.skill.md` — Volume-based rewards
-- `solana-program-architecture.skill.md` — PDAs and accounts
-- `solana-wallet.skill.md` — Key generation security
-- `rust-vanity-gen.skill.md` / `rust-vanity-generator.skill.md` — Rust generator
-- `typescript-vanity-generator.skill.md` — TypeScript generator
-- `mcp-server.skill.md` — MCP integration
-- `shell-scripting-cli.skill.md` — Bash scripts
-- `security-practices.skill.md` — Security hardening
-
-## Well-Known Files
+See `.github/skills/` for 28 detailed skill documents. Each skill has an `applyTo` frontmatter pattern — skills are only loaded when editing files matching their glob.\n\nKey skills: pump-sdk-core, bonding-curve, bonding-curve-math, token-lifecycle, fee-system, fee-sharing, token-incentives, solana-program-architecture, solana-wallet, rust-vanity-gen, rust-vanity-generator, typescript-vanity-generator, mcp-server, shell-scripting-cli, security-practices.\n\n## Performance Constraints\n\n| Component | Metric | Notes |\n|-----------|--------|-------|\n| SDK offline instructions | < 1ms | Pure functions, no async |\n| SDK online (RPC) | 50–500ms | Batch with `getMultipleAccountsInfo` |\n| Rust vanity | 100K+ keys/sec | Multi-threaded; use for production |\n| TS vanity | ~1K keys/sec | Educational only |\n| WebSocket relay | 10K conn, 50K msg/sec | Per vCPU |\n\n## MCP Server Status\n\nThe MCP server is **designed but not yet implemented**. Design docs in `prompts/mcp-server/`. The `mcp-server/` directory does not exist.\n\n## Well-Known Files
 
 - `.well-known/ai-plugin.json` — AI plugin manifest
 - `.well-known/agent.json` — Agent capabilities and configuration

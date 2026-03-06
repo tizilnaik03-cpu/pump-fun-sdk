@@ -11,6 +11,7 @@
             "name": "Pump SDK Core — Instruction Building & On-Chain Interaction",
             "description": "Build, extend, and maintain the core Pump SDK — an offline-first TypeScript SDK that constructs Solana TransactionInstructions for token creation, buying, selling, migration, and creator fee collection across three on-chain programs (Pump, PumpAMM, PumpFees).",
             "path": ".github/skills/pump-sdk-core.skill.md",
+            "applyTo": "src/**",
             "tags": ["typescript", "solana", "sdk", "anchor", "instructions"]
         },
         {
@@ -18,6 +19,7 @@
             "name": "Bonding Curve — Pricing & Quoting Engine",
             "description": "Constant-product AMM bonding curve math for token pricing, buy/sell quoting, fee-aware calculations, and market cap computation.",
             "path": ".github/skills/bonding-curve.skill.md",
+            "applyTo": "src/**",
             "tags": ["math", "amm", "pricing", "trading", "typescript"]
         },
         {
@@ -25,6 +27,7 @@
             "name": "Bonding Curve Mathematics — Constant-Product AMM Pricing",
             "description": "Deep-dive into the constant-product AMM formula, virtual vs real reserves, fee stripping, ceiling division, and edge case handling for bonding curve operations.",
             "path": ".github/skills/bonding-curve-math.skill.md",
+            "applyTo": "src/**",
             "tags": ["math", "amm", "formula", "reserves", "edge-cases"]
         },
         {
@@ -32,6 +35,7 @@
             "name": "Token Lifecycle — Create, Trade, Migrate",
             "description": "Full token lifecycle from creation through bonding curve trading, graduation detection, and AMM migration on Solana.",
             "path": ".github/skills/token-lifecycle.skill.md",
+            "applyTo": "src/**",
             "tags": ["tokens", "creation", "trading", "migration", "solana"]
         },
         {
@@ -39,6 +43,7 @@
             "name": "Fee Sharing — Creator Fee Distribution",
             "description": "Configure and distribute creator fees to multiple shareholders using the PumpFees program with validation and BPS-based share allocation.",
             "path": ".github/skills/fee-sharing.skill.md",
+            "applyTo": "src/**",
             "tags": ["fees", "creators", "distribution", "shareholders"]
         },
         {
@@ -46,6 +51,7 @@
             "name": "Fee System — Tiered Fees, Creator Fees & Fee Sharing",
             "description": "Complete fee system: tiered protocol fees based on market cap, creator fee collection across two programs, and fee sharing configuration for shareholder distribution.",
             "path": ".github/skills/fee-system.skill.md",
+            "applyTo": "src/**",
             "tags": ["fees", "tiered", "basis-points", "market-cap", "creator"]
         },
         {
@@ -53,6 +59,7 @@
             "name": "Token Incentives — Volume-Based PUMP Token Rewards",
             "description": "Volume-based daily PUMP token reward system with day-indexed epochs, pro-rata distribution, accumulator tracking, and cross-program claiming.",
             "path": ".github/skills/token-incentives.skill.md",
+            "applyTo": "src/**",
             "tags": ["incentives", "rewards", "volume", "claiming", "epochs"]
         },
         {
@@ -60,6 +67,7 @@
             "name": "Solana Wallet — Key Generation & Security",
             "description": "Secure Solana wallet generation using official Solana Labs libraries with Ed25519 keys, memory zeroization, and offline-only operation.",
             "path": ".github/skills/solana-wallet.skill.md",
+            "applyTo": "src/**,rust/**,typescript/**,scripts/**",
             "tags": ["wallet", "keypair", "ed25519", "security", "solana"]
         },
         {
@@ -67,6 +75,7 @@
             "name": "Solana Program Architecture — PDAs, Accounts & Multi-Program Coordination",
             "description": "Design, derive, and manage Program Derived Addresses (PDAs) and account layouts across the Pump ecosystem's four Solana programs with cross-program invocation patterns.",
             "path": ".github/skills/solana-program-architecture.skill.md",
+            "applyTo": "src/**",
             "tags": ["pda", "accounts", "programs", "architecture", "solana"]
         },
         {
@@ -74,6 +83,7 @@
             "name": "Rust Vanity Generator — High-Performance Address Mining",
             "description": "Multi-threaded Rust vanity address generator using rayon and solana-sdk for parallel Base58 pattern matching with prefix/suffix support.",
             "path": ".github/skills/rust-vanity-gen.skill.md",
+            "applyTo": "rust/**",
             "tags": ["rust", "vanity", "parallel", "rayon", "performance"]
         },
         {
@@ -81,6 +91,7 @@
             "name": "Rust Vanity Address Generator — Production-Grade Multi-Threaded Keypair Generation",
             "description": "Production-grade Rust binary achieving 100K+ keys/second using Rayon parallel iterators with security-hardened file output and Solana CLI compatibility.",
             "path": ".github/skills/rust-vanity-generator.skill.md",
+            "applyTo": "rust/**",
             "tags": ["rust", "vanity", "parallel", "rayon", "production", "criterion"]
         },
         {
@@ -88,13 +99,15 @@
             "name": "TypeScript Vanity Address Generator — Educational Reference Implementation",
             "description": "Single-threaded TypeScript vanity address generator using @solana/web3.js with async iteration, event-loop yielding, and streaming generator API.",
             "path": ".github/skills/typescript-vanity-generator.skill.md",
+            "applyTo": "typescript/**",
             "tags": ["typescript", "vanity", "async", "educational", "web3.js"]
         },
         {
             "id": "mcp-server",
             "name": "MCP Server — Model Context Protocol for Solana Wallet Operations",
-            "description": "Model Context Protocol server exposing 53 tools, 3 resource types, and 3 prompts for AI agent consumption over stdio transport with session keypair management.",
+            "description": "Model Context Protocol server exposing 53 tools, 3 resource types, and 3 prompts for AI agent consumption over stdio transport with session keypair management. NOTE: Not yet implemented.",
             "path": ".github/skills/mcp-server.skill.md",
+            "applyTo": "mcp-server/**,prompts/mcp-server/**",
             "tags": ["mcp", "ai", "tools", "server", "integration", "stdio"]
         },
         {
@@ -102,6 +115,7 @@
             "name": "Shell Scripting & CLI Tools — Production Bash Scripts",
             "description": "Production-quality Bash scripts for vanity generation, keypair verification, batch operations, dependency auditing, and test orchestration with security-hardened patterns.",
             "path": ".github/skills/shell-scripting-cli.skill.md",
+            "applyTo": "scripts/**",
             "tags": ["bash", "shell", "cli", "scripts", "security", "production"]
         },
         {
@@ -109,6 +123,7 @@
             "name": "Security Practices — Cryptographic Safety, Memory Zeroization & Hardened I/O",
             "description": "Defense-in-depth security across Rust, TypeScript, and Bash: key handling, memory zeroization, secure file I/O, input validation, privilege management, and dependency auditing.",
             "path": ".github/skills/security-practices.skill.md",
+            "applyTo": "src/**,rust/**,typescript/**,scripts/**,security/**",
             "tags": ["security", "zeroization", "crypto", "audit", "hardening"]
         },
         {
@@ -116,6 +131,7 @@
             "name": "OpenClaw — AI Agent Skill Packaging & Discovery",
             "description": "Design, package, and deploy OpenClaw-compatible skill packages for AI agent discovery, MCP runtime integration, SperaxOS agent teams, and plug-and-play deployment across Claude, Copilot, and other LLM agents.",
             "path": ".github/skills/openclaw.skill.md",
+            "applyTo": "skills/**,.well-known/**,prompts/**",
             "tags": ["openclaw", "ai", "agents", "mcp", "skills", "discovery"]
         },
         {
@@ -123,6 +139,7 @@
             "name": "OpenClaw Wallet Operations — Keypair Generation, Signing & Validation",
             "description": "Generate Solana Ed25519 keypairs, sign and verify messages, validate addresses, and manage session-based key storage through MCP tools using official Solana Labs cryptographic libraries.",
             "path": ".github/skills/openclaw-wallet-ops.skill.md",
+            "applyTo": "src/**,rust/**,typescript/**,scripts/**",
             "tags": ["openclaw", "wallet", "keypair", "signing", "ed25519"]
         },
         {
@@ -130,6 +147,7 @@
             "name": "OpenClaw Token Creation — Mint New Tokens on Pumpfun",
             "description": "Create new tokens on the Pumpfun protocol using createV2Instruction with Token-2022, optional mayhem mode, initial buy bundling, and metadata URI configuration.",
             "path": ".github/skills/openclaw-token-creation.skill.md",
+            "applyTo": "src/**",
             "tags": ["openclaw", "token", "creation", "mint", "pumpfun"]
         },
         {
@@ -137,6 +155,7 @@
             "name": "OpenClaw Token Trading — Buy & Sell on Bonding Curves",
             "description": "Buy and sell tokens on Pumpfun bonding curves with slippage protection, fee-aware quoting, and automatic ATA creation for both Token and Token-2022 programs.",
             "path": ".github/skills/openclaw-token-trading.skill.md",
+            "applyTo": "src/**",
             "tags": ["openclaw", "trading", "buy", "sell", "bonding-curve"]
         },
         {
@@ -144,6 +163,7 @@
             "name": "OpenClaw Fee Management — Creator Fee Collection & Distribution",
             "description": "Collect accumulated creator fees, configure fee sharing among shareholders, and distribute earnings proportionally across Pump and PumpAMM programs.",
             "path": ".github/skills/openclaw-fee-management.skill.md",
+            "applyTo": "src/**",
             "tags": ["openclaw", "fees", "creator", "distribution", "shareholders"]
         },
         {
@@ -151,6 +171,7 @@
             "name": "OpenClaw Vanity Address — Custom Solana Address Generation",
             "description": "Generate Solana keypairs with custom Base58 prefix and suffix patterns using MCP tools, with Rust high-performance and TypeScript reference implementations.",
             "path": ".github/skills/openclaw-vanity-address.skill.md",
+            "applyTo": "rust/**,typescript/**,scripts/**",
             "tags": ["openclaw", "vanity", "address", "generation", "base58"]
         },
         {
@@ -158,7 +179,56 @@
             "name": "OpenClaw Market Data — Bonding Curve Quoting & Analytics",
             "description": "Query bonding curve state, compute fee-aware buy/sell quotes, calculate market cap, detect graduation status, and read token incentive accumulators for informed trading decisions.",
             "path": ".github/skills/openclaw-market-data.skill.md",
+            "applyTo": "src/**",
             "tags": ["openclaw", "market-data", "quoting", "analytics", "pricing"]
+        },
+        {
+            "id": "admin-operations",
+            "name": "Admin Operations — Protocol Governance & Authority Management",
+            "description": "Protocol governance, authority management, and admin-level operations for on-chain program configuration.",
+            "path": ".github/skills/admin-operations.skill.md",
+            "applyTo": "src/**",
+            "tags": ["admin", "governance", "authority", "protocol"]
+        },
+        {
+            "id": "ai-agent-integration",
+            "name": "AI Agent Integration — LLM Context, Skills Registry & Agent Configuration",
+            "description": "Configure and maintain AI agent integration files including LLM context, skills registry, agent.json, and instruction files for Copilot, Claude, and Gemini.",
+            "path": ".github/skills/ai-agent-integration.skill.md",
+            "applyTo": ".well-known/**,.github/skills/**,prompts/**,AGENTS.md,CLAUDE.md,GEMINI.md,COPILOT.md,llms*.txt",
+            "tags": ["ai", "agents", "llm", "configuration", "skills"]
+        },
+        {
+            "id": "build-release",
+            "name": "Build, Release & Package Management — Multi-Language Build System",
+            "description": "Build system configuration, package management, and release automation across TypeScript (tsup/jest) and Rust (cargo) with semantic-release.",
+            "path": ".github/skills/build-release.skill.md",
+            "applyTo": "package.json,tsconfig.json,tsup.config.ts,Cargo.toml,Makefile,.releaserc*",
+            "tags": ["build", "release", "packaging", "tsup", "cargo"]
+        },
+        {
+            "id": "nextjs-website",
+            "name": "PumpOS Website — Static Web Desktop with 169 Apps",
+            "description": "Static HTML/CSS/JS web desktop (PumpOS) with DeFi dashboards, trading tools, and SDK documentation apps.",
+            "path": ".github/skills/nextjs-website.skill.md",
+            "applyTo": "website/**,site/**",
+            "tags": ["website", "html", "css", "desktop", "pumpos"]
+        },
+        {
+            "id": "solana-development",
+            "name": "Solana Development — Web3.js, Anchor, SPL Tokens & On-Chain Patterns",
+            "description": "Solana development patterns using Web3.js, Anchor framework, SPL token programs, and on-chain interaction patterns.",
+            "path": ".github/skills/solana-development.skill.md",
+            "applyTo": "src/**,typescript/**",
+            "tags": ["solana", "web3", "anchor", "spl", "development"]
+        },
+        {
+            "id": "testing-quality",
+            "name": "Testing & Quality — Multi-Language Test Infrastructure",
+            "description": "Test infrastructure setup and quality assurance across TypeScript (Jest) and Rust (cargo test) with integration test orchestration.",
+            "path": ".github/skills/testing-quality.skill.md",
+            "applyTo": "tests/**,src/**/*.test.*,rust/tests/**",
+            "tags": ["testing", "jest", "cargo-test", "quality", "integration"]
         }
     ]
 }
