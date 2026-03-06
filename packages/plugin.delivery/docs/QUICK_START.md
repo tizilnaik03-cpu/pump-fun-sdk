@@ -427,3 +427,4 @@ After completing this quick start, explore these guides for more advanced topics
 - 💬 [Communication Guide](./COMMUNICATION_GUIDE.md) - Frontend/backend communication patterns
 - 🔌 [SDK API Reference](./SDK_API_REFERENCE.md) - Full SDK documentation
 - 📤 [Submit Your Plugin](./SUBMIT_PLUGIN.md) - Get listed in the marketplace
+
