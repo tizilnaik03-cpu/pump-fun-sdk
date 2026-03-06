@@ -517,3 +517,134 @@ async function fetchSolPriceBinance(): Promise<number> {
     }
 }
 
+// ============================================================================
+// Top Holders
+// ============================================================================
+
+export interface TopHolder {
+    address: string;
+    /** Percentage of supply held (0-100) */
+    pct: number;
+    /** Whether this is the bonding curve / pool address */
+    isPool: boolean;
+}
+
+export interface HolderDetails {
+    totalHolders: number;
+    topHolders: TopHolder[];
+    /** Sum of top 10 holders' pct (excluding pool) */
+    top10Pct: number;
+}
+
+/** Fetch top holders for a token from the PumpFun API. */
+export async function fetchTopHolders(mint: string): Promise<HolderDetails> {
+    const result: HolderDetails = { totalHolders: 0, topHolders: [], top10Pct: 0 };
+    try {
+        const resp = await fetch(
+            `${PUMPFUN_API}/coins/${encodeURIComponent(mint)}/holders?limit=20&offset=0`,
+            { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(8_000) },
+        );
+        if (!resp.ok) return result;
+
+        const data = await resp.json();
+        const holders = Array.isArray(data) ? data : (data as Record<string, unknown>).holders;
+        if (!Array.isArray(holders)) return result;
+
+        if (typeof data === 'object' && data !== null && 'total' in data) {
+            result.totalHolders = Number((data as Record<string, unknown>).total ?? holders.length);
+        } else {
+            result.totalHolders = holders.length;
+        }
+
+        for (const h of holders.slice(0, 20)) {
+            const raw = h as Record<string, unknown>;
+            const address = String(raw.address ?? raw.owner ?? '');
+            const pct = Number(raw.percentage ?? raw.pct ?? 0);
+            const isPool = Boolean(raw.is_bonding_curve ?? raw.isPool ?? false);
+            result.topHolders.push({ address, pct, isPool });
+        }
+
+        // top10 excluding pool
+        const nonPool = result.topHolders.filter(h => !h.isPool);
+        result.top10Pct = nonPool.slice(0, 10).reduce((sum, h) => sum + h.pct, 0);
+    } catch (err) {
+        log.debug('Top holders fetch failed for %s: %s', mint.slice(0, 8), err);
+    }
+    return result;
+}
+
+// ============================================================================
+// Dev Wallet Balance (SOL + token holdings)
+// ============================================================================
+
+export interface DevWalletInfo {
+    /** SOL balance in SOL (not lamports) */
+    solBalance: number;
+    /** Percentage of token supply held by dev */
+    tokenSupplyPct: number;
+}
+
+/**
+ * Fetch dev wallet SOL balance and token holdings via RPC.
+ * Accepts a Connection to avoid creating new connections.
+ */
+export async function fetchDevWalletInfo(
+    devWallet: string,
+    mint: string,
+    rpcUrl: string,
+): Promise<DevWalletInfo> {
+    const result: DevWalletInfo = { solBalance: 0, tokenSupplyPct: 0 };
+    try {
+        // SOL balance via standard JSON-RPC
+        const balResp = await fetch(rpcUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0', id: 1, method: 'getBalance',
+                params: [devWallet, { commitment: 'confirmed' }],
+            }),
+            signal: AbortSignal.timeout(8_000),
+        });
+        if (balResp.ok) {
+            const balData = (await balResp.json()) as { result?: { value?: number } };
+            result.solBalance = (balData.result?.value ?? 0) / LAMPORTS_PER_SOL;
+        }
+    } catch (err) {
+        log.debug('Dev SOL balance fetch failed for %s: %s', devWallet.slice(0, 8), err);
+    }
+
+    try {
+        // Token holdings via getTokenAccountsByOwner
+        const tokenResp = await fetch(rpcUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0', id: 2, method: 'getTokenAccountsByOwner',
+                params: [
+                    devWallet,
+                    { mint },
+                    { encoding: 'jsonParsed', commitment: 'confirmed' },
+                ],
+            }),
+            signal: AbortSignal.timeout(8_000),
+        });
+        if (tokenResp.ok) {
+            const tokenData = (await tokenResp.json()) as {
+                result?: { value?: Array<{ account: { data: { parsed: { info: { tokenAmount: { uiAmount: number } } } } } }> }
+            };
+            const accounts = tokenData.result?.value ?? [];
+            let totalTokens = 0;
+            for (const acct of accounts) {
+                totalTokens += acct.account?.data?.parsed?.info?.tokenAmount?.uiAmount ?? 0;
+            }
+            // Total supply is 1B tokens (1_000_000_000)
+            const TOTAL_SUPPLY = 1_000_000_000;
+            result.tokenSupplyPct = (totalTokens / TOTAL_SUPPLY) * 100;
+        }
+    } catch (err) {
+        log.debug('Dev token balance fetch failed for %s: %s', devWallet.slice(0, 8), err);
+    }
+
+    return result;
+}
+
