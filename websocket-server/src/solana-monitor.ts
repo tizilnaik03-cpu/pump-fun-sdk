@@ -94,12 +94,12 @@ export class SolanaMonitor {
       if (!Array.isArray(coins) || coins.length === 0) return;
 
       this.processPumpCoins(coins);
-    } catch (err: any) {
-      console.error(`[pump] Poll error: ${err.message}`);
+    } catch (err: unknown) {
+      console.error(`[pump] Poll error: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
-  private processPumpCoins(coins: any[]): void {
+  private processPumpCoins(coins: Record<string, unknown>[]): void {
     let newCount = 0;
 
     for (const coin of coins) {
@@ -155,11 +155,11 @@ export class SolanaMonitor {
     }
   }
 
-  private extractGithubUrls(coin: any): string[] {
+  private extractGithubUrls(coin: Record<string, unknown>): string[] {
     const urls = new Set<string>();
     const ghPattern = /https?:\/\/(www\.)?github\.com\/[^\s"'<>)]+/gi;
 
-    const scan = (val: any, depth = 0): void => {
+    const scan = (val: unknown, depth = 0): void => {
       if (depth > 3) return;
       if (typeof val === 'string') {
         const matches = val.match(ghPattern);
@@ -208,7 +208,7 @@ export class SolanaMonitor {
     });
 
     this.ws.on('message', (data) => {
-      let msg: any;
+      let msg: Record<string, unknown>;
       try { msg = JSON.parse(data.toString()); } catch { return; }
 
       if (msg.id === 1 && msg.result !== undefined) {

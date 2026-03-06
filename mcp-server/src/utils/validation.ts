@@ -1,7 +1,8 @@
 import { z } from "zod";
 
-// ── Base58 public key validation ──
+// ── Base58 validation ──
 const BASE58_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+const BASE58_CHARS_REGEX = /^[1-9A-HJ-NP-Za-km-z]+$/;
 
 export const publicKeySchema = z
   .string()
@@ -40,3 +41,29 @@ export const socialShareholderSchema = z.object({
 export const platformSchema = z
   .enum(["pump", "x", "github"])
   .describe("Social platform identifier");
+
+// ── Wallet tool schemas ──
+
+export const SolanaAddressSchema = z
+  .string()
+  .min(32)
+  .max(44)
+  .regex(BASE58_CHARS_REGEX, "Invalid Base58 characters in address");
+
+export const PrefixSchema = z
+  .string()
+  .max(6, "Prefix too long (max 6 characters)")
+  .regex(BASE58_CHARS_REGEX, "Prefix must contain only Base58 characters");
+
+export const SuffixSchema = z
+  .string()
+  .max(6, "Suffix too long (max 6 characters)")
+  .regex(BASE58_CHARS_REGEX, "Suffix must contain only Base58 characters");
+
+export function isValidBase58(str: string): boolean {
+  return BASE58_CHARS_REGEX.test(str);
+}
+
+export function sanitizeInput(input: string): string {
+  return input.replace(/[^\x20-\x7E]/g, "");
+}

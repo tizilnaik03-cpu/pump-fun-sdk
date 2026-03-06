@@ -144,8 +144,6 @@ export function createBot(config: BotConfig): Bot {
 
     // Find user by username
     const targetUser = mentioned[0];
-    // We'll get calls by looking up the user
-    const user = db.prepare ? undefined : undefined; // Can't search by username directly in this schema
     await ctx.reply(`📋 Use /last to see recent calls, or /winrate @${targetUser} for stats.`);
   });
 

@@ -1,6 +1,6 @@
 # Pump SDK Tutorials
 
-> 35 hands-on tutorials for building on the Pump protocol with `@pump-fun/pump-sdk`.
+> 43 hands-on tutorials for building on the Pump protocol with `@pump-fun/pump-sdk`.
 
 ## Getting Started
 
@@ -36,6 +36,12 @@ npm install @pump-fun/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
     31 Rust Vanity → 32 Plugins → 33 Error Handling
                                 ↓
           34 AMM Liquidity → 35 Admin & Protocol
+                                ↓
+       36 x402 Facilitator → 37 Security Audit
+                                ↓
+     38 Testing → 39 Channel Bot AI → 40 PumpOS Apps
+                                ↓
+   41 Plugin Gateway → 42 Custom Agents → 43 Standalone Plugins
 ```
 
 **Just want to build something specific?** Jump directly:
@@ -65,6 +71,14 @@ npm install @pump-fun/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
 | Handle errors properly | [Tutorial 33](./33-error-handling-patterns.md) |
 | Provide AMM liquidity | [Tutorial 34](./34-amm-liquidity-operations.md) |
 | Admin protocol management | [Tutorial 35](./35-admin-protocol-management.md) |
+| Build a payment facilitator | [Tutorial 36](./36-x402-facilitator-service.md) |
+| Run security audits | [Tutorial 37](./37-security-auditing-verification.md) |
+| Test & benchmark generators | [Tutorial 38](./38-testing-benchmarking.md) |
+| Add AI enrichment to bots | [Tutorial 39](./39-channel-bot-ai-enrichment.md) |
+| Build PumpOS desktop apps | [Tutorial 40](./40-pumpos-app-development.md) |
+| Create plugin API handlers | [Tutorial 41](./41-plugin-gateway-api-handlers.md) |
+| Define custom AI agents | [Tutorial 42](./42-custom-defi-agents-i18n.md) |
+| Build interactive chat UIs | [Tutorial 43](./43-standalone-plugin-artifacts.md) |
 
 ## Tutorials
 
@@ -172,6 +186,29 @@ npm install @pump-fun/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
 |---|---------|--------|------------|
 | 34 | [AMM Liquidity Operations](./34-amm-liquidity-operations.md) | Deposit, withdraw, LP tokens, coin-creator fees, pool state, AMM events | Advanced |
 | 35 | [Admin & Protocol Management](./35-admin-protocol-management.md) | Protocol toggles, authority management, fee configs, social PDAs, token incentives | Advanced |
+
+### Payments & Security
+
+| # | Tutorial | Topics | Difficulty |
+|---|---------|--------|------------|
+| 36 | [x402 Facilitator Service](./36-x402-facilitator-service.md) | Payment verification, settlement, 3-role architecture, event listeners, USDC | Intermediate |
+| 37 | [Security Auditing & Verification](./37-security-auditing-verification.md) | 9-check keypair verifier, dependency audit, permission scanner, CI/CD pipeline | Beginner |
+| 38 | [Testing & Benchmarking](./38-testing-benchmarking.md) | CLI tests, fuzz testing, security properties, Rust vs TS benchmarks, stress tests | Intermediate |
+
+### Bot Intelligence
+
+| # | Tutorial | Topics | Difficulty |
+|---|---------|--------|------------|
+| 39 | [Channel Bot AI & GitHub Enrichment](./39-channel-bot-ai-enrichment.md) | Groq AI summaries, GitHub metadata, first-claim detection, rich HTML cards, rate limiting | Advanced |
+
+### Platform & Ecosystem
+
+| # | Tutorial | Topics | Difficulty |
+|---|---------|--------|------------|
+| 40 | [Building PumpOS Apps](./40-pumpos-app-development.md) | PumpOS desktop, NTX API, file system, event bus, Pump Store, window manager | Intermediate |
+| 41 | [Plugin Gateway API Handlers](./41-plugin-gateway-api-handlers.md) | 17 serverless handlers, edge functions, Plugin SDK, schema validation, deployment | Advanced |
+| 42 | [Custom DeFi Agents & i18n](./42-custom-defi-agents-i18n.md) | Agent JSON schema, 18 languages, manifest registry, OpenAI/Claude integration | Beginner |
+| 43 | [Standalone Plugin Artifacts](./43-standalone-plugin-artifacts.md) | Interactive iframe UIs, host-plugin messaging, embedded dashboards, trading forms | Advanced |
 
 ## Prerequisites
 

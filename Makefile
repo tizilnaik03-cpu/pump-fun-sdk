@@ -1,7 +1,14 @@
 # ==============================================================================
-# Solana Vanity Address Toolkit - Makefile
+# Pump SDK — Makefile
 # ==============================================================================
-# Targets:
+# SDK Targets:
+#   ci            - Run full CI pipeline (typecheck + lint + test + build)
+#   sdk-test      - Run SDK unit tests
+#   sdk-lint      - Run ESLint on SDK source
+#   sdk-build     - Build SDK (CJS + ESM)
+#   sdk-typecheck - Type-check SDK source
+#
+# Vanity Targets:
 #   install-deps  - Install Solana CLI tools
 #   generate      - Interactive vanity address generation
 #   verify        - Verify a keypair file
@@ -14,7 +21,7 @@
 #   help          - Show this help message
 # ==============================================================================
 
-.PHONY: all install-deps generate verify batch test test-gen test-verify lint clean help
+.PHONY: all install-deps generate verify batch test test-gen test-verify lint clean help ci sdk-test sdk-lint sdk-build sdk-typecheck
 
 # Configuration
 SHELL := /bin/bash
@@ -33,6 +40,34 @@ BOLD := \033[1m
 
 # Default target
 all: help
+
+# ==============================================================================
+# SDK Targets
+# ==============================================================================
+
+## Run full CI pipeline (typecheck + lint + test + build)
+ci: sdk-typecheck sdk-lint sdk-test sdk-build
+	@echo -e "$(GREEN)$(BOLD)CI pipeline passed!$(NC)"
+
+## Run SDK unit tests with coverage
+sdk-test:
+	@echo -e "$(BOLD)Running SDK tests...$(NC)"
+	@npm run test:coverage
+
+## Lint SDK source with ESLint
+sdk-lint:
+	@echo -e "$(BOLD)Running ESLint...$(NC)"
+	@npm run lint
+
+## Build SDK (CJS + ESM)
+sdk-build:
+	@echo -e "$(BOLD)Building SDK...$(NC)"
+	@npm run build
+
+## Type-check SDK source
+sdk-typecheck:
+	@echo -e "$(BOLD)Type-checking SDK...$(NC)"
+	@npm run typecheck
 
 # ==============================================================================
 # Installation
@@ -244,9 +279,16 @@ docs:
 ## Show this help message
 help:
 	@echo ""
-	@echo -e "$(BOLD)Solana Vanity Address Toolkit$(NC)"
+	@echo -e "$(BOLD)Pump SDK & Vanity Address Toolkit$(NC)"
 	@echo ""
 	@echo -e "$(CYAN)Usage:$(NC) make [target]"
+	@echo ""
+	@echo -e "$(CYAN)SDK:$(NC)"
+	@echo "  ci               Run full CI pipeline (typecheck + lint + test + build)"
+	@echo "  sdk-test         Run SDK unit tests with coverage"
+	@echo "  sdk-lint         Lint SDK source with ESLint"
+	@echo "  sdk-build        Build SDK (CJS + ESM)"
+	@echo "  sdk-typecheck    Type-check SDK source"
 	@echo ""
 	@echo -e "$(CYAN)Installation:$(NC)"
 	@echo "  install-deps     Install Solana CLI tools"

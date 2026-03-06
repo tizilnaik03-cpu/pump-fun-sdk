@@ -56,6 +56,26 @@ describe("pda", () => {
     it("AMM_GLOBAL_VOLUME_ACCUMULATOR_PDA is a valid PublicKey", () => {
       expect(AMM_GLOBAL_VOLUME_ACCUMULATOR_PDA).toBeInstanceOf(PublicKey);
     });
+
+    it("PUMP_EVENT_AUTHORITY_PDA is a valid PublicKey", () => {
+      expect(PUMP_EVENT_AUTHORITY_PDA).toBeInstanceOf(PublicKey);
+    });
+
+    it("PUMP_AMM_EVENT_AUTHORITY_PDA is a valid PublicKey", () => {
+      expect(PUMP_AMM_EVENT_AUTHORITY_PDA).toBeInstanceOf(PublicKey);
+    });
+
+    it("PUMP_FEE_EVENT_AUTHORITY_PDA is a valid PublicKey", () => {
+      expect(PUMP_FEE_EVENT_AUTHORITY_PDA).toBeInstanceOf(PublicKey);
+    });
+
+    it("AMM_FEE_CONFIG_PDA is a valid PublicKey", () => {
+      expect(AMM_FEE_CONFIG_PDA).toBeInstanceOf(PublicKey);
+    });
+
+    it("AMM_GLOBAL_CONFIG_PDA is a valid PublicKey", () => {
+      expect(AMM_GLOBAL_CONFIG_PDA).toBeInstanceOf(PublicKey);
+    });
   });
 
   // ── Derived PDAs ───────────────────────────────────────────────────
@@ -113,6 +133,83 @@ describe("pda", () => {
     it("ammCreatorVaultPda is deterministic", () => {
       const a = ammCreatorVaultPda(TEST_CREATOR);
       const b = ammCreatorVaultPda(TEST_CREATOR);
+      expect(a.equals(b)).toBe(true);
+    });
+
+    it("bondingCurveV2Pda is deterministic", () => {
+      const a = bondingCurveV2Pda(mint);
+      const b = bondingCurveV2Pda(mint);
+      expect(a.equals(b)).toBe(true);
+    });
+
+    it("bondingCurveV2Pda differs from bondingCurvePda", () => {
+      expect(bondingCurveV2Pda(mint).equals(bondingCurvePda(mint))).toBe(false);
+    });
+
+    it("poolV2Pda is deterministic", () => {
+      const a = poolV2Pda(mint);
+      const b = poolV2Pda(mint);
+      expect(a.equals(b)).toBe(true);
+    });
+
+    it("poolV2Pda differs from canonicalPumpPoolPda", () => {
+      expect(poolV2Pda(mint).equals(canonicalPumpPoolPda(mint))).toBe(false);
+    });
+
+    it("feeProgramGlobalPda returns a valid PublicKey", () => {
+      const result = feeProgramGlobalPda();
+      expect(result).toBeInstanceOf(PublicKey);
+    });
+
+    it("socialFeePda is deterministic for same userId+platform", () => {
+      const a = socialFeePda("12345", 2);
+      const b = socialFeePda("12345", 2);
+      expect(a.equals(b)).toBe(true);
+    });
+
+    it("socialFeePda differs for different userIds", () => {
+      const a = socialFeePda("12345", 2);
+      const b = socialFeePda("67890", 2);
+      expect(a.equals(b)).toBe(false);
+    });
+
+    it("socialFeePda differs for different platforms", () => {
+      const a = socialFeePda("12345", 0);
+      const b = socialFeePda("12345", 2);
+      expect(a.equals(b)).toBe(false);
+    });
+
+    it("ammUserVolumeAccumulatorPda is deterministic", () => {
+      const a = ammUserVolumeAccumulatorPda(TEST_CREATOR);
+      const b = ammUserVolumeAccumulatorPda(TEST_CREATOR);
+      expect(a.equals(b)).toBe(true);
+    });
+
+    it("ammUserVolumeAccumulatorPda differs from userVolumeAccumulatorPda", () => {
+      expect(
+        ammUserVolumeAccumulatorPda(TEST_CREATOR).equals(
+          userVolumeAccumulatorPda(TEST_CREATOR),
+        ),
+      ).toBe(false);
+    });
+
+    it("getGlobalParamsPda returns a valid PublicKey", () => {
+      expect(getGlobalParamsPda()).toBeInstanceOf(PublicKey);
+    });
+
+    it("getMayhemStatePda is deterministic", () => {
+      const a = getMayhemStatePda(mint);
+      const b = getMayhemStatePda(mint);
+      expect(a.equals(b)).toBe(true);
+    });
+
+    it("getSolVaultPda returns a valid PublicKey", () => {
+      expect(getSolVaultPda()).toBeInstanceOf(PublicKey);
+    });
+
+    it("getTokenVaultPda is deterministic", () => {
+      const a = getTokenVaultPda(mint);
+      const b = getTokenVaultPda(mint);
       expect(a.equals(b)).toBe(true);
     });
   });

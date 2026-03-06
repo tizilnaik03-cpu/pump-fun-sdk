@@ -1,196 +1,189 @@
-# Contributing to pump-fun-sdk
+# Contributing to Pump SDK
 
-Thanks for your interest in contributing! Every contribution helps — from fixing typos to building major features.
+Thank you for your interest in contributing to Pump SDK! Every contribution helps — whether it's a bug report, documentation improvement, or new feature.
 
 ---
 
-## Table of Contents
+## 📋 Table of Contents
 
-- [Quick Start](#quick-start)
-- [Ways to Contribute](#ways-to-contribute)
-- [Development Setup](#development-setup)
-- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+- [Development Workflow](#development-workflow)
 - [Code Style](#code-style)
-- [Pull Request Process](#pull-request-process)
-- [Commit Messages](#commit-messages)
 - [Testing](#testing)
-- [Security](#security)
-- [Community](#community)
+- [Commit Conventions](#commit-conventions)
+- [Pull Request Process](#pull-request-process)
+- [Issue Reporting](#issue-reporting)
+- [PR Checklist](#pr-checklist)
 
 ---
 
-## Quick Start
+## Prerequisites
 
-```bash
-# 1. Fork and clone
-git clone https://github.com/<YOUR_USERNAME>/pump-fun-sdk.git
-cd pump-fun-sdk
+Before contributing, ensure you have:
 
-# 2. Install dependencies
-npm install
+| Requirement | Version | Check |
+|-------------|---------|-------|
+| Node.js | ≥ 18.0 | `node --version` |
+| npm | ≥ 9.0 | `npm --version` |
+| Git | ≥ 2.30 | `git --version` |
+| Rust (optional) | ≥ 1.70 | `rustc --version` (for vanity generator) |
 
-# 3. Build
-npm run build
-
-# 4. Run tests
-npm test
-
-# 5. Create a branch
-git checkout -b feat/my-feature
-
-# 6. Make changes, commit, push, and open a PR
-```
+No API keys or RPC endpoints are needed for development — the core SDK is offline-first and all unit tests use fixtures.
 
 ---
 
-## Ways to Contribute
+## Getting Started
 
-| Type | How |
-|------|-----|
-| 🐛 **Report bugs** | [Open a bug report](https://github.com/nirholas/pump-fun-sdk/issues/new?template=bug_report.md) |
-| 💡 **Suggest features** | [Open a feature request](https://github.com/nirholas/pump-fun-sdk/issues/new?template=feature_request.md) |
-| 📖 **Improve docs** | Fix typos, add examples, clarify explanations |
-| 🔧 **Submit code** | Bug fixes, new features, performance improvements |
-| 🧪 **Add tests** | More coverage is always welcome |
-| 🔒 **Security audit** | Review code for vulnerabilities ([see SECURITY.md](SECURITY.md)) |
-| ⭐ **Star the repo** | Helps others discover the project |
-| 📢 **Spread the word** | Tweet, blog, talk about pump-fun-sdk |
+1. **Fork** the repository on GitHub
 
----
+2. **Clone** your fork:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/pump-fun-sdk.git
+   cd pump-fun-sdk
+   ```
 
-## Development Setup
+3. **Install** dependencies:
+   ```bash
+   npm install
+   ```
 
-### Prerequisites
+4. **Build** the project:
+   ```bash
+   npm run build
+   ```
 
-- **Node.js 18+** — [Install](https://nodejs.org/)
-- **Rust 1.70+** — [Install](https://rustup.rs/) (for vanity generator)
-- **Git** — [Install](https://git-scm.com/)
+5. **Run** tests to verify your setup:
+   ```bash
+   npm test
+   ```
 
-### TypeScript SDK
+6. **Verify** TypeScript types:
+   ```bash
+   npm run typecheck
+   ```
 
-```bash
-npm install        # Install deps
-npm run build      # Build to dist/
-npm run dev        # Watch mode
-npm test           # Run tests
-npm run lint       # Lint
-npm run lint:fix   # Auto-fix lint issues
-```
-
-### Rust Vanity Generator
-
-```bash
-cd rust
-cargo build --release    # Build
-cargo test               # Test
-cargo clippy             # Lint
-cargo fmt                # Format
-cargo bench              # Benchmark
-```
-
-### MCP Server
-
-```bash
-cd mcp-server
-npm install
-npm run build
-npm start
-```
+If all tests pass, you're ready to contribute.
 
 ---
 
-## Project Structure
+## Development Workflow
 
+### Branch Naming
+
+Create a branch from `main` using these prefixes:
+
+| Prefix | Use |
+|--------|-----|
+| `feat/` | New features (`feat/amm-deposit-instruction`) |
+| `fix/` | Bug fixes (`fix/slippage-calculation`) |
+| `docs/` | Documentation changes (`docs/api-reference`) |
+| `refactor/` | Code restructuring (`refactor/pda-module`) |
+| `test/` | Adding/fixing tests (`test/fee-tier-coverage`) |
+| `chore/` | Maintenance (`chore/update-dependencies`) |
+
+```bash
+git checkout -b feat/your-feature-name
 ```
-pump-fun-sdk/
-├── src/                    # Core TypeScript SDK
-│   ├── sdk.ts              # PumpSdk — 30+ instruction builders, 14 decoders
-│   ├── onlineSdk.ts        # OnlinePumpSdk — fetcher + BothPrograms aggregators
-│   ├── bondingCurve.ts     # Bonding curve math
-│   ├── analytics.ts        # Price impact, graduation %, token price, summaries
-│   ├── fees.ts             # Fee tier calculation
-│   ├── state.ts            # 35+ on-chain account & event types
-│   ├── pda.ts              # PDA derivations (incl. socialFeePda)
-│   ├── tokenIncentives.ts  # Volume-based rewards
-│   ├── errors.ts           # Custom errors
-│   └── idl/                # Anchor IDLs (pump, pump_amm, pump_fees)
-├── rust/                   # Rust vanity address generator
-├── typescript/             # TypeScript vanity generator
-├── mcp-server/             # MCP server — 53 tools for AI agents
-├── telegram-bot/           # Telegram bot + REST API (claims, CTO, launches)
-├── websocket-server/       # WebSocket relay (PumpFun API → browsers)
-├── website/                # PumpOS web desktop with 169 Pump-Store apps
-├── x402/                   # x402 payment protocol (HTTP 402 USDC micropayments)
-├── live/                   # Standalone live dashboard pages
-├── tutorials/              # 19 hands-on tutorial guides
-├── scripts/                # Shell scripts
-├── tests/                  # Test suites
-├── docs/                   # Documentation
-├── security/               # Security audits & checklists
-├── skills/                 # 28 agent skill documents
-├── prompts/                # Agent prompt templates
-├── tools/                  # Verification & audit utilities
-└── .github/                # GitHub templates, workflows
-```
+
+### Making Changes
+
+1. Make your changes in the `src/` directory
+2. Add or update tests in `src/__tests__/`
+3. Run the test suite: `npm test`
+4. Run type checking: `npm run typecheck`
+5. Run linting: `npm run lint`
+6. Build to verify: `npm run build`
+
+### Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run build` | Build CJS + ESM with type declarations |
+| `npm run dev` | Build in watch mode |
+| `npm test` | Run all tests |
+| `npm run lint` | Check for lint errors |
+| `npm run lint:fix` | Auto-fix lint errors |
+| `npm run typecheck` | Type-check without emitting |
+| `npm run clean` | Remove `dist/` directory |
 
 ---
 
 ## Code Style
 
-### TypeScript
+### TypeScript Conventions
 
-- Use `const` over `let` where possible
-- Use `BN` (bn.js) for all financial amounts — never JavaScript `number`
-- Instruction builders return `TransactionInstruction[]`, never `Transaction`
-- Functions should be pure where possible
-- Use explicit types — avoid `any`
-- Follow existing formatting (enforced by ESLint)
+- **Strict mode** is enabled — no `any` types without justification
+- Use `BN` (bn.js) for all financial math — never JavaScript `number` for amounts
+- Return `TransactionInstruction[]` from instruction builders, never `Transaction`
+- Use `PublicKey` or `PublicKeyInitData` for address parameters
+- Prefer explicit return types on public functions
 
-### Rust
+### Formatting
 
-- Follow `rustfmt` defaults
-- Use `clippy` with `-D warnings`
-- Zeroize sensitive data (private keys, seeds)
-- Document public items with `///` doc comments
+The project uses ESLint with Prettier integration:
 
-### Naming
+```bash
+# Check
+npm run lint
 
-- **Files**: `camelCase.ts`, `snake_case.rs`
-- **Functions**: `camelCase` in TS, `snake_case` in Rust
-- **Types/Interfaces**: `PascalCase` in both
-- **Constants**: `SCREAMING_SNAKE_CASE` in both
+# Fix
+npm run lint:fix
+```
 
----
+### What NOT to Do
 
-## Pull Request Process
-
-1. **Check existing issues** — Is someone already working on this?
-2. **Fork and branch** — Create a feature branch from `main`
-3. **Write code** — Follow the code style above
-4. **Add tests** — Cover new functionality
-5. **Update docs** — If you added or changed public API
-6. **Test locally** — `npm test` and `npm run build` must pass
-7. **Commit** — Follow commit message conventions below
-8. **Push and open PR** — Fill out the PR template
-9. **Respond to reviews** — Address feedback promptly
-
-### PR Requirements
-
-- [ ] Builds without errors
-- [ ] Tests pass
-- [ ] No lint warnings
-- [ ] Documentation updated (if applicable)
-- [ ] Commit messages follow conventions
-- [ ] PR description explains what and why
+- Do not use `createInstruction` (v1) — it is deprecated; use `createV2Instruction`
+- Do not use JavaScript `number` for lamport or token amounts
+- Do not add Node.js-specific APIs to `src/` (the SDK runs in browsers too)
+- Do not import from `src/idl/` directly in new code — use SDK methods
+- Do not commit `.env` files or private keys
 
 ---
 
-## Commit Messages
+## Testing
 
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
+### Running Tests
+
+```bash
+# All tests
+npm test
+
+# Single file
+npx jest src/__tests__/bondingCurve.test.ts
+
+# With coverage
+npx jest --coverage
+```
+
+### Writing Tests
+
+- Place unit tests in `src/__tests__/` alongside the modules they test
+- Use shared fixtures from `src/__tests__/fixtures.ts`
+- Test both happy paths and error cases
+- Name test files `<module>.test.ts`
+
+### Coverage Expectations
+
+The project enforces per-file coverage thresholds:
+
+| File | Lines | Branches | Functions |
+|------|-------|----------|-----------|
+| `bondingCurve.ts` | 90% | 90% | 80% |
+| `fees.ts` | 75% | 75% | 80% |
+| `analytics.ts` | 50%+ | 50%+ | 80%+ |
+| `tokenIncentives.ts` | 75%+ | 60%+ | 80%+ |
+
+New code should maintain or improve these thresholds.
+
+---
+
+## Commit Conventions
+
+Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
-<type>(<scope>): <description>
+<type>(<scope>): <short description>
 
 [optional body]
 
@@ -199,105 +192,86 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ### Types
 
-| Type | When |
-|------|------|
+| Type | Description |
+|------|-------------|
 | `feat` | New feature |
 | `fix` | Bug fix |
 | `docs` | Documentation only |
-| `style` | Formatting, no code change |
 | `refactor` | Code change that neither fixes a bug nor adds a feature |
+| `test` | Adding or correcting tests |
+| `chore` | Build process, dependencies, tooling |
 | `perf` | Performance improvement |
-| `test` | Adding or fixing tests |
-| `chore` | Build process, CI, dependencies |
-| `security` | Security-related changes |
-
-### Scopes
-
-`sdk`, `bonding-curve`, `fees`, `pda`, `state`, `online-sdk`, `rust`, `typescript`, `mcp`, `scripts`, `docs`, `ci`
 
 ### Examples
 
 ```
-feat(sdk): add createV2AndBuyInstructions method
-fix(bonding-curve): handle zero virtual reserves
-docs: add fee sharing guide
-security(rust): zeroize keypair on drop
-test(fees): add tiered fee calculation tests
-chore(ci): add Rust clippy to CI pipeline
+feat(sdk): add ammDepositInstruction for LP operations
+fix(fees): correct fee tier lookup for zero market cap
+docs(readme): add fee sharing example
+test(analytics): add price impact edge cases
 ```
 
 ---
 
-## Testing
+## Pull Request Process
 
-### TypeScript
+1. **Update your branch** with the latest `main`:
+   ```bash
+   git fetch origin
+   git rebase origin/main
+   ```
 
-```bash
-npm test                    # Run all tests
-npm test -- --watch         # Watch mode
-npm test -- --coverage      # Coverage report
-```
+2. **Push** your branch:
+   ```bash
+   git push origin feat/your-feature-name
+   ```
 
-### Rust
+3. **Open a PR** against `main` on GitHub
 
-```bash
-cd rust
-cargo test                  # Unit + integration tests
-cargo test -- --nocapture   # Show output
-```
+4. **Fill out** the PR template:
+   - What does this PR do?
+   - How was it tested?
+   - Are there breaking changes?
 
-### Shell Scripts
+5. **Wait for review** — maintainers aim to review within a few days
 
-```bash
-bash tests/cli/test_generation.sh
-bash tests/cli/test_verification.sh
-bash tests/integration/test_keypair_validity.sh
-```
+6. **Address feedback** with additional commits (don't force-push during review)
 
-### What to Test
-
-- **Bonding curve math** — Edge cases: zero reserves, max amounts, overflow
-- **Fee calculations** — All tier boundaries, mayhem mode
-- **PDA derivations** — Known addresses for known inputs
-- **Instruction building** — Account ordering, data serialization
-- **Error handling** — Invalid inputs, missing accounts
-- **Security** — Key zeroization, file permissions, input validation
+7. **Squash merge** will be used by maintainers when merging
 
 ---
 
-## Security
+## Issue Reporting
 
-**Critical rules for contributions:**
+### Bug Reports
 
-1. **ONLY** official Solana Labs crypto libraries — no third-party key generation
-2. **Zeroize** all key material after use
-3. **Never** log private keys or seeds
-4. **Set file permissions** to `0600` for keypair files
-5. **No network calls** during key generation
-6. **Validate all inputs** — especially public keys and amounts
+Include:
+- SDK version (`npm list @pump-fun/pump-sdk`)
+- Node.js version
+- Minimal reproduction code
+- Expected vs. actual behavior
+- Error message and stack trace
 
-See [SECURITY.md](SECURITY.md) and [security/SECURITY_CHECKLIST.md](security/SECURITY_CHECKLIST.md) for the complete checklist.
+### Feature Requests
 
----
-
-## Community
-
-- **GitHub Issues** — Bug reports and feature requests
-- **GitHub Discussions** — Questions, ideas, show & tell
-- **X (Twitter)** — [@nichxbt](https://x.com/nichxbt)
-
-## Code of Conduct
-
-Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md). Be respectful, inclusive, and constructive.
+Include:
+- Use case description
+- Proposed API (TypeScript signature)
+- Why existing APIs can't solve this
 
 ---
 
-## License
+## PR Checklist
 
-By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+Before submitting, verify:
 
----
-
-*Thank you for helping make pump-fun-sdk better. Every contribution matters.*
-
-
+- [ ] Code compiles: `npm run build`
+- [ ] Tests pass: `npm test`
+- [ ] Types check: `npm run typecheck`
+- [ ] Lint passes: `npm run lint`
+- [ ] New functions have tests
+- [ ] Public API changes are documented
+- [ ] No `console.log` statements left in `src/`
+- [ ] No private keys or `.env` files committed
+- [ ] Commit messages follow conventional commits
+- [ ] BN is used for all financial amounts (not `number`)
