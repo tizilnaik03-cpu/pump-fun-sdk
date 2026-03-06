@@ -77,3 +77,4 @@ Actions that deal with users
 | removeUser                | open a file with its ID                    |
 | removeInvalidMagicStrings | launch an app using the classic OLP method |
 | changePassword            | use a default handler application          |
+
