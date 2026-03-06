@@ -167,11 +167,25 @@ export function formatClaimNotification(
 
     const programLabel = event.programId.includes('pAMM') ? 'PumpSwap AMM' : 'Pump';
 
+    // CA line
+    const mint = event.tokenMint?.trim() || '';
+    let caLine = '';
+    if (mint) {
+        caLine = `🧬 <b>CA:</b> <code>${mint}</code>\n`;
+    } else if (event.claimType === 'claim_social_fee_pda' || event.claimType === 'claim_cashback' || event.claimType === 'collect_creator_fee') {
+        caLine = `🧬 <b>CA:</b> <i>N/A (wallet-level claim)</i>\n`;
+    }
+    if (event.socialFeePda) {
+        caLine += `🧾 <b>Social PDA:</b> <code>${shortAddr(event.socialFeePda)}</code>\n`;
+    }
+
     const solscanTx = `https://solscan.io/tx/${encodeURIComponent(event.txSignature)}`;
     const solscanWallet = `https://solscan.io/account/${encodeURIComponent(event.claimerWallet)}`;
-    const pumpfunToken = `https://pump.fun/coin/${encodeURIComponent(event.tokenMint)}`;
+    const pumpfunToken = mint ? `https://pump.fun/coin/${encodeURIComponent(mint)}` : null;
 
-    const links = `🔗 <a href="${solscanTx}">TX</a> · <a href="${solscanWallet}">Wallet</a> · <a href="${pumpfunToken}">pump.fun</a>`;
+    const links = pumpfunToken
+        ? `🔗 <a href="${solscanTx}">TX</a> · <a href="${solscanWallet}">Wallet</a> · <a href="${pumpfunToken}">pump.fun</a>`
+        : `🔗 <a href="${solscanTx}">TX</a> · <a href="${solscanWallet}">Wallet</a>`;
 
     return (
         `${emoji} <b>${typeLabel} Detected!</b>\n\n` +
@@ -179,6 +193,7 @@ export function formatClaimNotification(
         `💰 <b>Amount:</b> ${solAmount} SOL\n` +
         `${tokenLine}\n` +
             `${twitterLine}` +
+        `${caLine}` +
         `⚙️ <b>Program:</b> ${programLabel}\n` +
         `🕐 <b>Time:</b> ${formatTime(event.timestamp)}\n` +
         `${matchLine}\n\n` +

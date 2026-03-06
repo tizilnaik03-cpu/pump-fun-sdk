@@ -14,11 +14,15 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { SolanaMonitor } from './solana-monitor.js';
-import type { TokenLaunchEvent, ServerStatus, Heartbeat } from './types.js';
+import { ClaimMonitor } from './claim-monitor.js';
+import type { TokenLaunchEvent, FeeClaimEvent, ServerStatus, Heartbeat, RelayMessage } from './types.js';
 
 // ── Config ──────────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT || '3099', 10);
 const SOLANA_RPC_WS = process.env.SOLANA_RPC_WS || 'wss://api.mainnet-beta.solana.com';
+const SOLANA_RPC_HTTP = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+const ENABLE_CLAIMS = (process.env.ENABLE_CLAIMS || 'true').toLowerCase() === 'true';
+const CLAIM_POLL_INTERVAL = parseInt(process.env.CLAIM_POLL_INTERVAL || '15000', 10);
 const HEARTBEAT_INTERVAL = 15_000; // 15s
 const STATUS_INTERVAL = 10_000;    // 10s
 
@@ -39,8 +43,10 @@ const httpServer = createServer((req, res) => {
     res.end(JSON.stringify({
       status: 'ok',
       solana: monitor.connected,
+      claims: claimMonitor?.connected ?? false,
       clients: wss.clients.size,
       totalLaunches: monitor.stats.totalLaunches,
+      totalClaims: claimMonitor?.stats.totalClaims ?? 0,
       uptime: process.uptime(),
     }));
     return;
@@ -76,8 +82,9 @@ const httpServer = createServer((req, res) => {
 // ── WebSocket server (relay to browsers) ────────────────────────────
 const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
-// Track recent launches for new clients (last 50)
+// Track recent events for new clients
 const recentLaunches: TokenLaunchEvent[] = [];
+const recentClaims: FeeClaimEvent[] = [];
 const MAX_RECENT = 50;
 
 wss.on('connection', (client, req) => {
@@ -92,6 +99,11 @@ wss.on('connection', (client, req) => {
     sendTo(client, launch);
   }
 
+  // Send recent claims
+  for (const claim of recentClaims) {
+    sendTo(client, claim);
+  }
+
   client.on('close', () => {
     console.log(`[relay] Client disconnected (${wss.clients.size} total)`);
   });
@@ -102,7 +114,7 @@ wss.on('connection', (client, req) => {
 });
 
 // ── Broadcast helpers ───────────────────────────────────────────────
-function broadcast(msg: TokenLaunchEvent | ServerStatus | Heartbeat): void {
+function broadcast(msg: RelayMessage): void {
   const data = JSON.stringify(msg);
   for (const client of wss.clients) {
     if (client.readyState === WebSocket.OPEN) {
@@ -111,7 +123,7 @@ function broadcast(msg: TokenLaunchEvent | ServerStatus | Heartbeat): void {
   }
 }
 
-function sendTo(client: WebSocket, msg: TokenLaunchEvent | ServerStatus | Heartbeat): void {
+function sendTo(client: WebSocket, msg: RelayMessage): void {
   if (client.readyState === WebSocket.OPEN) {
     client.send(JSON.stringify(msg));
   }
@@ -124,6 +136,7 @@ function makeStatus(): ServerStatus {
     uptime: Math.floor(process.uptime()),
     totalLaunches: monitor.stats.totalLaunches,
     githubLaunches: monitor.stats.githubLaunches,
+    totalClaims: claimMonitor?.stats.totalClaims ?? 0,
     clients: wss.clients.size,
   };
 }
@@ -161,19 +174,42 @@ setInterval(() => {
   broadcast(makeStatus());
 }, STATUS_INTERVAL);
 
+// ── Claim Monitor (on-chain fee claim detection) ────────────────────
+let claimMonitor: ClaimMonitor | null = null;
+
+if (ENABLE_CLAIMS) {
+  claimMonitor = new ClaimMonitor(
+    SOLANA_RPC_HTTP,
+    SOLANA_RPC_WS !== 'wss://api.mainnet-beta.solana.com' ? SOLANA_RPC_WS : undefined,
+    CLAIM_POLL_INTERVAL,
+    (event: FeeClaimEvent) => {
+      recentClaims.push(event);
+      if (recentClaims.length > MAX_RECENT) recentClaims.shift();
+      broadcast(event);
+    },
+    (connected: boolean) => {
+      console.log(`[relay] Claims ${connected ? 'connected' : 'disconnected'}`);
+      broadcast(makeStatus());
+    },
+  );
+}
+
 // ── Start ───────────────────────────────────────────────────────────
 monitor.start();
+claimMonitor?.start();
 
 httpServer.listen(PORT, () => {
   console.log(`[relay] PumpFun WebSocket Relay running on http://0.0.0.0:${PORT}`);
   console.log(`[relay] WebSocket endpoint: ws://0.0.0.0:${PORT}/ws`);
   console.log(`[relay] Upstream Solana RPC: ${SOLANA_RPC_WS}`);
+  console.log(`[relay] Claims monitor: ${ENABLE_CLAIMS ? 'enabled' : 'disabled'}`);
 });
 
 // ── Graceful shutdown ───────────────────────────────────────────────
 process.on('SIGTERM', () => {
   console.log('[relay] SIGTERM — shutting down');
   monitor.stop();
+  claimMonitor?.stop();
   wss.close();
   httpServer.close();
   process.exit(0);
@@ -182,6 +218,7 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
   console.log('[relay] SIGINT — shutting down');
   monitor.stop();
+  claimMonitor?.stop();
   wss.close();
   httpServer.close();
   process.exit(0);

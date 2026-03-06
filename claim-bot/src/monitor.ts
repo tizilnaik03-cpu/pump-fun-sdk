@@ -334,8 +334,56 @@ export class ClaimMonitor {
 
         if (amountLamports <= 0) amountLamports = 0;
 
-        // Try to find the token mint from accounts
+        // Try to find the token mint from accounts and parse social fee data
         let tokenMint = '';
+        let githubUserId: string | undefined;
+        let socialPlatform: number | undefined;
+        let recipientWallet: string | undefined;
+        let socialFeePda: string | undefined;
+
+        // Parse event logs for social fee claims
+        if (def.claimType === 'claim_social_fee_pda') {
+            const logMessages = meta.logMessages ?? [];
+            for (const line of logMessages) {
+                if (!line.includes('Program data:')) continue;
+                const b64 = line.split('Program data: ')[1]?.trim();
+                if (!b64) continue;
+                try {
+                    const bytes = Buffer.from(b64, 'base64');
+                    const disc = Buffer.from(bytes.subarray(0, 8)).toString('hex');
+                    // SocialFeePdaClaimed: disc=3212c141edd2eaec
+                    if (disc === '3212c141edd2eaec') {
+                        let offset = 16; // skip disc(8) + timestamp(8)
+                        // user_id: Borsh string = 4-byte LE length prefix + UTF-8 bytes
+                        if (bytes.length >= offset + 4) {
+                            const uidLen = bytes.readUInt32LE(offset);
+                            offset += 4;
+                            if (bytes.length >= offset + uidLen) {
+                                githubUserId = Buffer.from(bytes.subarray(offset, offset + uidLen)).toString('utf8');
+                                offset += uidLen;
+                            }
+                        }
+                        // platform: u8
+                        if (bytes.length >= offset + 1) {
+                            socialPlatform = bytes[offset]!;
+                            offset += 1;
+                        }
+                        // social_fee_pda: pubkey(32)
+                        if (bytes.length >= offset + 32) {
+                            socialFeePda = new PublicKey(bytes.subarray(offset, offset + 32)).toBase58();
+                            offset += 32;
+                        }
+                        // recipient: pubkey(32)
+                        if (bytes.length >= offset + 32) {
+                            recipientWallet = new PublicKey(bytes.subarray(offset, offset + 32)).toBase58();
+                            offset += 32;
+                        }
+                        break;
+                    }
+                } catch { /* skip unparseable log lines */ }
+            }
+        }
+
         const numAccounts = accountKeys.length;
         for (let i = 0; i < numAccounts; i++) {
             const key = accountKeys.get(i);
@@ -366,6 +414,10 @@ export class ClaimMonitor {
             isCashback: def.claimType === 'claim_cashback',
             programId: def.programId,
             claimLabel: def.label,
+            githubUserId,
+            socialPlatform,
+            recipientWallet,
+            socialFeePda,
         };
     }
 

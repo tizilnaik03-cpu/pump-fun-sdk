@@ -20,12 +20,6 @@ import { RpcFallback } from './rpc-fallback.js';
 import type { FeeClaimEvent, ClaimType } from './types.js';
 import {
     CLAIM_INSTRUCTIONS,
-    CLAIM_EVENT_DISCRIMINATORS,
-    MONITORED_PROGRAM_IDS,
-    PUMPFUN_FEE_ACCOUNT,
-    PUMPFUN_MIGRATION_AUTHORITY,
-    PUMP_PROGRAM_ID,
-    PUMP_AMM_PROGRAM_ID,
     PUMP_FEE_PROGRAM_ID,
     type InstructionDef,
 } from './types.js';
