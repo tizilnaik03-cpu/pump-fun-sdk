@@ -8,3 +8,4 @@ export const fetchClothes = async (params: RequestData) => {
 
   return res.json();
 };
+
