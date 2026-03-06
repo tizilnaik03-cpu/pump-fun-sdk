@@ -38,3 +38,4 @@ for (const a of apps) {
 const dupeNames = Object.entries(nameCounts).filter(([,v]) => v.length > 1);
 console.log('\nDuplicate names in DB:', dupeNames.length);
 dupeNames.forEach(([name, ids]) => console.log(`  "${name}": ${ids.join(', ')}`));
+
