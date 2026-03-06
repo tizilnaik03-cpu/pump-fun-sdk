@@ -158,7 +158,7 @@ export class OnlinePumpSdk {
     }
 
     const bondingCurve = PUMP_SDK.decodeBondingCurve(bondingCurveAccountInfo);
-    return { bondingCurveAccountInfo, bondingCurve, associatedUserAccountInfo };
+    return { bondingCurveAccountInfo, bondingCurve, associatedUserAccountInfo: associatedUserAccountInfo ?? null };
   }
 
   async fetchSellState(

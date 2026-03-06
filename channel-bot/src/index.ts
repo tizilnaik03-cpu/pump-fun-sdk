@@ -11,7 +11,7 @@
  *   npm run build && npm start  (production)
  */
 
-import { Bot } from 'grammy';
+import { Bot, type BotError } from 'grammy';
 
 import { loadConfig } from './config.js';
 import { ClaimMonitor } from './claim-monitor.js';
@@ -44,7 +44,7 @@ async function main(): Promise<void> {
 
     const bot = new Bot(config.telegramToken);
 
-    bot.catch((err) => {
+    bot.catch((err: BotError) => {
         log.error('Bot error:', err.error);
     });
 
