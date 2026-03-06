@@ -6,7 +6,7 @@
  */
 
 import type { GitHubUserInfo } from './github-client.js';
-import type { CreatorProfile, TokenInfo, TokenHolderInfo, TokenTradeInfo, TopHolder, HolderDetails, DevWalletInfo } from './pump-client.js';
+import type { CreatorProfile, TokenInfo, TokenHolderInfo, TokenTradeInfo, TopHolder, HolderDetails, DevWalletInfo, PoolLiquidityInfo, BundleInfo } from './pump-client.js';
 import type {
     FeeClaimEvent,
     FeeDistributionEvent,
@@ -284,6 +284,8 @@ export interface GraduationEnrichment {
     trades?: TokenTradeInfo | null;
     devWallet?: DevWalletInfo | null;
     xProfile?: XProfile | null;
+    liquidity?: PoolLiquidityInfo | null;
+    bundle?: BundleInfo | null;
 }
 
 export function formatGraduationFeed(
@@ -339,6 +341,12 @@ export function formatGraduationFeed(
             ? `$${formatCompact(token.usdMarketCap)}`
             : `~${token.marketCapSol.toFixed(1)} SOL`;
         L.push(`💹 MC: ${mcStr}`);
+    }
+    if (enrichment?.liquidity) {
+        const liq = enrichment.liquidity;
+        const liqStr = `$${formatCompact(liq.liquidityUsd)}`;
+        const multStr = liq.liquidityMultiplier > 1 ? ` [x${liq.liquidityMultiplier}]` : '';
+        L.push(`💦 Liq: ${liqStr}${multStr}`);
     }
 
     // ━━ STATS BLOCK ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

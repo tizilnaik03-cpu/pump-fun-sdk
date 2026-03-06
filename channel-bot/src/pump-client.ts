@@ -64,6 +64,8 @@ export interface TokenHolderInfo {
 export interface TokenTradeInfo {
     recentTradeCount: number;
     recentVolumeSol: number;
+    buyCount: number;
+    sellCount: number;
 }
 
 export interface CreatorProfile {
@@ -425,7 +427,7 @@ export async function fetchTokenHolders(mint: string): Promise<TokenHolderInfo> 
 
 /** Fetch recent trade activity for a token. */
 export async function fetchTokenTrades(mint: string): Promise<TokenTradeInfo> {
-    const result: TokenTradeInfo = { recentTradeCount: 0, recentVolumeSol: 0 };
+    const result: TokenTradeInfo = { recentTradeCount: 0, recentVolumeSol: 0, buyCount: 0, sellCount: 0 };
     try {
         const resp = await fetch(
             `${PUMPFUN_API}/coins/${encodeURIComponent(mint)}/trades?limit=50&offset=0`,
@@ -437,6 +439,8 @@ export async function fetchTokenTrades(mint: string): Promise<TokenTradeInfo> {
             for (const t of trades) {
                 const sol = Number(t.sol_amount ?? 0) / LAMPORTS_PER_SOL;
                 result.recentVolumeSol += sol;
+                if (Boolean(t.is_buy)) result.buyCount++;
+                else result.sellCount++;
             }
         }
     } catch (err) {
@@ -646,5 +650,96 @@ export async function fetchDevWalletInfo(
     }
 
     return result;
+}
+
+// ============================================================================
+// Pool Liquidity (DexScreener)
+// ============================================================================
+
+export interface PoolLiquidityInfo {
+    liquidityUsd: number;
+    /** marketCap / liquidity multiplier */
+    liquidityMultiplier: number;
+}
+
+/** Fetch pool liquidity from DexScreener. */
+export async function fetchPoolLiquidity(mint: string, usdMarketCap: number): Promise<PoolLiquidityInfo | null> {
+    try {
+        const resp = await fetch(
+            `https://api.dexscreener.com/latest/dex/tokens/${encodeURIComponent(mint)}`,
+            { signal: AbortSignal.timeout(8_000) },
+        );
+        if (!resp.ok) return null;
+        const data = (await resp.json()) as { pairs?: Array<Record<string, unknown>> };
+        const pair = data.pairs?.[0];
+        if (!pair) return null;
+        const liqObj = pair.liquidity as Record<string, number> | undefined;
+        const liquidityUsd = liqObj?.usd ?? 0;
+        if (liquidityUsd <= 0) return null;
+        const liquidityMultiplier = usdMarketCap > 0 ? Math.round(usdMarketCap / liquidityUsd) : 0;
+        return { liquidityUsd, liquidityMultiplier };
+    } catch (err) {
+        log.debug('Pool liquidity fetch failed for %s: %s', mint.slice(0, 8), err);
+        return null;
+    }
+}
+
+// ============================================================================
+// Bundle Detection
+// ============================================================================
+
+export interface BundleInfo {
+    /** Approximate % of total supply bought in the first Solana slot */
+    bundlePct: number;
+    /** Number of distinct wallets in the bundle */
+    bundleWallets: number;
+}
+
+/**
+ * Detect coordinated early buys (bundles) by looking at trades within the
+ * first ~2 seconds of the token's life. Works best for tokens with < 200
+ * lifetime trades — accuracy degrades for high-volume tokens.
+ */
+export async function fetchBundleInfo(mint: string): Promise<BundleInfo | null> {
+    try {
+        const resp = await fetch(
+            `${PUMPFUN_API}/coins/${encodeURIComponent(mint)}/trades?limit=200&offset=0`,
+            { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(10_000) },
+        );
+        if (!resp.ok) return null;
+        const raw = await resp.json();
+        const trades = Array.isArray(raw) ? raw : ((raw as Record<string, unknown>).trades as Array<Record<string, unknown>> ?? []);
+        if (!trades.length) return null;
+
+        // Normalize timestamp to seconds
+        const ts = (t: Record<string, unknown>) => {
+            const v = Number(t.timestamp ?? 0);
+            return v > 1e12 ? Math.floor(v / 1000) : v;
+        };
+
+        // Sort chronologically, buy-only
+        const buys = trades
+            .filter(t => Boolean(t.is_buy))
+            .sort((a, b) => ts(a) - ts(b));
+        if (buys.length < 2) return null;
+
+        const firstTs = ts(buys[0]!);
+        // One Solana slot ≈ 400ms; use a 2-second window to catch same-block bundles
+        const slotBuys = buys.filter(t => ts(t) <= firstTs + 2);
+        if (slotBuys.length < 2) return null;
+
+        const wallets = new Set(slotBuys.map(t => String(t.user ?? '')));
+        if (wallets.size < 2) return null;
+
+        // 1B tokens × 10^6 decimals = total raw supply
+        const TOTAL_SUPPLY_RAW = 1_000_000_000_000_000;
+        const bundleTokens = slotBuys.reduce((sum, t) => sum + Number(t.token_amount ?? 0), 0);
+        const bundlePct = Math.min(100, (bundleTokens / TOTAL_SUPPLY_RAW) * 100);
+
+        return { bundlePct, bundleWallets: wallets.size };
+    } catch (err) {
+        log.debug('Bundle detection failed for %s: %s', mint.slice(0, 8), err);
+        return null;
+    }
 }
 
