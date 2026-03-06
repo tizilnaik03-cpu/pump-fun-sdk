@@ -9,3 +9,4 @@ RUN npm prune --production
 COPY public/ public/
 EXPOSE 3099
 CMD ["node", "dist/server.js"]
+
