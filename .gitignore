@@ -45,8 +45,11 @@ id_*.json
 # BBB docs (external)
 bb-llms-full.txt.md
 
+# Screenshots & temp images
+Screenshot *.png
+IMAGE *.jpg
+*.screenshot.png
 
-Screenshot 2026-03-05 at 8.28.02 PM.png
 # Scraper
 scraper.mjs
 scraper-*.png
@@ -54,7 +57,6 @@ scraper-*.html
 scraper-*.log
 scraper-*.json
 d.md
-IMAGE 2026-03-05 20:25:28.jpg
 
 ideas-llms-full.txt.md
 
