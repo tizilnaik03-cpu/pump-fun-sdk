@@ -321,3 +321,4 @@ function createSafeHTMLRenderer(targetElement) {
     }
   };
 }
+
