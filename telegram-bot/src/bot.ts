@@ -850,3 +850,4 @@ export function createCreatorChangeHandler(bot: Bot) {
 // ============================================================================
 
 // NOTE: escapeHtml is imported from formatters.ts — no duplicate needed here
+
