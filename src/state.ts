@@ -498,3 +498,4 @@ export interface SocialFeePdaClaimedEvent {
   recipientBalanceAfter: BN;
 }
 
+
