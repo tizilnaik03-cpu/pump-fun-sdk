@@ -23,8 +23,7 @@ async function main(): Promise<void> {
     setLogLevel(config.logLevel);
 
     log.info('PumpFun Claim Bot starting...');
-    log.info('  RPC: %s', config.solanaRpcUrl.replace(/api-key=\w+/, 'api-key=***'));
-    log.info('  WS:  %s', config.solanaWsUrl || '(derived from RPC)');
+    log.info('  Relay: %s', config.relayWsUrl);
 
     // Load persisted tracking data
     loadTracked();
@@ -32,20 +31,19 @@ async function main(): Promise<void> {
     // Create bot
     const bot = createBot(config);
 
+    // Wire claim handler
+    const claimHandler = createClaimHandler(bot, config);
+
     // Create claim monitor
-    const monitor = new ClaimMonitor(config, () => {});
+    const monitor = new ClaimMonitor(config, (event) => {
+        claimHandler(event).catch((err) => log.error('Claim handler error: %s', err));
+    });
 
     // Wire status command (needs monitor reference)
     registerStatusCommand(bot, monitor);
 
-    // Wire claim handler (needs bot reference)
-        const claimHandler = createClaimHandler(bot, config);
-    const monitorWithHandler = new ClaimMonitor(config, (event) => {
-        claimHandler(event).catch((err) => log.error('Claim handler error: %s', err));
-    });
-
     // Start monitor
-    await monitorWithHandler.start();
+    await monitor.start();
 
     // Start bot (long polling)
     log.info('Starting Telegram bot (long polling)...');
@@ -58,7 +56,7 @@ async function main(): Promise<void> {
     // Graceful shutdown
     const shutdown = async () => {
         log.info('Shutting down...');
-        monitorWithHandler.stop();
+        monitor.stop();
         await bot.stop();
         process.exit(0);
     };

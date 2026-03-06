@@ -155,49 +155,6 @@ export class ClaimMonitor {
     }
 }
 
-    private extractClaimEvent(
-        signature: string,
-        tx: Exclude<Awaited<ReturnType<Connection['getTransaction']>>, null>,
-        def: typeof CLAIM_INSTRUCTIONS[number],
-        accountKeys: ReturnType<typeof tx.transaction.message.getAccountKeys>,
-    ): FeeClaimEvent | null {
-        const meta = tx.meta!;
-        const blockTime = tx.blockTime ?? Math.floor(Date.now() / 1000);
-
-        // Calculate SOL transferred by looking at balance changes
-        const preBalances = meta.preBalances;
-        const postBalances = meta.postBalances;
-
-        // The signer (index 0) is typically the claimer
-        const signerKey = accountKeys.get(0);
-        if (!signerKey) return null;
-        const claimerWallet = signerKey.toBase58();
-
-        // Find the fee account's balance change to determine amount
-        let amountLamports = 0;
-        const feeAccountIndex = this.findAccountIndex(accountKeys, PUMPFUN_FEE_ACCOUNT);
-
-        if (feeAccountIndex >= 0 && preBalances[feeAccountIndex] !== undefined && postBalances[feeAccountIndex] !== undefined) {
-            // Fee account's balance decreased = fees were claimed from it
-            amountLamports = (preBalances[feeAccountIndex] ?? 0) - (postBalances[feeAccountIndex] ?? 0);
-        }
-
-        // If we couldn't find amount from fee account, use signer's balance increase
-        if (amountLamports <= 0 && preBalances[0] !== undefined && postBalances[0] !== undefined) {
-            amountLamports = (postBalances[0] ?? 0) - (preBalances[0] ?? 0);
-            // Add back the tx fee the signer paid
-            amountLamports += meta.fee;
-        }
-
-        if (amountLamports <= 0) amountLamports = 0;
-
-        // Try to find the token mint from accounts and parse social fee data
-        let tokenMint = '';
-        let githubUserId: string | undefined;
-        let socialPlatform: number | undefined;
-        let recipientWallet: string | undefined;
-        let socialFeePda: string | undefined;
-
         // Parse event logs for social fee claims
         if (def.claimType === 'claim_social_fee_pda') {
             const logMessages = meta.logMessages ?? [];

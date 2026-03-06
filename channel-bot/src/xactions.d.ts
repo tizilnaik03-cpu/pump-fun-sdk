@@ -12,28 +12,31 @@ declare module 'xactions' {
     isLoggedIn(): Promise<boolean>;
     logout(): Promise<void>;
     getProfile(username: string): Promise<Profile>;
-    getCookies(): Promise<Cookie[]>;
-    setCookies(cookies: Cookie[]): Promise<void>;
+    getCookies(): Promise<CookieEntry[]>;
+    setCookies(cookies: CookieEntry[] | string): Promise<void>;
     // Add other methods as needed
   }
 
   export interface Profile {
-    username: string;
     name: string;
+    username: string;
+    bio: string;
+    location?: string;
+    website?: string;
+    joinDate?: string;
     followers: number;
     following: number;
+    tweets: number;
     verified: boolean;
-    description?: string;
+    avatar?: string;
+    header?: string;
   }
 
-  export interface Cookie {
-    key: string;
+  export interface CookieEntry {
+    name: string;
     value: string;
-    domain: string;
-    path: string;
-    secure: boolean;
-    httpOnly: boolean;
-    sameSite?: 'Strict' | 'Lax' | 'None';
+    domain?: string;
+    path?: string;
   }
 
   export enum SearchMode {
@@ -44,9 +47,18 @@ declare module 'xactions' {
     Users = 'Users',
   }
 
-  export class ScraperError extends Error {}
+  export class ScraperError extends Error {
+    code: string;
+    details?: Record<string, any>;
+  }
   export class AuthenticationError extends ScraperError {}
-  export class RateLimitError extends ScraperError {}
+  export class RateLimitError extends ScraperError {
+    retryAfter?: number;
+  }
   export class NotFoundError extends ScraperError {}
-  export class TwitterApiError extends ScraperError {}
+  export class TwitterApiError extends ScraperError {
+    httpStatus: number;
+    twitterErrorCode?: number;
+    endpoint?: string;
+  }
 }

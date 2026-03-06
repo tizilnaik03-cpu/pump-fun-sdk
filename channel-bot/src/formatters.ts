@@ -114,6 +114,72 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
 
 
 // ============================================================================
+// Creator Fee Claim Card
+// ============================================================================
+
+export interface CreatorClaimContext {
+    event: FeeClaimEvent;
+    solUsdPrice: number;
+    creator: CreatorProfile | null;
+}
+
+/**
+ * Creator fee first-claim card — shows a creator collecting fees for the first time.
+ * Includes their PumpFun profile and recent launches.
+ */
+export function formatCreatorClaimFeed(ctx: CreatorClaimContext): { imageUrl: string | null; caption: string } {
+    const { event, solUsdPrice, creator } = ctx;
+    const L: string[] = [];
+
+    // ━━ HEADER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push(`💰 <b>Creator Claimed Fees</b>`);
+
+    // ━━ AMOUNT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push('');
+    const claimSol = event.amountSol.toFixed(4);
+    const claimUsd = solUsdPrice > 0 ? ` ($${(event.amountSol * solUsdPrice).toFixed(2)})` : '';
+    L.push(`🏦 <b>${claimSol} SOL</b>${claimUsd}`);
+    L.push(`  ↳ ${esc(event.claimLabel)}`);
+
+    // ━━ CREATOR PROFILE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push('');
+    const wallet = event.claimerWallet;
+    const profileLink = `<a href="https://pump.fun/profile/${wallet}">${shortAddr(wallet)}</a>`;
+    const uname = creator?.username ? ` @${esc(creator.username)}` : '';
+    L.push(`👤 ${profileLink}${uname}`);
+
+    if (creator) {
+        if (creator.totalLaunches > 0) L.push(`🚀 Launches: ${creator.totalLaunches}`);
+        const graduated = creator.recentCoins.filter((c) => c.complete).length;
+        if (graduated > 0) L.push(`🎓 Graduated: ${graduated}`);
+        if (creator.scamEstimate > 0) L.push(`⚠️ Rugs: ${creator.scamEstimate}`);
+        if (creator.followers > 0) L.push(`👁 Followers: ${formatCompact(creator.followers)}`);
+
+        // Show recent coins
+        const coins = creator.recentCoins.slice(0, 5);
+        if (coins.length > 0) {
+            const tickers = coins.map((c) => {
+                const g = c.complete ? '⭐' : '';
+                const mcap = c.usdMarketCap > 0 ? ` [${formatCompact(c.usdMarketCap)}]` : '';
+                return `<a href="https://pump.fun/coin/${c.mint}">${esc(c.symbol)}</a>${g}${mcap}`;
+            });
+            L.push(`🪙 ${tickers.join(' · ')}`);
+        }
+    }
+
+    // ━━ TX ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push('');
+    if (event.txSignature) {
+        L.push(`🔍 <a href="https://solscan.io/tx/${event.txSignature}">TX</a>`);
+    }
+    L.push(`🕐 ${formatTime(event.timestamp)}`);
+
+    const imageUrl = creator?.profileImage || null;
+    return { imageUrl, caption: L.join('\n') };
+}
+
+
+// ============================================================================
 // Token Launch
 // ============================================================================
 
