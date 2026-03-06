@@ -9,3 +9,4 @@ An application cannot run scripts without an opened window in PumpOS2. Be sure t
 
 It is highly unrecommended to block the user from managing aspects of your application.
 {% endhint %}
+
