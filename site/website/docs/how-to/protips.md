@@ -15,3 +15,4 @@ icon: crown
 * You can switch the text app to 'Reading mode' to help your eyes while reading long documents.
 * Want the current date in a text field? Drag and drop the Pump Nav's time widget into the text field to get a time string.
 
+
