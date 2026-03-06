@@ -520,3 +520,4 @@ This enables plugins to create rich, interactive displays in the chat interface.
 **Last Updated:** December 27, 2025  
 **Version:** 1.0  
 **License:** MIT
+
