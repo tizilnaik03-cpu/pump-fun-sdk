@@ -28,3 +28,4 @@ COPY --from=build /app/dist dist/
 USER bot
 
 CMD ["node", "dist/index.js"]
+
