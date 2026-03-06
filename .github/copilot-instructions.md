@@ -14,6 +14,21 @@ The Pump SDK (`@pump-fun/pump-sdk`) is a TypeScript SDK for the Pump protocol on
 - **Live dashboards** (`live/`) — Browser UIs for token launches and trades
 - **Shell scripts** (`scripts/`) — Production Bash wrappers for solana-keygen
 
+## Official Pump Protocol Docs
+
+**Canonical protocol specs** from pump-fun/pump-public-docs are in `docs/pump-official/`. Read these before modifying on-chain code:
+
+- `docs/pump-official/PUMP_PROGRAM_README.md` — Pump bonding curve program (state, instructions)
+- `docs/pump-official/PUMP_SWAP_README.md` — PumpSwap AMM program (pool state, swap/deposit/withdraw)
+- `docs/pump-official/FEE_PROGRAM_README.md` — Dynamic fee tiers based on market cap
+- `docs/pump-official/PUMP_CREATOR_FEE_README.md` — Creator fees on bonding curve
+- `docs/pump-official/PUMP_SWAP_CREATOR_FEE_README.md` — Creator fees on AMM pools
+- `docs/pump-official/PUMP_CASHBACK_README.md` — Cashback rewards & UserVolumeAccumulator
+- `docs/pump-official/PUMP_SWAP_SDK_README.md` — PumpSwap SDK method reference
+- `docs/pump-official/README.md` — create_v2, Token2022, mayhem mode, social fees
+- `docs/pump-official/FAQ.md` — CU optimization tips
+- `docs/pump-official/idl/` — Official Anchor IDL files for all programs
+
 ## SDK Pattern
 
 - `PumpSdk` (offline, singleton `PUMP_SDK`) — builds instructions without connection

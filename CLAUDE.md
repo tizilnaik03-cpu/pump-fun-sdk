@@ -37,6 +37,23 @@ Three on-chain programs:
 | PumpAMM | `pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA` | Post-graduation AMM pools |
 | PumpFees | `pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ` | Fee sharing/distribution |
 
+## Official Pump Protocol Docs (MUST READ)
+
+**Before modifying any on-chain interaction code**, read the relevant official docs in `docs/pump-official/`. These are the canonical protocol specifications from pump-fun/pump-public-docs.
+
+| Task | Read This File |
+|------|---------------|
+| Bonding curve buy/sell/create, Global/BondingCurve state | `docs/pump-official/PUMP_PROGRAM_README.md` |
+| Creator fees on bonding curve | `docs/pump-official/PUMP_CREATOR_FEE_README.md` |
+| AMM pool swap/deposit/withdraw, Pool/GlobalConfig state | `docs/pump-official/PUMP_SWAP_README.md` |
+| PumpSwap SDK methods & autocomplete helpers | `docs/pump-official/PUMP_SWAP_SDK_README.md` |
+| Creator fees on AMM pools | `docs/pump-official/PUMP_SWAP_CREATOR_FEE_README.md` |
+| Dynamic fee tiers, market-cap-based fee calculation | `docs/pump-official/FEE_PROGRAM_README.md` |
+| Cashback rewards, UserVolumeAccumulator PDA | `docs/pump-official/PUMP_CASHBACK_README.md` |
+| CU optimization, PDA bump effects | `docs/pump-official/FAQ.md` |
+| create_v2, Token2022, mayhem mode, social fees | `docs/pump-official/README.md` |
+| Official IDL files | `docs/pump-official/idl/pump.json`, `pump_amm.json`, `pump_fees.json` |
+
 ## Code Examples
 
 ### Create a token

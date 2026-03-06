@@ -26,6 +26,7 @@ import {
     PUMPFUN_MIGRATION_AUTHORITY,
     PUMP_PROGRAM_ID,
     PUMP_AMM_PROGRAM_ID,
+    PUMP_FEE_PROGRAM_ID,
     type InstructionDef,
 } from './types.js';
 
@@ -400,6 +401,9 @@ export class ClaimMonitor {
 
         // Extract token mint based on instruction type
         let tokenMint = '';
+        let githubUserId: string | undefined;
+        let socialPlatform: number | undefined;
+        let recipientWallet: string | undefined;
 
         if (def.claimType === 'distribute_creator_fees') {
             // distribute_creator_fees: accounts[0] = mint

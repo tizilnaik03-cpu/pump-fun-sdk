@@ -11,7 +11,8 @@
 
 export const PUMP_PROGRAM_ID = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P';
 export const PUMP_AMM_PROGRAM_ID = 'pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA';
-export const MONITORED_PROGRAM_IDS = [PUMP_PROGRAM_ID, PUMP_AMM_PROGRAM_ID] as const;
+export const PUMP_FEE_PROGRAM_ID = 'pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ';
+export const MONITORED_PROGRAM_IDS = [PUMP_PROGRAM_ID, PUMP_AMM_PROGRAM_ID, PUMP_FEE_PROGRAM_ID] as const;
 
 export const PUMPFUN_FEE_ACCOUNT = 'CebN5WGQ4jvEPvsVU4EoHEpgzq1VV7AbCJ5GEFDM97zC';
 export const PUMPFUN_MIGRATION_AUTHORITY = '39azUYFWPz3VHgKCf3VChUwbpURdCHRxjWVowf5jUJjg';
@@ -41,7 +42,8 @@ export type ClaimType =
     | 'claim_cashback'
     | 'collect_coin_creator_fee'
     | 'distribute_creator_fees'
-    | 'transfer_creator_fees_to_pump';
+    | 'transfer_creator_fees_to_pump'
+    | 'claim_social_fee_pda';
 
 export interface InstructionDef {
     discriminator: string;
@@ -58,6 +60,7 @@ export const CLAIM_INSTRUCTIONS: InstructionDef[] = [
     { claimType: 'collect_coin_creator_fee', discriminator: 'a039592ab58b2b42', isCreatorClaim: true, label: 'Collect Creator Fee (PumpSwap)', programId: PUMP_AMM_PROGRAM_ID },
     { claimType: 'claim_cashback', discriminator: '253a237ebe35e4c5', isCreatorClaim: false, label: 'Claim Cashback (PumpSwap)', programId: PUMP_AMM_PROGRAM_ID },
     { claimType: 'transfer_creator_fees_to_pump', discriminator: '8b348655e4e56cf1', isCreatorClaim: true, label: 'Transfer Creator Fees to Pump', programId: PUMP_AMM_PROGRAM_ID },
+    { claimType: 'claim_social_fee_pda', discriminator: 'e115fb85a11ec7e2', isCreatorClaim: true, label: 'Claim Social Fee PDA (GitHub)', programId: PUMP_FEE_PROGRAM_ID },
 ];
 
 export const CLAIM_EVENT_DISCRIMINATORS: Record<string, { label: string; isCreatorClaim: boolean }> = {
@@ -65,6 +68,7 @@ export const CLAIM_EVENT_DISCRIMINATORS: Record<string, { label: string; isCreat
     'a537817004b3ca28': { isCreatorClaim: true, label: 'DistributeCreatorFeesEvent' },
     'e2d6f62107f293e5': { isCreatorClaim: false, label: 'ClaimCashbackEvent' },
     'e8f5c2eeeada3a59': { isCreatorClaim: true, label: 'CollectCoinCreatorFeeEvent' },
+    '3212c141edd2eaec': { isCreatorClaim: true, label: 'SocialFeePdaClaimed' },
 };
 
 export const DEFAULT_GRADUATION_SOL_THRESHOLD = 85;
@@ -87,6 +91,12 @@ export interface FeeClaimEvent {
     isCashback: boolean;
     programId: string;
     claimLabel: string;
+    /** GitHub numeric user ID (only for claim_social_fee_pda events) */
+    githubUserId?: string;
+    /** Platform enum (2 = GitHub) — only for claim_social_fee_pda events */
+    socialPlatform?: number;
+    /** Recipient wallet for social fee claims (may differ from signer) */
+    recipientWallet?: string;
 }
 
 export interface TokenLaunchEvent {
