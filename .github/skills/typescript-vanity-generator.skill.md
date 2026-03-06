@@ -187,3 +187,4 @@ Typed errors via `VanityError` class:
 - Test file output format matches Solana CLI expectations
 - Test Base58 validation edge cases
 
+
