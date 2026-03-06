@@ -119,3 +119,4 @@ const balance = await onlineSdk.getCreatorVaultBalanceBothPrograms(creator);
 - Creator vault PDAs differ: `"creator-vault"` (Pump, hyphen) vs `"creator_vault"` (AMM, underscore)
 - `fetchSellState` requires ATA to exist (unlike `fetchBuyState`)
 - Fee recipient is selected randomly from `global.feeRecipients[]`
+
