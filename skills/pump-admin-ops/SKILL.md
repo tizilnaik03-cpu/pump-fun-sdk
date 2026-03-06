@@ -76,3 +76,4 @@ Tokens with `isMayhemMode === true` use:
 - Admin instructions fail silently if the signer lacks authority
 - Mayhem mode tokens have separate fee recipient lists
 - `adminRevoked === true` on SharingConfig blocks all shareholder updates
+
