@@ -3,6 +3,7 @@ import { PublicKey } from "@solana/web3.js";
 
 import {
   bondingCurvePda,
+  bondingCurveV2Pda,
   creatorVaultPda,
   pumpPoolAuthorityPda,
   canonicalPumpPoolPda,
@@ -10,11 +11,24 @@ import {
   getEventAuthorityPda,
   feeSharingConfigPda,
   ammCreatorVaultPda,
+  feeProgramGlobalPda,
+  socialFeePda,
+  ammUserVolumeAccumulatorPda,
+  poolV2Pda,
+  getGlobalParamsPda,
+  getMayhemStatePda,
+  getSolVaultPda,
+  getTokenVaultPda,
   GLOBAL_PDA,
   AMM_GLOBAL_PDA,
   PUMP_FEE_CONFIG_PDA,
   GLOBAL_VOLUME_ACCUMULATOR_PDA,
   AMM_GLOBAL_VOLUME_ACCUMULATOR_PDA,
+  PUMP_EVENT_AUTHORITY_PDA,
+  PUMP_AMM_EVENT_AUTHORITY_PDA,
+  PUMP_FEE_EVENT_AUTHORITY_PDA,
+  AMM_FEE_CONFIG_PDA,
+  AMM_GLOBAL_CONFIG_PDA,
 } from "../pda";
 
 import { TEST_PUBKEY, TEST_CREATOR } from "./fixtures";

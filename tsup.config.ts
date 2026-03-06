@@ -14,7 +14,7 @@ export default defineConfig([
     entry: ["src/index.ts"],
     format: ["esm"],
     outDir: "dist/esm",
-    dts: false,
+    dts: true,
     clean: false,
     sourcemap: true,
     splitting: false,
