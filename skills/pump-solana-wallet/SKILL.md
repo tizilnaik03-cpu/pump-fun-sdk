@@ -69,3 +69,4 @@ Secure Solana wallet generation using official Solana Labs libraries with Ed2551
 - `solana-keygen` output is [u8; 64] JSON array (32-byte secret + 32-byte public)
 - Base58 is NOT the same as Base64 — Solana uses a specific alphabet without `0OIl`
 - Vanity matching must use raw Base58 — case-sensitive, no regex anchoring errors
+
