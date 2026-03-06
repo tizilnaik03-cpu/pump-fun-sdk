@@ -224,7 +224,7 @@ export class ClaimMonitor {
                 log.warn('Claim monitor WS silent for %ds — reconnecting...', Math.floor(elapsed / 1000));
                 this.reconnectWebSocket();
             } else {
-                log.info('WS heartbeat: %d events, %d claims queued, %d posted (uptime %s)',
+                log.info('WS heartbeat: %d events, %d claims queued, %d detected (uptime %s)',
                     this.wsEventsReceived, this.claimTxProcessed, this.claimsDetected,
                     formatUptime(Date.now() - this.startedAt));
             }

@@ -126,7 +126,7 @@ async function main(): Promise<void> {
         // GitHub gate: skip tokens with no GitHub URLs in description
         if (config.requireGithub) {
             if (!token?.githubUrls?.length) {
-                log.debug('Skipping claim for %s — no GitHub URLs (requireGithub=true)', mint.slice(0, 8));
+                log.info('Skipping claim for %s — no GitHub URLs (requireGithub=true)', mint.slice(0, 8));
                 return;
             }
         }

@@ -84,7 +84,7 @@ export function loadConfig(): ChannelBotConfig {
         whales: (process.env.FEED_WHALES || 'false').toLowerCase() === 'true',
     };
 
-    const requireGithub = (process.env.REQUIRE_GITHUB || 'true').toLowerCase() === 'true';
+    const requireGithub = (process.env.REQUIRE_GITHUB || 'false').toLowerCase() === 'true';
 
     const whaleThresholdSol = Number.parseFloat(
         process.env.WHALE_THRESHOLD_SOL || '10',
