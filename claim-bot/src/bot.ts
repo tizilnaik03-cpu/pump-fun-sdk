@@ -20,6 +20,7 @@ import {
     type MonitorStatus,
 } from './formatters.js';
 import { fetchTokenInfo, getXHandleFromToken } from './pump-client.js';
+import { fetchTwitterUserInfo } from './twitter-client.js';
 import {
     addTrackedItem,
     findMatchingTokenTracks,
@@ -254,7 +255,7 @@ export function registerStatusCommand(bot: Bot, monitor: ClaimMonitor): void {
 // Claim handler factory — notifies relevant chats
 // ============================================================================
 
-export function createClaimHandler(bot: Bot): (event: FeeClaimEvent) => Promise<void> {
+export function createClaimHandler(bot: Bot, config: BotConfig): (event: FeeClaimEvent) => Promise<void> {
     return async (event: FeeClaimEvent) => {
         try {
             // 1. Check if any chat is tracking this token mint
@@ -284,6 +285,21 @@ export function createClaimHandler(bot: Bot): (event: FeeClaimEvent) => Promise<
 
             // 3. Notify all matching chats
             const tokenInfo = await fetchTokenInfo(event.tokenMint);
+
+            // Fetch Twitter follower info if available
+            if (tokenInfo && config.twitterBearerToken) {
+                const creatorHandle = getXHandleFromToken(tokenInfo);
+                if (creatorHandle) {
+                    const twitterInfo = await fetchTwitterUserInfo(
+                        creatorHandle,
+                        config.twitterBearerToken,
+                        config.twitterInfluencerIds,
+                    );
+                    if (twitterInfo) {
+                        tokenInfo.twitterUserInfo = twitterInfo;
+                    }
+                }
+            }
 
             // Deduplicate by chatId to avoid double-notifying
             const notified = new Set<number>();

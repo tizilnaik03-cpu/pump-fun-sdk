@@ -15,6 +15,8 @@ import type {
     TokenLaunchEvent,
     TradeAlertEvent,
 } from './types.js';
+import type { XProfile } from './x-client.js';
+import { getInfluencerTier, formatFollowerCount, influencerLabel } from './x-client.js';
 
 // ============================================================================
 // Fee Claim — Rick-bot style first-claim card
@@ -30,6 +32,7 @@ export interface ClaimFeedContext {
     solUsdPrice: number;
     githubRepo: GitHubRepoInfo | null;
     githubUser: GitHubUserInfo | null;
+    xProfile: XProfile | null;
     aiSummary: string;
 }
 
@@ -54,11 +57,21 @@ export function formatClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | nul
  * fee share from the PumpFun social fee PDA.
  */
 function formatGitHubSocialClaim(ctx: ClaimFeedContext): { imageUrl: string | null; caption: string } {
-    const { event, solUsdPrice, githubUser } = ctx;
+    const { event, solUsdPrice, githubUser, xProfile } = ctx;
     const L: string[] = [];
+    const mint = event.tokenMint?.trim() || '';
 
     // ━━ HEADER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     L.push(`🐙 <b>GitHub Dev Claimed Fees</b>`);
+
+    // ━━ INFLUENCER BADGE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const tier = getInfluencerTier(
+        githubUser?.followers ?? 0,
+        xProfile?.followers ?? null,
+    );
+    if (tier) {
+        L.push(`${influencerLabel(tier)}`);
+    }
 
     // ━━ AMOUNT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     L.push('');
@@ -79,7 +92,14 @@ function formatGitHubSocialClaim(ctx: ClaimFeedContext): { imageUrl: string | nu
             const bio = githubUser.bio.length > 80 ? githubUser.bio.slice(0, 77) + '...' : githubUser.bio;
             L.push(`  <i>${esc(bio)}</i>`);
         }
-        if (githubUser.twitterUsername) L.push(`𝕏 <a href="https://x.com/${esc(githubUser.twitterUsername)}">${esc(githubUser.twitterUsername)}</a>`);
+        if (githubUser.twitterUsername) {
+            const xLink = `<a href="https://x.com/${esc(githubUser.twitterUsername)}">${esc(githubUser.twitterUsername)}</a>`;
+            if (xProfile && xProfile.followers > 0) {
+                L.push(`𝕏 ${xLink} · ${formatFollowerCount(xProfile.followers)} followers`);
+            } else {
+                L.push(`𝕏 ${xLink}`);
+            }
+        }
         if (githubUser.blog) L.push(`🌐 <a href="${esc(githubUser.blog)}">${esc(githubUser.blog.replace(/^https?:\/\//, '').slice(0, 40))}</a>`);
         if (githubUser.location) L.push(`📍 ${esc(githubUser.location)}`);
     } else {
@@ -92,6 +112,17 @@ function formatGitHubSocialClaim(ctx: ClaimFeedContext): { imageUrl: string | nu
         L.push('');
         const recipientLink = `<a href="https://pump.fun/profile/${recipient}">${shortAddr(recipient)}</a>`;
         L.push(`💼 Recipient: ${recipientLink}`);
+    }
+
+    // ━━ CA / CLAIM ACCOUNT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push('');
+    if (mint) {
+        L.push(`🧬 CA: <code>${mint}</code>`);
+    } else {
+        L.push(`🧬 CA: <i>N/A (social fee claim is wallet-level)</i>`);
+    }
+    if (event.socialFeePda) {
+        L.push(`🧾 Social Fee PDA: <code>${event.socialFeePda}</code>`);
     }
 
     // ━━ TX ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -155,8 +186,8 @@ function formatLegacyClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | null
     // ━━ BONDING CURVE BAR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     if (token && !token.complete && token.curveProgress > 0) {
         const p = Math.min(99, Math.round(token.curveProgress));
-        const filled = Math.round(p / 5);
-        const bar = '█'.repeat(filled) + '░'.repeat(20 - filled);
+        const filled = Math.round(p / 10);
+        const bar = '█'.repeat(filled) + '░'.repeat(10 - filled);
         L.push(`📈 [${bar}] ${p}%`);
     } else if (token?.complete) {
         L.push(`🎓 Graduated → AMM`);
@@ -377,40 +408,166 @@ export function formatLaunchFeed(
 export function formatGraduationFeed(
     event: GraduationEvent,
     token: TokenInfo | null,
-): string {
-    const lines: string[] = [];
+    creator: CreatorProfile | null,
+    solUsdPrice: number,
+): { imageUrl: string | null; caption: string } {
+    const L: string[] = [];
 
-    lines.push(`🎓 <b>TOKEN GRADUATED</b>`);
-    lines.push('');
+    // ━━ HEADER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push(`🎓 <b>TOKEN GRADUATED</b>`);
+    L.push('');
 
+    // ━━ TOKEN INFO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const coinName = token?.name ?? 'Unknown';
     const coinTicker = token?.symbol ?? '???';
     const pumpLink = `<a href="https://pump.fun/coin/${event.mintAddress}">${esc(coinName)}</a>`;
-    lines.push(`🪙  <b>${pumpLink}</b>  <code>$${esc(coinTicker)}</code>`);
-    lines.push(`CA: <code>${event.mintAddress}</code>`);
-
+    
+    // Calculate time spent in bonding curve and add speed emojis
+    let speedEmoji = '';
+    let timeSpent = '';
     if (token && token.createdTimestamp > 0) {
-        lines.push(`     Launched ${timeAgo(token.createdTimestamp)}`);
+        const seconds = event.timestamp - token.createdTimestamp;
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+        
+        if (seconds < 30) {
+            speedEmoji = '⚡️⚡️⚡️';
+            timeSpent = `${seconds}s`;
+        } else if (seconds < 60) {
+            speedEmoji = '⚡️⚡️';
+            timeSpent = `${seconds}s`;
+        } else if (seconds < 120) {
+            speedEmoji = '⚡️';
+            timeSpent = `${minutes}m`;
+        } else if (days > 3) {
+            speedEmoji = '💤';
+            timeSpent = days > 0 ? `${days}d ${hours % 24}h` : `${hours}h ${minutes % 60}m`;
+        } else if (hours > 0) {
+            timeSpent = `${hours}h ${minutes % 60}m`;
+        } else {
+            timeSpent = `${minutes}m`;
+        }
+    }
+    
+    const launchpadEmoji = '💊'; // Pump launchpad
+    L.push(`${launchpadEmoji} ${speedEmoji} <b>${pumpLink}</b>  <code>$${esc(coinTicker)}</code>`.trim());
+    L.push(`CA: <code>${event.mintAddress}</code>`);
+    if (timeSpent) {
+        L.push(`     Bonding Curve: ${timeSpent}`);
+    }
+    if (token && token.createdTimestamp > 0) {
+        L.push(`     Launched ${timeAgo(token.createdTimestamp)}`);
     }
 
-    lines.push('');
+    // ━━ MIGRATION DETAILS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push('');
+    L.push(`📈 <b>Type:</b> ${event.isMigration ? 'AMM Migration' : 'Bonding Curve Complete'}`);
+    if (event.isMigration && event.solAmount != null) {
+        const solMigrated = event.solAmount.toFixed(2);
+        const usdMigrated = solUsdPrice > 0 ? ` ($${(event.solAmount * solUsdPrice).toFixed(0)})` : '';
+        L.push(`     SOL Migrated: ${solMigrated} SOL${usdMigrated}`);
+    }
+    if (event.poolMigrationFee != null) {
+        L.push(`     Migration Fee: ${event.poolMigrationFee.toFixed(4)} SOL`);
+    }
+    if (event.poolAddress) {
+        const poolLink = `<a href="https://solscan.io/account/${event.poolAddress}">${shortAddr(event.poolAddress)}</a>`;
+        L.push(`     Pool: ${poolLink}`);
+    }
+    const userLink = `<a href="https://pump.fun/profile/${event.user}">${shortAddr(event.user)}</a>`;
+    L.push(`     Triggered by: ${userLink}`);
 
-    lines.push(`📈  Type: ${event.isMigration ? 'AMM Migration' : 'Bonding Curve Complete'}`);
-    if (event.isMigration) {
-        if (event.solAmount != null) lines.push(`     SOL migrated: ${event.solAmount.toFixed(2)} SOL`);
-        if (event.poolMigrationFee != null) lines.push(`     Migration fee: ${event.poolMigrationFee.toFixed(4)} SOL`);
-        if (event.poolAddress) lines.push(`     Pool: <code>${shortAddr(event.poolAddress)}</code>`);
+    // ━━ MARKET INFO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (token) {
+        L.push('');
+        if (token.usdMarketCap > 0) {
+            L.push(`💹 <b>Market Cap:</b> $${formatCompact(token.usdMarketCap)}`);
+        } else if (token.marketCapSol > 0) {
+            L.push(`💹 <b>Market Cap:</b> ~${token.marketCapSol.toFixed(1)} SOL`);
+        }
+        if (token.priceSol > 0) {
+            const priceStr = token.priceSol < 0.000001 
+                ? token.priceSol.toExponential(2) 
+                : token.priceSol.toFixed(9).replace(/\.?0+$/, '');
+            L.push(`     Price: ${priceStr} SOL`);
+        }
+        if (token.athMarketCap > 0 && token.athMarketCap > token.usdMarketCap) {
+            L.push(`     ATH: $${formatCompact(token.athMarketCap)}`);
+        }
     }
 
-    lines.push(`     Triggered by: <code>${shortAddr(event.user)}</code>`);
-    lines.push('');
+    // ━━ DEV DETAILS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (token && token.creator) {
+        L.push('');
+        const devLink = `<a href="https://pump.fun/profile/${token.creator}">${shortAddr(token.creator)}</a>`;
+        L.push(`👤 <b>Dev:</b> ${devLink}`);
+        
+        if (creator) {
+            if (creator.username) L.push(`     Name: ${esc(creator.username)}`);
+            if (creator.totalLaunches > 0) {
+                L.push(`     Total Launches: ${creator.totalLaunches}`);
+            }
+            if (creator.scamEstimate > 0) {
+                L.push(`     ⚠️ Suspected Rugs: ${creator.scamEstimate}`);
+            }
+            
+            // Show dev's past successful launches
+            const graduated = creator.recentCoins.filter(c => c.complete && c.usdMarketCap > 0);
+            if (graduated.length > 0) {
+                L.push(`     Past Graduations: ${graduated.length}`);
+                const topLaunch = graduated.reduce((max, c) => c.usdMarketCap > max.usdMarketCap ? c : max, graduated[0]);
+                if (topLaunch.usdMarketCap > 1000) {
+                    L.push(`     Best ATH: ${esc(topLaunch.name)} ($${formatCompact(topLaunch.usdMarketCap)})`);
+                }
+            }
+        }
+    }
 
+    // ━━ SOCIALS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (token) {
+        const socials: string[] = [];
+        if (token.website) socials.push(`<a href="${esc(token.website)}">Website</a>`);
+        if (token.twitter) {
+            const twitterHandle = token.twitter.replace(/.*twitter\.com\/|.*x\.com\//, '').replace(/\/+$/, '');
+            socials.push(`<a href="${esc(token.twitter)}">𝕏 @${esc(twitterHandle)}</a>`);
+        }
+        if (token.telegram) socials.push(`<a href="${esc(token.telegram)}">Telegram</a>`);
+        if (token.githubUrls && token.githubUrls.length > 0) {
+            socials.push(`<a href="${esc(token.githubUrls[0])}">GitHub</a>`);
+        }
+        
+        if (socials.length > 0) {
+            L.push('');
+            L.push(`🔗 <b>Socials:</b> ${socials.join(' · ')}`);
+        }
+    }
+
+    // ━━ TRADING BOT QUICK LINKS ━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push('');
+    const mint = event.mintAddress;
+    const quickBots = [
+        `<a href="https://photon-sol.tinyastro.io/en/lp/${mint}">Photon</a>`,
+        `<a href="https://t.me/solana_bullx_bot?start=${mint}">BullX</a>`,
+        `<a href="https://t.me/paris_trojanbot?start=r-pumpdotfun-${mint}">Trojan</a>`,
+        `<a href="https://t.me/BananaGunSolana_bot?start=${mint}">Banana</a>`,
+        `<a href="https://t.me/maestro?start=${mint}">Maestro</a>`,
+    ];
+    L.push(`🤖 ${quickBots.join(' · ')}`);
+
+    // ━━ TRANSACTION LINKS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push('');
     const txLink = `<a href="https://solscan.io/tx/${event.txSignature}">TX</a>`;
-    const pfLink = `<a href="https://pump.fun/coin/${event.mintAddress}">pump.fun</a>`;
-    lines.push(`🔗  ${txLink}  ·  ${pfLink}`);
-    lines.push(`🕐  ${formatTime(event.timestamp)}`);
+    const pfLink = `<a href="https://pump.fun/coin/${event.mintAddress}">Pump.fun</a>`;
+    const solscanLink = `<a href="https://solscan.io/token/${event.mintAddress}">Solscan</a>`;
+    const dexLink = `<a href="https://dexscreener.com/solana/${event.mintAddress}">DexScreener</a>`;
+    L.push(`🔍 ${txLink} · ${pfLink} · ${solscanLink} · ${dexLink}`);
+    L.push(`🕐 ${formatTime(event.timestamp)}`);
 
-    return lines.join('\n');
+    return {
+        imageUrl: token?.imageUri || null,
+        caption: L.join('\n'),
+    };
 }
 
 // ============================================================================

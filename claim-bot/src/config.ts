@@ -42,6 +42,12 @@ export function loadConfig(): BotConfig {
 
     const logLevel = (process.env.LOG_LEVEL || 'info') as BotConfig['logLevel'];
 
+        const twitterBearerToken = process.env.TWITTER_BEARER_TOKEN;
+
+        const twitterInfluencerIds = process.env.TWITTER_INFLUENCER_IDS
+            ? process.env.TWITTER_INFLUENCER_IDS.split(',').map((s) => s.trim()).filter(Boolean)
+            : [];
+
     return {
         logLevel,
         pollIntervalSeconds,
@@ -49,5 +55,7 @@ export function loadConfig(): BotConfig {
         solanaRpcUrls,
         solanaWsUrl,
         telegramToken,
+            twitterBearerToken,
+            twitterInfluencerIds,
     };
 }

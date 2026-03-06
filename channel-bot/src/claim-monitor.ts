@@ -404,6 +404,7 @@ export class ClaimMonitor {
         let githubUserId: string | undefined;
         let socialPlatform: number | undefined;
         let recipientWallet: string | undefined;
+        let socialFeePda: string | undefined;
 
         if (def.claimType === 'distribute_creator_fees') {
             // distribute_creator_fees: accounts[0] = mint
@@ -486,8 +487,11 @@ export class ClaimMonitor {
                         socialPlatform = bytes[offset]!;
                         offset += 1;
                     }
-                    // social_fee_pda: pubkey(32) — skip
-                    offset += 32;
+                    // social_fee_pda: pubkey(32)
+                    if (bytes.length >= offset + 32) {
+                        socialFeePda = new PublicKey(bytes.subarray(offset, offset + 32)).toBase58();
+                        offset += 32;
+                    }
                     // recipient: pubkey(32)
                     if (bytes.length >= offset + 32) {
                         recipientWallet = new PublicKey(bytes.subarray(offset, offset + 32)).toBase58();
@@ -551,13 +555,15 @@ export class ClaimMonitor {
             githubUserId,
             socialPlatform,
             recipientWallet,
+            socialFeePda,
         };
     }
 
     private trimProcessedCache(): void {
         if (this.processedSignatures.size > this.MAX_PROCESSED_CACHE) {
+            // Keep the most recent entries (Sets are insertion-ordered in JS)
             const arr = [...this.processedSignatures];
-            this.processedSignatures = new Set(arr.slice(arr.length - this.MAX_PROCESSED_CACHE / 2));
+            this.processedSignatures = new Set(arr.slice(-5_000));
         }
     }
 }

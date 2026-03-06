@@ -4,12 +4,7 @@ Interactive Telegram bot that monitors PumpFun fee claims and notifies you insta
 
 ## Features
 
-- **Track tokens** — `/add <token CA>` to monitor fee claims on any PumpFun token
-- **Track X accounts** — `/add @handle` to get notified when a creator claims fees
-- **Real-time monitoring** — WebSocket (preferred) or HTTP polling fallback
-- **Multi-program** — Monitors Pump, PumpSwap AMM, and PumpFees programs
-- **Persistent tracking** — Survives restarts via local JSON storage
-- **Group support** — Works in DMs and group chats
+- **Twitter follower tracking** — See follower counts and influencer follows for tracked X accounts (optional)
 
 ## Commands
 
@@ -49,8 +44,33 @@ npm run dev
 | `SOLANA_RPC_URLS` | ❌ | — | Comma-separated fallback RPCs |
 | `POLL_INTERVAL_SECONDS` | ❌ | `15` | Polling interval (when WS unavailable) |
 | `LOG_LEVEL` | ❌ | `info` | `debug` \| `info` \| `warn` \| `error` |
+| `TWITTER_BEARER_TOKEN` | ❌ | — | Twitter API v2 bearer token for follower tracking |
+| `TWITTER_INFLUENCER_IDS` | ❌ | — | Comma-separated list of influencer user IDs to check for follows |
 
 > **Tip:** Use a paid RPC (Helius, QuickNode, Triton) for reliable WebSocket support.
+
+### Twitter Follower Tracking (Optional)
+
+To enable Twitter follower counts and influencer follow tracking:
+
+1. Get a Twitter API v2 bearer token from [Twitter Developer Portal](https://developer.twitter.com/)
+2. Set `TWITTER_BEARER_TOKEN` in your `.env` file
+3. (Optional) Set `TWITTER_INFLUENCER_IDS` to a comma-separated list of Twitter user IDs to check for follows
+
+When enabled, claim notifications will show:
+- **Follower count** for the token creator's X account (formatted as 1.2K, 3.4M, etc.)
+- **Influencer follows** if any tracked influencer follows the creator
+
+Example notification with Twitter data:
+```
+🏦 Creator Fee Claim Detected!
+
+👤 Claimer: abc123...xyz
+💰 Amount: 2.5000 SOL
+Token: PUMP (PumpToken) · $127.5K mcap
+🐦 X Account: @creator · 12.3K followers · ⭐ Followed by 2 tracked influencer(s)
+⚙️ Program: Pump
+```
 
 ## How It Works
 
@@ -58,7 +78,8 @@ npm run dev
 2. **Instruction matching** — Detects `collect_creator_fee`, `claim_cashback`, `distribute_creator_fees`, `collect_coin_creator_fee`, and `claim_social_fee_pda` instructions
 3. **Token matching** — When a claim is detected, checks if the token mint matches any tracked tokens
 4. **X handle matching** — Fetches token metadata from PumpFun API to resolve the creator's X handle, then matches against tracked handles
-5. **Notification** — Sends rich HTML notifications to all matching chats with links to Solscan and pump.fun
+5. **Twitter enrichment** (optional) — Fetches follower counts and checks influencer follows for tracked X accounts
+6. **Notification** — Sends rich HTML notifications to all matching chats with links to Solscan and pump.fun
 
 ## Deployment
 
@@ -84,6 +105,7 @@ claim-bot/
 │   ├── monitor.ts        # Solana on-chain claim monitor (WS + polling)
 │   ├── store.ts          # Persistent tracking store (tokens + X handles)
 │   ├── pump-client.ts    # PumpFun API client for token enrichment
+│   ├── twitter-client.ts # Twitter/X API client for follower tracking
 │   ├── formatters.ts     # HTML message formatters
 │   ├── logger.ts         # Structured logger
 │   └── types.ts          # Type definitions & program constants

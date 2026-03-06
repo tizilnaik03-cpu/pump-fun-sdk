@@ -7,6 +7,7 @@
 import type { FeeClaimEvent } from './types.js';
 import type { TrackedItem } from './types.js';
 import type { TokenInfo } from './pump-client.js';
+import { formatFollowerCount } from './twitter-client.js';
 
 // ============================================================================
 // Helpers
@@ -139,6 +140,19 @@ export function formatClaimNotification(
         tokenLine = `<b>Token:</b> <code>${shortAddr(event.tokenMint)}</code>`;
     }
 
+        // Twitter info line (if available)
+        let twitterLine = '';
+        if (token?.twitterUserInfo) {
+            const { username, followersCount, followedByInfluencers } = token.twitterUserInfo;
+            const formattedFollowers = formatFollowerCount(followersCount);
+            twitterLine = `🐦 <b>X Account:</b> @${escapeHtml(username)} · ${formattedFollowers} followers`;
+        
+            if (followedByInfluencers.length > 0) {
+                twitterLine += ` · ⭐ Followed by ${followedByInfluencers.length} tracked influencer(s)`;
+            }
+            twitterLine += '\n';
+        }
+
     // What triggered this notification
     let matchLine: string;
     if (item.type === 'token') {
@@ -164,6 +178,7 @@ export function formatClaimNotification(
         `👤 <b>Claimer:</b> <code>${shortWallet}</code>\n` +
         `💰 <b>Amount:</b> ${solAmount} SOL\n` +
         `${tokenLine}\n` +
+            `${twitterLine}` +
         `⚙️ <b>Program:</b> ${programLabel}\n` +
         `🕐 <b>Time:</b> ${formatTime(event.timestamp)}\n` +
         `${matchLine}\n\n` +

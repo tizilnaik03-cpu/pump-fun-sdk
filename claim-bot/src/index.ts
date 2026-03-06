@@ -39,7 +39,7 @@ async function main(): Promise<void> {
     registerStatusCommand(bot, monitor);
 
     // Wire claim handler (needs bot reference)
-    const claimHandler = createClaimHandler(bot);
+        const claimHandler = createClaimHandler(bot, config);
     const monitorWithHandler = new ClaimMonitor(config, (event) => {
         claimHandler(event).catch((err) => log.error('Claim handler error: %s', err));
     });

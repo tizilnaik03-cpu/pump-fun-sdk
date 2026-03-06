@@ -23,6 +23,36 @@ export interface TokenLaunchEvent {
   telegram: string | null;
 }
 
+// ════════════════════════════════════════════════════════════════════
+// Fee Claim Events
+// ════════════════════════════════════════════════════════════════════
+
+export type ClaimType =
+  | 'collect_creator_fee'
+  | 'claim_cashback'
+  | 'collect_coin_creator_fee'
+  | 'distribute_creator_fees'
+  | 'transfer_creator_fees_to_pump'
+  | 'claim_social_fee_pda';
+
+/** A parsed fee claim event broadcast to all clients */
+export interface FeeClaimEvent {
+  type: 'fee-claim';
+  txSignature: string;
+  slot: number;
+  timestamp: number;
+  claimerWallet: string;
+  tokenMint: string;
+  tokenName?: string;
+  tokenSymbol?: string;
+  amountSol: number;
+  amountLamports: number;
+  claimType: ClaimType;
+  isCashback: boolean;
+  programId: string;
+  claimLabel: string;
+}
+
 /** Server status broadcast */
 export interface ServerStatus {
   type: 'status';
@@ -30,6 +60,7 @@ export interface ServerStatus {
   uptime: number;       // seconds
   totalLaunches: number;
   githubLaunches: number;
+  totalClaims: number;
   clients: number;
 }
 
@@ -39,5 +70,5 @@ export interface Heartbeat {
   ts: number;
 }
 
-export type RelayMessage = TokenLaunchEvent | ServerStatus | Heartbeat;
+export type RelayMessage = TokenLaunchEvent | FeeClaimEvent | ServerStatus | Heartbeat;
 

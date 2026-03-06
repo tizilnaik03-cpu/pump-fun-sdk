@@ -350,7 +350,7 @@ export class EventMonitor {
             const event: GraduationEvent = {
                 txSignature: signature,
                 slot: 0,
-                timestamp: 0,
+                timestamp: Math.floor(Date.now() / 1000),
                 mintAddress: mint,
                 user,
                 bondingCurve,
@@ -504,8 +504,9 @@ export class EventMonitor {
 
     private trimCache(): void {
         if (this.processedSignatures.size > this.MAX_PROCESSED_CACHE) {
+            // Keep the most recent entries (Sets are insertion-ordered in JS)
             const arr = [...this.processedSignatures];
-            this.processedSignatures = new Set(arr.slice(arr.length - this.MAX_PROCESSED_CACHE / 2));
+            this.processedSignatures = new Set(arr.slice(-5_000));
         }
     }
 }

@@ -18,6 +18,7 @@ import { EventMonitor } from './event-monitor.js';
 import { isFirstClaimByGithubUser, isFirstClaimByWallet, recordClaim, loadPersistedClaims } from './claim-tracker.js';
 import { fetchTokenInfo, fetchCreatorProfile, fetchSolUsdPrice } from './pump-client.js';
 import { fetchGitHubUserById } from './github-client.js';
+import { fetchXProfile } from './x-client.js';
 import {
     formatClaimFeed,
     formatLaunchFeed,
@@ -129,6 +130,9 @@ async function main(): Promise<void> {
             pipeline.firstClaim++;
 
             const githubUser = await fetchGitHubUserById(event.githubUserId);
+            const xProfile = githubUser?.twitterUsername
+                ? await fetchXProfile(githubUser.twitterUsername)
+                : null;
             const solUsdPrice = await fetchSolUsdPrice();
 
             log.info('📤 GitHub social fee claim by %s (%s) — %.4f SOL',
@@ -153,6 +157,7 @@ async function main(): Promise<void> {
                 solUsdPrice,
                 githubRepo: null,
                 githubUser,
+                xProfile,
                 aiSummary: '',
             };
 
@@ -197,8 +202,14 @@ async function main(): Promise<void> {
               try {
                 if (!config.feed.graduations) return;
                 const token = await fetchTokenInfo(event.mintAddress);
-                const message = formatGraduationFeed(event, token);
-                await postToChannel(message);
+                                const creator = token ? await fetchCreatorProfile(token.creator) : null;
+                                const solUsdPrice = await fetchSolUsdPrice();
+                                const { imageUrl, caption } = formatGraduationFeed(event, token, creator, solUsdPrice);
+                                if (imageUrl) {
+                                    await postPhotoToChannel(imageUrl, caption);
+                                } else {
+                                    await postToChannel(caption);
+                                }
               } catch (err) {
                 log.error('Graduation handler error: %s', err);
               }

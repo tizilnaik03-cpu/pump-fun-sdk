@@ -109,4 +109,18 @@ export interface BotConfig {
     solanaWsUrl?: string;
     pollIntervalSeconds: number;
     logLevel: 'debug' | 'info' | 'warn' | 'error';
+    twitterBearerToken?: string;
+    twitterInfluencerIds: string[];
+}
+
+// ============================================================================
+// Twitter/X API Types
+// ============================================================================
+
+export interface TwitterUserInfo {
+    id: string;
+    username: string;
+    name: string;
+    followersCount: number;
+    followedByInfluencers: string[];
 }

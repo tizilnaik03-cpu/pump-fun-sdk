@@ -97,6 +97,8 @@ export interface FeeClaimEvent {
     socialPlatform?: number;
     /** Recipient wallet for social fee claims (may differ from signer) */
     recipientWallet?: string;
+    /** Social fee PDA account for social claims */
+    socialFeePda?: string;
 }
 
 export interface TokenLaunchEvent {

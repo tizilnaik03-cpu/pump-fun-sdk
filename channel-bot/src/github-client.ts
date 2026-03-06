@@ -160,6 +160,7 @@ export async function fetchGitHubRepo(owner: string, repo: string): Promise<GitH
             }
             if (resp.status === 403 || resp.status === 429) {
                 log.warn('GitHub API rate limited (%d) for %s/%s', resp.status, owner, repo);
+                setCache(repoCache, key, null, 30_000); // short cooldown to avoid hammering
                 return null;
             }
             log.warn('GitHub API %d for %s/%s', resp.status, owner, repo);
@@ -242,6 +243,7 @@ export async function fetchGitHubUser(username: string): Promise<GitHubUserInfo 
             }
             if (resp.status === 403 || resp.status === 429) {
                 log.warn('GitHub API rate limited (%d) for user %s', resp.status, username);
+                setCache(userCache, key, null, 30_000); // short cooldown to avoid hammering
                 return null;
             }
             log.warn('GitHub API %d for user %s', resp.status, username);
@@ -294,6 +296,7 @@ export async function fetchGitHubUserById(userId: string): Promise<GitHubUserInf
             }
             if (resp.status === 403 || resp.status === 429) {
                 log.warn('GitHub API rate limited (%d) for user ID %s', resp.status, userId);
+                setCache(userCache, cacheKey, null, 30_000); // short cooldown to avoid hammering
                 return null;
             }
             return null;

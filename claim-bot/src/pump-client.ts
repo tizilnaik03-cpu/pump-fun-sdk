@@ -6,6 +6,7 @@
  */
 
 import { log } from './logger.js';
+import type { TwitterUserInfo } from './types.js';
 
 const PUMPFUN_API = 'https://frontend-api-v3.pump.fun';
 
@@ -24,6 +25,7 @@ export interface TokenInfo {
     usdMarketCap: number;
     marketCapSol: number;
     twitter?: string;
+    twitterUserInfo?: TwitterUserInfo;
 }
 
 // ============================================================================
