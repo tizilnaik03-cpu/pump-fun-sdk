@@ -109,7 +109,7 @@ function formatGitHubSocialClaim(ctx: ClaimFeedContext): { imageUrl: string | nu
  * Legacy claim card for non-social-fee claims (token-oriented).
  */
 function formatLegacyClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | null; caption: string } {
-    const { event, token, creator, holders, trades, solUsdPrice, githubRepo, githubUser, aiSummary } = ctx;
+    const { event, token, creator, claimRecord, holders, trades, solUsdPrice, githubRepo, githubUser, aiSummary } = ctx;
     const L: string[] = [];
     const mint = event.tokenMint;
 
