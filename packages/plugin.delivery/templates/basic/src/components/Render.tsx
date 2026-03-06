@@ -36,3 +36,4 @@ const Render = memo<Partial<ResponseData>>(({ mood, clothes, today }) => {
 });
 
 export default Render;
+
