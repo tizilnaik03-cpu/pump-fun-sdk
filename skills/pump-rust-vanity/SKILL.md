@@ -124,3 +124,4 @@ cargo bench                           # Criterion benchmarks
 - Longer prefixes grow exponentially harder (~58× per character)
 - `Keypair::new()` uses OS entropy — do not seed with user input
 - `rayon` thread pool size should match CPU cores for optimal throughput
+
