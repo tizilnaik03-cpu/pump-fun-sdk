@@ -229,3 +229,4 @@ const ixs = await onlineSdk.adminSetCoinCreatorInstructions(newCreator, mint);
 - `fetchSellState` requires ATA to exist (unlike `fetchBuyState` which handles creation)
 - Fee recipient is selected randomly from `global.feeRecipients[]` — non-deterministic
 
+
