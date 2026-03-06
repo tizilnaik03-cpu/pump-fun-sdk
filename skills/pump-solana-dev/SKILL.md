@@ -112,3 +112,4 @@ const ceilFee = amount.mul(new BN(feeBps)).add(new BN(9999)).div(new BN(10000));
 - `getMultipleAccountsInfo` returns nulls for missing accounts — always check
 - Transaction size limit is 1232 bytes — large instruction sets may need multiple transactions
 - `remainingAccounts` order matters — the on-chain program reads them positionally
+
