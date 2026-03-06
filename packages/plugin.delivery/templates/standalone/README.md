@@ -519,3 +519,4 @@ console.log('Resolved filename:', fileName);
 ## License
 
 MIT © Sperax
+
