@@ -20,3 +20,4 @@ export const usePluginSettings = <T>(initialValue: T) => {
 
   return [value, updateValue] as const;
 };
+
