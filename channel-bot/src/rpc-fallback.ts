@@ -117,14 +117,15 @@ export class RpcFallback {
                 lastErr = err;
                 const msg = String(err);
                 const isRetryable =
-                    msg.includes('429') ||
+                    (msg.includes('429') ||
                     msg.includes('502') ||
                     msg.includes('503') ||
                     msg.includes('504') ||
                     msg.includes('ETIMEDOUT') ||
                     msg.includes('ECONNREFUSED') ||
                     msg.includes('ECONNRESET') ||
-                    msg.includes('fetch failed');
+                    msg.includes('fetch failed')) &&
+                    !msg.includes('403');
 
                 if (isRetryable && attempt < this.urls.length - 1) {
                     log.warn(

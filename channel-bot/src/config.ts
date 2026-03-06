@@ -53,10 +53,11 @@ export function loadConfig(): ChannelBotConfig {
     const solanaRpcUrl =
         process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
-    // Support comma-separated fallback RPC URLs
-    const solanaRpcUrls = process.env.SOLANA_RPC_URLS
+    // Support comma-separated fallback RPC URLs — always include primary first
+    const extraUrls = process.env.SOLANA_RPC_URLS
         ? process.env.SOLANA_RPC_URLS.split(',').map((s) => s.trim()).filter(Boolean)
-        : [solanaRpcUrl];
+        : [];
+    const solanaRpcUrls = [solanaRpcUrl, ...extraUrls.filter((u) => u !== solanaRpcUrl)];
 
     let solanaWsUrl = process.env.SOLANA_WS_URL;
     if (!solanaWsUrl) {
