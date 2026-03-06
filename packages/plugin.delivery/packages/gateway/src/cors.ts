@@ -147,3 +147,4 @@ export default async function cors(req: Request, res: Response, options?: CorsOp
 export function initCors(options?: CorsOptions) {
   return (req: Request, res: Response) => cors(req, res, options);
 }
+
