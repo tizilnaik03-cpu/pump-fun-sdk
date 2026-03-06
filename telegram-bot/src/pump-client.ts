@@ -457,3 +457,4 @@ export function parseTokenAmount(input: string): bigint | null {
     if (Number.isNaN(num) || num < 0) return null;
     return BigInt(Math.round(num * ONE_TOKEN));
 }
+
