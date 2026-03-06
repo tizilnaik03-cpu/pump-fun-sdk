@@ -118,3 +118,4 @@ const response = await PumpBus.request('cryptocharts', 'token:chart', {
 - `packages/os/Pump-Store/apps/gastracker.html`
 - `packages/os/Pump-Store/apps/whalealerts.html`
 - `packages/os/Pump-Store/apps/trending.html`
+
