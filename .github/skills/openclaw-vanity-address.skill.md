@@ -154,3 +154,4 @@ Yields to the event loop via `setTimeout(0)` every 1000 iterations to prevent bl
 - Forgetting that vanity generation blocks the Node.js event loop without yielding
 - Not saving the keypair (`saveId`) — if lost, the vanity address cannot be recovered
 - Patterns longer than 6 characters — effectively impossible to find in reasonable time
+
