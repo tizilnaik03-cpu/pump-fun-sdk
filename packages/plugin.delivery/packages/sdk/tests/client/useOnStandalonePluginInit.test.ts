@@ -45,3 +45,4 @@ describe('useOnStandalonePluginInit', () => {
     await vi.waitFor(() => expect(callback).toHaveBeenCalledWith(mockPayload));
   });
 });
+
