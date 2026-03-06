@@ -38,3 +38,4 @@ export const category = [
 ];
 
 export const config = require('../.i18nrc.js');
+
