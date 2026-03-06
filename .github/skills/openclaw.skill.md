@@ -413,3 +413,4 @@ async shutdown(): Promise<void> {
 - Assuming agents will read all skills — keep each skill self-contained with enough context
 - Not testing MCP tools with simulated `CallToolRequest` objects before deployment
 - Forgetting the `server.json` manifest when publishing to npm — MCP clients need it for discovery
+
