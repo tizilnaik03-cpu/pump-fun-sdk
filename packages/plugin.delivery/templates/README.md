@@ -159,3 +159,4 @@ Then update `public/manifest.json`:
 - [CoinGecko Plugin](../src/coingecko.json) - Real-world example
 - [Plugin Development Guide](../docs/PLUGIN_DEVELOPMENT_GUIDE.md) - Full documentation
 
+
