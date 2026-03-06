@@ -417,14 +417,14 @@ export function formatFeeDistributionFeed(
     lines.push(`💰  <b>${event.distributedSol.toFixed(4)} SOL</b> distributed`);
     lines.push(`👤  Admin: <code>${shortAddr(event.admin)}</code>`);
 
-    if (event.shareholders.length > 0) {
+    if (event.shareholders && event.shareholders.length > 0) {
         lines.push(`👥  Shareholders (${event.shareholders.length}):`);
         for (const s of event.shareholders.slice(0, 5)) {
             const pctVal = (s.shareBps / 100).toFixed(1);
             const shareLink = `<a href="https://pump.fun/profile/${s.address}">${shortAddr(s.address)}</a>`;
             lines.push(`     • ${shareLink}  —  ${pctVal}%`);
         }
-        if (event.shareholders.length > 5) {
+        if (event.shareholders && event.shareholders.length > 5) {
             lines.push(`     <i>... +${event.shareholders.length - 5} more</i>`);
         }
     }

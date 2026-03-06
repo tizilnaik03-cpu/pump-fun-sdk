@@ -112,6 +112,7 @@ async function main(): Promise<void> {
 
     // ── Claim Monitor ────────────────────────────────────────────────
     const claimMonitor = new ClaimMonitor(config, async (event: FeeClaimEvent) => {
+      try {
         if (!config.feed.claims) return;
 
         // Skip wallet-level claims with no token mint (cashback, collect_creator_fee)
@@ -225,6 +226,9 @@ async function main(): Promise<void> {
         } else {
             await postToChannel(caption);
         }
+      } catch (err) {
+        log.error('Claim handler error for %s: %s', event.tokenMint ?? 'unknown', err);
+      }
     });
 
     // ── Event Monitor (launches, graduations, whales, fee distributions) ───
@@ -236,31 +240,47 @@ async function main(): Promise<void> {
             config,
             // Token launch
             async (event: TokenLaunchEvent) => {
+              try {
                 if (!config.feed.launches) return;
                 const creator = await fetchCreatorProfile(event.creatorWallet);
                 const message = formatLaunchFeed(event, creator);
                 await postToChannel(message);
+              } catch (err) {
+                log.error('Launch handler error: %s', err);
+              }
             },
             // Graduation
             async (event: GraduationEvent) => {
+              try {
                 if (!config.feed.graduations) return;
                 const token = await fetchTokenInfo(event.mintAddress);
                 const message = formatGraduationFeed(event, token);
                 await postToChannel(message);
+              } catch (err) {
+                log.error('Graduation handler error: %s', err);
+              }
             },
             // Whale trade
             async (event: TradeAlertEvent) => {
+              try {
                 if (!config.feed.whales) return;
                 const token = await fetchTokenInfo(event.mintAddress);
                 const message = formatWhaleFeed(event, token);
                 await postToChannel(message);
+              } catch (err) {
+                log.error('Whale handler error: %s', err);
+              }
             },
             // Fee distribution
             async (event: FeeDistributionEvent) => {
+              try {
                 if (!config.feed.feeDistributions) return;
                 const token = await fetchTokenInfo(event.mintAddress);
                 const message = formatFeeDistributionFeed(event, token);
                 await postToChannel(message);
+              } catch (err) {
+                log.error('Fee distribution handler error: %s', err);
+              }
             },
         );
     }
