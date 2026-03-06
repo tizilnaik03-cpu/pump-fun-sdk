@@ -121,3 +121,4 @@ Events that have no listeners, will not get broadcasted.
 ## Use cases
 
 Whether you want to show a reflection of the virtual memory system, or you wanted to mirror the contents of an updating file while its being saved per every change, the PumpOS event bus could be used as an efficient updates system that lets you remotely do things, without spamming unwanted calls.
+
