@@ -14,3 +14,4 @@ We have made a standard for all of these errors, so that we can just mention the
 * 0008: not defined yet ⚠
 * 0009: not defined yet ⚠
 * 0010: Task complete.
+
