@@ -6,6 +6,7 @@
  */
 
 import type { ClaimRecord } from './claim-tracker.js';
+import type { GitHubRepoInfo } from './github-client.js';
 import type { CreatorProfile, TokenInfo, TokenHolderInfo, TokenTradeInfo } from './pump-client.js';
 import type {
     FeeClaimEvent,
@@ -27,6 +28,8 @@ export interface ClaimFeedContext {
     holders: TokenHolderInfo | null;
     trades: TokenTradeInfo | null;
     solUsdPrice: number;
+    githubRepo: GitHubRepoInfo | null;
+    aiSummary: string;
 }
 
 /**
@@ -34,7 +37,7 @@ export interface ClaimFeedContext {
  * Returns { imageUrl, caption } so caller can send photo or text.
  */
 export function formatClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | null; caption: string } {
-    const { event, token, creator, claimRecord, holders, trades, solUsdPrice } = ctx;
+    const { event, token, creator, claimRecord, holders, trades, solUsdPrice, githubRepo, aiSummary } = ctx;
     const lines: string[] = [];
 
     // ── Row 1: Header — type emoji + token name + mcap + ticker ──
@@ -54,8 +57,21 @@ export function formatClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | nul
     const statusTag = token?.complete ? ' ⭐' : '';
     lines.push(`${headerEmoji} <b>${pumpLink}</b>${mcapTag} <code>$${esc(coinTicker)}</code>${statusTag}`);
 
-    // ── Row 2: GitHub links (the star of the show) ──
-    if (token?.githubUrls && token.githubUrls.length > 0) {
+    // ── Row 2: GitHub repo info (the star of the show) ──
+    if (githubRepo) {
+        const repoLink = `<a href="${esc(githubRepo.htmlUrl)}">${esc(githubRepo.fullName)}</a>`;
+        const langTag = githubRepo.language ? ` ⋅ ${esc(githubRepo.language)}` : '';
+        const starsTag = githubRepo.stars > 0 ? ` ⋅ ⭐${githubRepo.stars}` : '';
+        const forkTag = githubRepo.isFork ? ' ⋅ 🍴Fork' : '';
+        lines.push(`🐙 ${repoLink}${langTag}${starsTag}${forkTag}`);
+        if (githubRepo.lastPushAgo) {
+            lines.push(`  ↳ Last push: ${githubRepo.lastPushAgo}${githubRepo.forks > 0 ? ` ⋅ ${githubRepo.forks} forks` : ''}`);
+        }
+        if (githubRepo.description) {
+            const desc = githubRepo.description.length > 80 ? githubRepo.description.slice(0, 77) + '...' : githubRepo.description;
+            lines.push(`  ↳ <i>${esc(desc)}</i>`);
+        }
+    } else if (token?.githubUrls && token.githubUrls.length > 0) {
         const ghLinks = token.githubUrls.slice(0, 2).map((u) => `<a href="${esc(u)}">GitHub</a>`).join(' ⋅ ');
         lines.push(`🐙 ${ghLinks}`);
     }
@@ -207,6 +223,11 @@ export function formatClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | nul
     }
     if (linkParts.length > 0) lines.push(linkParts.join(' ⋅ '));
 
+    // ── AI Summary ──
+    if (aiSummary) {
+        lines.push(`🤖 <i>${esc(aiSummary)}</i>`);
+    }
+
     // ── Timestamp ──
     lines.push(`🕐 ${formatTime(event.timestamp)}`);
 
@@ -229,7 +250,7 @@ export function formatLaunchFeed(
 
     const pumpLink = `<a href="https://pump.fun/coin/${event.mintAddress}">${esc(event.name || 'Unknown')}</a>`;
     lines.push(`🪙  <b>${pumpLink}</b>  <code>$${esc(event.symbol || '???')}</code>`);
-    lines.push(`     Mint: <code>${shortAddr(event.mintAddress)}</code>`);
+    lines.push(`CA: <code>${event.mintAddress}</code>`);
 
     if (event.description) {
         const desc = event.description.length > 120
@@ -307,7 +328,7 @@ export function formatGraduationFeed(
     const coinTicker = token?.symbol ?? '???';
     const pumpLink = `<a href="https://pump.fun/coin/${event.mintAddress}">${esc(coinName)}</a>`;
     lines.push(`🪙  <b>${pumpLink}</b>  <code>$${esc(coinTicker)}</code>`);
-    lines.push(`     Mint: <code>${shortAddr(event.mintAddress)}</code>`);
+    lines.push(`CA: <code>${event.mintAddress}</code>`);
 
     if (token && token.createdTimestamp > 0) {
         lines.push(`     Launched ${timeAgo(token.createdTimestamp)}`);

@@ -1,10 +1,22 @@
 # Mayhem Mode
 
-Mayhem mode is an alternate operating mode that routes token vaults and fees through the Mayhem program instead of the standard Pump program.
+Mayhem mode is an alternate operating mode that routes token vaults and fees through the Mayhem program instead of the standard Pump program. It's set per-token at creation time and cannot be changed afterward.
 
 ## Overview
 
-When a token is created with `mayhemMode: true`, it uses a different set of fee recipients, token vaults, and PDAs derived from the Mayhem program. This mode is activated per-token at creation time and cannot be changed after.
+When a token is created with `mayhemMode: true`, the on-chain program derives a separate set of PDAs, fee recipients, and token vaults from the Mayhem program ID. The bonding curve math and trading mechanics remain identical — only the account routing changes.
+
+### When to Use Mayhem Mode
+
+- **Separate fee accounting** — mayhem tokens use `reservedFeeRecipient` / `reservedFeeRecipients` from the global state, keeping fee collection separate from standard tokens
+- **Alternate vault routing** — tokens are held in vaults derived from the Mayhem program ID, providing isolation from standard Pump vaults
+- **Token-2022 support** — mayhem mode uses `TOKEN_2022_PROGRAM_ID` for token vaults instead of the standard SPL Token program
+
+### When NOT to Use Mayhem Mode
+
+- If you don't need separate fee routing, use `mayhemMode: false` (the default)
+- Mayhem mode cannot be toggled after token creation — choose carefully
+- Most standard PumpFun use cases don't require mayhem mode
 
 ## Enabling Mayhem Mode
 
@@ -48,19 +60,23 @@ const recipient = getFeeRecipient(global, false);
 const mayhemRecipient = getFeeRecipient(global, true);
 ```
 
+The `getFeeRecipient` function is called internally by the SDK when building buy/sell instructions. You only need to call it directly if you're building custom transaction logic.
+
 ### Token Vaults
 
 Mayhem mode tokens use vaults derived from the Mayhem program instead of the standard Pump program:
 
-| Normal Mode | Mayhem Mode |
-|-------------|-------------|
-| Standard bonding curve token vault | `getTokenVaultPda(mint)` — Mayhem program vault |
-| Standard SOL vault | `getSolVaultPda()` — Mayhem program vault |
-| TOKEN_PROGRAM_ID | TOKEN_2022_PROGRAM_ID |
+| Aspect | Normal Mode | Mayhem Mode |
+|--------|-------------|-------------|
+| Token vault | Standard bonding curve ATA | `getTokenVaultPda(mint)` — Mayhem program |
+| SOL vault | Standard Pump SOL vault | `getSolVaultPda()` — Mayhem program |
+| Token program | `TOKEN_PROGRAM_ID` | `TOKEN_2022_PROGRAM_ID` |
+| Mayhem state | Not used | `getMayhemStatePda(mint)` — per-token |
+| Global params | Not used | `getGlobalParamsPda()` — shared |
 
 ### Program Derived Addresses
 
-Mayhem mode introduces four additional PDAs:
+Mayhem mode introduces four additional PDAs, all derived from the Mayhem program ID (`MYH2mwFDd7oGCfBFCGMhrNzNBhrDMPRi4iJsGf6G96y`):
 
 ```typescript
 import {
@@ -68,35 +84,94 @@ import {
   getMayhemStatePda,
   getSolVaultPda,
   getTokenVaultPda,
+  MAYHEM_PROGRAM_ID,
 } from "@pump-fun/pump-sdk";
 
-// Mayhem global configuration
+// Mayhem global configuration (shared across all mayhem tokens)
 const globalParams = getGlobalParamsPda();
 // Seeds: ["global-params"] → MAYHEM_PROGRAM_ID
 
-// Per-token mayhem state
+// Per-token mayhem state (unique per mint)
 const mayhemState = getMayhemStatePda(mint);
-// Seeds: ["mayhem-state", mint] → MAYHEM_PROGRAM_ID
+// Seeds: ["mayhem-state", mint.toBuffer()] → MAYHEM_PROGRAM_ID
 
-// Shared SOL vault
+// Shared SOL vault (holds SOL reserves for all mayhem tokens)
 const solVault = getSolVaultPda();
 // Seeds: ["sol-vault"] → MAYHEM_PROGRAM_ID
 
-// Per-token vault (Token-2022 ATA of SOL vault)
+// Per-token vault (Token-2022 ATA of the SOL vault for this mint)
 const tokenVault = getTokenVaultPda(mint);
 ```
 
+### How the SDK Handles Mayhem Mode Internally
+
+When you call `createV2Instruction` or `buyInstructions`/`sellInstructions`, the SDK automatically:
+
+1. Reads the `mayhemMode` parameter (from your input or from the bonding curve state)
+2. Includes the Mayhem program ID and PDAs in the instruction accounts
+3. Selects the correct fee recipient (`reserved` vs `standard`)
+4. Uses the appropriate token program for vault operations
+
+You don't need to manually construct mayhem-specific accounts — the SDK does it for you.
+
 ## Detection
 
-You can check if a bonding curve was created in mayhem mode:
+You can check if a bonding curve was created in mayhem mode by reading the `isMayhemMode` field:
 
 ```typescript
-const bondingCurve = sdk.decodeBondingCurve(accountInfo);
+const bondingCurve = await sdk.fetchBondingCurve(mint);
 
 if (bondingCurve.isMayhemMode) {
   console.log("This token uses mayhem mode");
+  // The SDK handles this automatically for buy/sell instructions
 }
 ```
+
+You can also check the global state to see if mayhem mode is enabled at the protocol level:
+
+```typescript
+const global = await sdk.fetchGlobal();
+
+if (global.mayhemModeEnabled) {
+  console.log("Mayhem mode is enabled globally");
+}
+```
+
+## Impact on Other Operations
+
+### Buy and Sell
+
+When buying or selling mayhem mode tokens, pass the bonding curve state (which carries `isMayhemMode`) — the SDK routes accounts correctly:
+
+```typescript
+// This works identically for both normal and mayhem tokens
+const buyIxs = await PUMP_SDK.buyInstructions({
+  global,
+  bondingCurveAccountInfo,
+  bondingCurve, // Contains isMayhemMode — SDK reads it internally
+  associatedUserAccountInfo,
+  mint,
+  user,
+  amount: tokenAmount,
+  solAmount,
+  slippage: 1,
+  tokenProgram,
+});
+```
+
+### Fee Sharing
+
+Fee sharing (shareholders, distributions) works the same way for mayhem tokens. The fee collection routing is different but the distribution mechanism is identical.
+
+### Migration
+
+When a mayhem token graduates and migrates to PumpAMM, the migration instruction handles the transition from mayhem vaults to the AMM pool. No special handling is required.
+
+## Related
+
+- [Fee Sharing Guide](./fee-sharing.md) — creator fee distribution
+- [Architecture](./architecture.md) — SDK module layout
+- [API Reference](./api-reference.md) — full PDA function signatures
 
 The `isMayhemMode` flag is set at creation time based on `global.mayhemModeEnabled` and stored permanently in the bonding curve account.
 

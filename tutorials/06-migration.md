@@ -15,7 +15,7 @@ After migration:
 
 ```typescript
 import { Connection, PublicKey } from "@solana/web3.js";
-import { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, getGraduationProgress } from "@pump-fun/pump-sdk";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const onlineSdk = new OnlinePumpSdk(connection);
@@ -30,6 +30,40 @@ if (bondingCurve.complete) {
   console.log("Token is still on the bonding curve.");
   console.log("Real SOL collected:", bondingCurve.realSolReserves.toString());
 }
+```
+
+## Tracking Graduation Progress
+
+Use the analytics module to see how close a token is to graduating:
+
+```typescript
+const global = await onlineSdk.fetchGlobal();
+const feeConfig = await onlineSdk.fetchFeeConfig();
+
+// Quick way — use the online SDK directly
+const progress = await onlineSdk.fetchGraduationProgress(mint);
+console.log(`Graduation progress: ${(progress.progressBps / 100).toFixed(1)}%`);
+console.log(`SOL accumulated: ${progress.solAccumulated.toNumber() / 1e9} SOL`);
+console.log(`Tokens remaining: ${progress.tokensRemaining.toString()}`);
+console.log(`Already graduated: ${progress.isGraduated}`);
+
+// Or use the offline function when you already have the bonding curve data
+const offlineProgress = getGraduationProgress(global, bondingCurve);
+```
+
+### Visual Progress Bar
+
+```typescript
+function renderProgressBar(progressBps: number): string {
+  const pct = progressBps / 100;
+  const filled = Math.floor(pct / 10);
+  const bar = "█".repeat(filled) + "░".repeat(10 - filled);
+  return `[${bar}] ${pct.toFixed(1)}%`;
+}
+
+const progress = await onlineSdk.fetchGraduationProgress(mint);
+console.log(renderProgressBar(progress.progressBps));
+// [████████░░] 82.3%
 ```
 
 ## Understanding the Migration Instruction
@@ -79,13 +113,35 @@ console.log("Pool authority:", poolAuth.toBase58());
 
 ## Trading Post-Migration
 
-After migration, use the PumpAMM SDK (`@pump-fun/pump-swap-sdk`) for trading:
+After migration, use the PumpAMM instructions for trading. The SDK provides AMM instruction builders:
 
 ```typescript
-import { OnlinePumpAmmSdk } from "@pump-fun/pump-swap-sdk";
+import { PUMP_SDK } from "@pump-fun/pump-sdk";
 
-const ammSdk = new OnlinePumpAmmSdk(connection);
-// Use the AMM SDK for buy/sell operations on graduated tokens
+// Buy on AMM pool (post-graduation)
+const ammBuyIx = await PUMP_SDK.ammBuyInstruction({
+  pool: poolAddress,
+  user: userPubkey,
+  // ... AMM-specific parameters
+});
+
+// Sell on AMM pool
+const ammSellIx = await PUMP_SDK.ammSellInstruction({
+  pool: poolAddress,
+  user: userPubkey,
+  // ... AMM-specific parameters
+});
+```
+
+### Using BothPrograms Methods
+
+For tokens that may or may not have graduated, the `OnlinePumpSdk` provides `BothPrograms` methods that handle routing automatically:
+
+```typescript
+// These work regardless of whether the token is on the bonding curve or AMM
+const unclaimed = await onlineSdk.getTotalUnclaimedTokensBothPrograms(user);
+const todayTokens = await onlineSdk.getCurrentDayTokensBothPrograms(user);
+const claimIxs = await onlineSdk.claimTokenIncentivesBothPrograms(user);
 ```
 
 ## Building a Token State Checker

@@ -239,6 +239,99 @@ This is the zombie terminal problem. See [auto-kill-terminal](https://github.com
 
 ---
 
+## Transaction / Signing Issues
+
+### `Error: Signature verification failed`
+
+This usually means you're missing a required signer:
+
+- **Token creation** requires signing with both the wallet keypair AND the mint keypair: `tx.sign([wallet, mint])`
+- **Fee sharing operations** require the admin (creator) to sign
+- **Migration** requires the withdraw authority
+
+```typescript
+// Common mistake — forgot to sign with mint
+tx.sign([wallet]);        // WRONG for create transactions
+tx.sign([wallet, mint]);  // CORRECT — mint must sign
+```
+
+### `Error: Blockhash not found` or `TransactionExpiredBlockheightExceededError`
+
+Your transaction took too long to confirm. Solutions:
+
+1. Fetch a fresh blockhash immediately before signing
+2. Use `"confirmed"` commitment (faster than `"finalized"`)
+3. Use `skipPreflight: true` if simulation is adding latency (at your own risk)
+
+```typescript
+// Fetch blockhash as close to sending as possible
+const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+// ... build and sign tx ...
+const sig = await connection.sendTransaction(tx, { skipPreflight: false });
+await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, "confirmed");
+```
+
+### `Error: Transaction too large`
+
+Solana transactions have a 1232-byte limit. If you're combining many instructions (e.g., create + buy + fee sharing + incentives), split them across multiple transactions:
+
+```typescript
+// Transaction 1: Create + Buy
+const tx1 = new VersionedTransaction(message1);
+await connection.sendTransaction(tx1);
+
+// Transaction 2: Fee sharing setup
+const tx2 = new VersionedTransaction(message2);
+await connection.sendTransaction(tx2);
+```
+
+---
+
+## Telegram Bot Issues
+
+### Bot doesn't respond to commands
+
+1. Check `TELEGRAM_BOT_TOKEN` is set correctly in `.env`
+2. Verify bot is active via [@BotFather](https://t.me/BotFather)
+3. If using `ALLOWED_USER_IDS`, verify your Telegram user ID is included
+4. Check logs for connection errors: `LOG_LEVEL=debug npm run dev`
+
+### WebSocket disconnects frequently
+
+Public Solana RPC nodes aggressively rate-limit WebSocket subscriptions:
+
+1. Use a paid RPC endpoint (Helius, QuickNode, Triton)
+2. Set `SOLANA_WS_URL` to your dedicated WebSocket endpoint
+3. The bot will fall back to HTTP polling when WebSocket fails
+
+### Channel bot doesn't post messages
+
+1. Verify the bot is added as an **admin** in the Telegram channel
+2. Check `CHANNEL_ID` format — use `@channel_name` or numeric `-100xxx` ID
+3. Test with `FEED_CLAIMS=true` first (most frequent events)
+
+---
+
+## WebSocket Relay Issues
+
+### Dashboard shows "Disconnected"
+
+1. Verify the relay server is running: `curl http://localhost:3099/health`
+2. Check if the port is correct — default is 3099
+3. If using HTTPS, the WebSocket URL must use `wss://` not `ws://`
+4. Check browser console for WebSocket errors
+
+### No token launches appearing
+
+The relay server uses a dual-source strategy:
+
+1. **PumpFun API** — polls every 5s (primary)
+2. **Solana RPC** — `logsSubscribe` (supplementary, often rate-limited)
+
+If the PumpFun API is unreachable, check `SOLANA_RPC_WS` and network connectivity.
+
+---
+
 ## Still Stuck?
 
 1. Search [existing issues](https://github.com/nirholas/pump-fun-sdk/issues)

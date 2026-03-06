@@ -112,6 +112,77 @@ Since you're the first buyer on an atomic create-and-buy, you can use very tight
 | Buy on active curve | 0.05 (5%) |
 | Buy on volatile token | 0.10 (10%) |
 
+## With Fee Sharing
+
+You can combine create-and-buy with immediate fee sharing setup — launch a token with shareholders from the start:
+
+```typescript
+import { PUMP_SDK } from "@pump-fun/pump-sdk";
+
+// First, build the create+buy instructions
+const createBuyIxs = await PUMP_SDK.createV2AndBuyInstructions({
+  global,
+  feeConfig,
+  mint: mint.publicKey,
+  name: "Team Token",
+  symbol: "TEAM",
+  uri: "https://example.com/metadata.json",
+  creator: creator.publicKey,
+  user: creator.publicKey,
+  amount: tokensOut,
+  solAmount: solToSpend,
+  slippage: 0.01,
+  mayhemMode: false,
+  cashback: false,
+});
+
+// Then build the fee sharing config instruction
+const feeSharingIx = await PUMP_SDK.createFeeSharingConfig({
+  mint: mint.publicKey,
+  admin: creator.publicKey,
+  shares: [
+    { wallet: creator.publicKey, bps: 5000 },  // 50% to creator
+    { wallet: partnerWallet, bps: 3000 },       // 30% to partner
+    { wallet: treasuryWallet, bps: 2000 },      // 20% to treasury
+  ],
+});
+
+// Combine into one transaction (or two if too large)
+const allInstructions = [...createBuyIxs, feeSharingIx];
+```
+
+> **Note:** Shares must total exactly 10,000 BPS (100%). Maximum 10 shareholders.
+
+## Error Handling
+
+Common errors when using create-and-buy:
+
+```typescript
+try {
+  const signature = await connection.sendTransaction(tx);
+  console.log("Success:", signature);
+} catch (error) {
+  if (error.message.includes("insufficient funds")) {
+    console.error("Not enough SOL — need enough for buy amount + fees + rent");
+  } else if (error.message.includes("already in use")) {
+    console.error("Mint address collision — generate a new mint keypair");
+  } else {
+    console.error("Transaction failed:", error.message);
+  }
+}
+```
+
+### Cost Breakdown
+
+For a create-and-buy transaction, you'll need SOL for:
+
+| Cost | Amount | Description |
+|------|--------|-------------|
+| Token creation rent | ~0.002 SOL | Rent for mint and bonding curve accounts |
+| Buy amount | Your choice | SOL to spend on the initial purchase |
+| Trading fee | ~1% of buy | Protocol fee on the purchase |
+| Transaction fee | ~0.000005 SOL | Standard Solana network fee |
+
 ## What's Next?
 
 - [Tutorial 5: Bonding Curve Math Deep Dive](./05-bonding-curve-math.md)
