@@ -1,3 +1,6 @@
+---
+applyTo: "typescript/**"
+---
 # TypeScript Vanity Address Generator — Educational Reference Implementation
 
 ## Skill Description

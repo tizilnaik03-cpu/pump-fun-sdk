@@ -62,6 +62,32 @@ npm run build
 npm start
 ```
 
+### Docker Deployment
+
+```bash
+# Build the image
+docker build -t pumpfun-fee-monitor .
+
+# Run with env file
+docker run -d --env-file .env -p 3000:3000 pumpfun-fee-monitor
+
+# Or pass env vars directly
+docker run -d \
+  -e TELEGRAM_BOT_TOKEN=your_token \
+  -e SOLANA_RPC_URL=https://api.mainnet-beta.solana.com \
+  -e ENABLE_API=true \
+  -p 3000:3000 \
+  pumpfun-fee-monitor
+```
+
+The Docker image uses a multi-stage build (Alpine-based, non-root user) with a health check on the API endpoint. Watch data is persisted in `/app/data` — mount a volume for persistence across container restarts:
+
+```bash
+docker run -d --env-file .env -v pumpfun-data:/app/data pumpfun-fee-monitor
+```
+
+> **See also:** The [channel-bot](../channel-bot/) is a simpler read-only Telegram channel feed that broadcasts token launches, graduations, whale trades, and fee events without interactive commands. Use the channel-bot for broadcast-only channels, and this bot for interactive monitoring with watch management.
+
 ## Bot Commands
 
 | Command | Description |

@@ -55,6 +55,25 @@ The Pump SDK (`@pump-fun/pump-sdk`) is a TypeScript SDK for the Pump protocol on
 - Shares must total exactly 10,000 BPS
 - Use `BothPrograms` methods to aggregate across Pump + PumpAMM
 
+## Performance Constraints
+
+| Component | Metric | Notes |
+|-----------|--------|-------|
+| SDK offline instructions | < 1ms | Pure functions, no async |
+| SDK online (RPC) | 50–500ms | Batch with `getMultipleAccountsInfo` |
+| Rust vanity | 100K+ keys/sec | Multi-threaded; use for production |
+| TS vanity | ~1K keys/sec | Educational only |
+
+> Full benchmarks: `docs/performance.md`
+
+## Skills
+
+See `.github/skills/` for 28 skill documents with `applyTo` frontmatter for scoped loading.
+
+## MCP Server Status
+
+The MCP server is **designed but not yet implemented**. Design docs in `prompts/mcp-server/`. Do not reference MCP tools as available.
+
 ### Terminal Management (MANDATORY)
 
 > **CRITICAL: Every terminal you open MUST be killed after use. No exceptions.**

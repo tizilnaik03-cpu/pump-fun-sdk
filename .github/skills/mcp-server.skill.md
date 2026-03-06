@@ -1,3 +1,6 @@
+---
+applyTo: "mcp-server/**,prompts/mcp-server/**"
+---
 # MCP Server — Model Context Protocol for Solana Wallet Operations
 
 ## Skill Description

@@ -1,3 +1,6 @@
+---
+applyTo: "tests/**,src/**/*.test.*,rust/tests/**"
+---
 # Testing & Quality — Multi-Language Test Infrastructure
 
 ## Skill Description

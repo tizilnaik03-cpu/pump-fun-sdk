@@ -1,3 +1,6 @@
+---
+applyTo: "website/**,site/**"
+---
 # PumpOS Website — Static Web Desktop with 169 Apps
 
 ## Skill Description

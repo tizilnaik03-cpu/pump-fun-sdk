@@ -1,3 +1,6 @@
+---
+applyTo: "src/**"
+---
 # OpenClaw Token Creation — Mint New Tokens on Pumpfun
 
 ## Skill Description

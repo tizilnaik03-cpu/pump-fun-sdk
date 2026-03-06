@@ -3,7 +3,14 @@
  *
  * Tracks claim history per wallet+token to show "first claim"
  * vs "claim #N" and total claimed amounts in the channel feed.
+ *
+ * Persists the tokenFirstClaim set to disk so restarts don't
+ * re-alert on already-seen tokens.
  */
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { log } from './logger.js';
 
 export interface ClaimRecord {
     /** Total number of claims by this wallet for this token */
@@ -24,6 +31,57 @@ const tokenFirstClaim = new Set<string>();
 
 /** Max entries before eviction of oldest */
 const MAX_ENTRIES = 50_000;
+
+// ── Persistence ──────────────────────────────────────────────────────────────
+
+const DATA_DIR = process.env.DATA_DIR || join(process.cwd(), 'data');
+const FIRST_CLAIMS_FILE = join(DATA_DIR, 'first-claims.json');
+const SAVE_DEBOUNCE_MS = 5_000;
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Load persisted first-claim set from disk on startup. */
+export function loadPersistedClaims(): void {
+    try {
+        if (!existsSync(DATA_DIR)) {
+            mkdirSync(DATA_DIR, { recursive: true });
+        }
+        if (existsSync(FIRST_CLAIMS_FILE)) {
+            const raw = readFileSync(FIRST_CLAIMS_FILE, 'utf8');
+            const mints: unknown = JSON.parse(raw);
+            if (Array.isArray(mints)) {
+                for (const m of mints) {
+                    if (typeof m === 'string') tokenFirstClaim.add(m);
+                }
+                log.info('Loaded %d persisted first-claim tokens', tokenFirstClaim.size);
+            }
+        }
+    } catch (err) {
+        log.warn('Failed to load persisted claims: %s', err);
+    }
+}
+
+/** Save first-claim set to disk (debounced). */
+function scheduleSave(): void {
+    if (saveTimer) return;
+    saveTimer = setTimeout(() => {
+        saveTimer = null;
+        try {
+            if (!existsSync(DATA_DIR)) {
+                mkdirSync(DATA_DIR, { recursive: true });
+            }
+            const arr = [...tokenFirstClaim];
+            // Keep only the most recent entries to prevent unbounded growth
+            const toSave = arr.length > MAX_ENTRIES ? arr.slice(arr.length - MAX_ENTRIES) : arr;
+            writeFileSync(FIRST_CLAIMS_FILE, JSON.stringify(toSave), 'utf8');
+            log.debug('Persisted %d first-claim tokens to disk', toSave.length);
+        } catch (err) {
+            log.warn('Failed to persist claims: %s', err);
+        }
+    }, SAVE_DEBOUNCE_MS);
+}
+
+// ── Public API ───────────────────────────────────────────────────────────────
 
 function makeKey(wallet: string, mint: string): string {
     return `${wallet}:${mint}`;
@@ -85,6 +143,7 @@ export function getClaimRecord(wallet: string, mint: string): ClaimRecord | null
 export function isFirstClaimOnToken(mint: string): boolean {
     if (tokenFirstClaim.has(mint)) return false;
     tokenFirstClaim.add(mint);
+    scheduleSave();
     // Evict oldest if over limit
     if (tokenFirstClaim.size > MAX_ENTRIES) {
         const first = tokenFirstClaim.values().next().value;

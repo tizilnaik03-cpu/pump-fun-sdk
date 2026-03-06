@@ -1,3 +1,6 @@
+---
+applyTo: "src/**"
+---
 # Bonding Curve — Pricing & Quoting Engine
 
 ## Skill Description

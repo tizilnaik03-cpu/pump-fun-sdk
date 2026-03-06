@@ -1,3 +1,6 @@
+---
+applyTo: "src/**"
+---
 # Pump SDK Core — Instruction Building & On-Chain Interaction
 
 ## Skill Description

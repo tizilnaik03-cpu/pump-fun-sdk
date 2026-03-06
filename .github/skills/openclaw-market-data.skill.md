@@ -1,3 +1,6 @@
+---
+applyTo: "src/**"
+---
 # OpenClaw Market Data — Bonding Curve Quoting & Analytics
 
 ## Skill Description

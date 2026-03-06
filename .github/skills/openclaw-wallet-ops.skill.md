@@ -1,3 +1,6 @@
+---
+applyTo: "src/**,rust/**,typescript/**,scripts/**"
+---
 # OpenClaw Wallet Operations — Keypair Generation, Signing & Validation
 
 ## Skill Description

@@ -32,7 +32,7 @@ async function run() {
     console.log(`Capturing ${page.name} → ${page.url}`);
     const tab = await context.newPage();
     try {
-      await tab.goto(page.url, { waitUntil: 'networkidle', timeout: 30000 });
+      await tab.goto(page.url, { waitUntil: 'load', timeout: 30000 });
       // Wait a bit for dynamic content
       await tab.waitForTimeout(3000);
 

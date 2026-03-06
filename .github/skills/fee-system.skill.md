@@ -1,3 +1,6 @@
+---
+applyTo: "src/**"
+---
 # Fee System — Tiered Fees, Creator Fees & Fee Sharing
 
 ## Skill Description

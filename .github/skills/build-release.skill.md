@@ -1,3 +1,6 @@
+---
+applyTo: "package.json,tsconfig.json,tsup.config.ts,Cargo.toml,Makefile,.releaserc*"
+---
 # Build, Release & Package Management — Multi-Language Build System
 
 ## Skill Description

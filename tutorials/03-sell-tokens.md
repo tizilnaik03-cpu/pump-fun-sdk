@@ -149,13 +149,52 @@ sellTokens();
 ## Edge Cases
 
 ### Bonding Curve Complete
-If `bondingCurve.complete === true`, the token has graduated to a PumpAMM pool. You can no longer sell through the bonding curve — use the AMM pool instead.
+If `bondingCurve.complete === true`, the token has graduated to a PumpAMM pool. You can no longer sell through the bonding curve — use the AMM pool instead. See [Tutorial 24: Cross-Program Trading](./24-cross-program-trading.md).
 
 ### Zero Reserves
 If `virtualTokenReserves` is zero, the bonding curve has been fully migrated and returns zero for all calculations.
+
+### Insufficient Balance
+If you try to sell more tokens than you hold, the transaction will fail on-chain. Always check your balance first:
+
+```typescript
+const balance = await onlineSdk.getTokenBalance(mint, seller.publicKey);
+console.log("Token balance:", balance.toString());
+```
+
+## Sell All Tokens
+
+To sell your entire balance and reclaim the ATA rent in one step:
+
+```typescript
+const sellAllIxs = await onlineSdk.sellAllInstructions({
+  mint,
+  user: seller.publicKey,
+  slippage: 1, // 1%
+});
+
+if (sellAllIxs.length > 0) {
+  const { blockhash } = await connection.getLatestBlockhash("confirmed");
+  const message = new TransactionMessage({
+    payerKey: seller.publicKey,
+    recentBlockhash: blockhash,
+    instructions: sellAllIxs,
+  }).compileToV0Message();
+
+  const tx = new VersionedTransaction(message);
+  tx.sign([seller]);
+  await connection.sendTransaction(tx);
+  console.log("Sold all tokens and closed ATA!");
+} else {
+  console.log("No tokens to sell.");
+}
+```
+
+> `sellAllInstructions` sells your full token balance and closes the associated token account, returning the ~0.002 SOL rent back to your wallet.
 
 ## What's Next?
 
 - [Tutorial 4: Create and Buy in One Transaction](./04-create-and-buy.md)
 - [Tutorial 6: Token Migration to PumpAMM](./06-migration.md)
+- [Tutorial 24: Cross-Program Trading](./24-cross-program-trading.md) — Sell graduated tokens on AMM
 

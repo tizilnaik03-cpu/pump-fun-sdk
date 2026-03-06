@@ -1,3 +1,6 @@
+---
+applyTo: "src/**"
+---
 # Token Incentives — Volume-Based PUMP Token Rewards
 
 ## Skill Description

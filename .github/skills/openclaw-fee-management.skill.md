@@ -1,3 +1,6 @@
+---
+applyTo: "src/**"
+---
 # OpenClaw Fee Management — Creator Fee Collection & Distribution
 
 ## Skill Description

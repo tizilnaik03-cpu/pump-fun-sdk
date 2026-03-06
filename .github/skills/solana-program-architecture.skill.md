@@ -1,3 +1,6 @@
+---
+applyTo: "src/**"
+---
 # Solana Program Architecture — PDAs, Accounts & Multi-Program Coordination
 
 ## Skill Description

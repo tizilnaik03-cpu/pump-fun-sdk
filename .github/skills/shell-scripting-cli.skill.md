@@ -1,3 +1,6 @@
+---
+applyTo: "scripts/**"
+---
 # Shell Scripting & CLI Tools — Production Bash Scripts for Solana Operations
 
 ## Skill Description

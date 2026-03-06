@@ -138,8 +138,10 @@ function evaluateToken(
 
 ## Step 4: Execute Trades
 
+### Buy Execution
+
 ```typescript
-async function executeBuy(mint: PublicKey, solAmount: BN) {
+async function executeBuy(mint: PublicKey, solAmount: BN): Promise<string | null> {
   const buyState = await onlineSdk.fetchBuyState(mint, wallet.publicKey);
   const global = await onlineSdk.fetchGlobal();
   const feeConfig = await onlineSdk.fetchFeeConfig();
@@ -183,9 +185,108 @@ async function executeBuy(mint: PublicKey, solAmount: BN) {
 }
 ```
 
-## Step 5: Run the Bot Loop
+### Sell Execution
 
 ```typescript
+async function executeSell(mint: PublicKey, tokenAmount: BN): Promise<string | null> {
+  const sellState = await onlineSdk.fetchSellState(mint, wallet.publicKey);
+  const global = await onlineSdk.fetchGlobal();
+  const feeConfig = await onlineSdk.fetchFeeConfig();
+
+  const solOut = getSellSolAmountFromTokenAmount({
+    global,
+    feeConfig,
+    mintSupply: sellState.bondingCurve.tokenTotalSupply,
+    bondingCurve: sellState.bondingCurve,
+    amount: tokenAmount,
+  });
+
+  if (solOut.isZero()) {
+    console.log("Would receive 0 SOL — skipping");
+    return null;
+  }
+
+  const sellIxs = await PUMP_SDK.sellInstructions({
+    global: sellState.global,
+    bondingCurveAccountInfo: sellState.bondingCurveAccountInfo,
+    bondingCurve: sellState.bondingCurve,
+    mint,
+    user: wallet.publicKey,
+    amount: tokenAmount,
+    slippage: 0.05,
+    tokenProgram: sellState.tokenProgram,
+  });
+
+  const { blockhash } = await connection.getLatestBlockhash("confirmed");
+  const message = new TransactionMessage({
+    payerKey: wallet.publicKey,
+    recentBlockhash: blockhash,
+    instructions: sellIxs,
+  }).compileToV0Message();
+
+  const tx = new VersionedTransaction(message);
+  tx.sign([wallet]);
+  return connection.sendTransaction(tx);
+}
+```
+
+### AMM Sell (Graduated Tokens)
+
+When a token graduates, route sells through the AMM:
+
+```typescript
+import { canonicalPumpPoolPda } from "@pump-fun/pump-sdk";
+
+async function executeAmmSell(mint: PublicKey, tokenAmount: BN): Promise<string | null> {
+  const pool = canonicalPumpPoolPda(mint);
+
+  const sellIx = await PUMP_SDK.ammSellInstruction({
+    user: wallet.publicKey,
+    pool,
+    mint,
+    baseAmountIn: tokenAmount,
+    minQuoteAmountOut: new BN(1), // Set a real minimum in production
+  });
+
+  const { blockhash } = await connection.getLatestBlockhash("confirmed");
+  const message = new TransactionMessage({
+    payerKey: wallet.publicKey,
+    recentBlockhash: blockhash,
+    instructions: [sellIx],
+  }).compileToV0Message();
+
+  const tx = new VersionedTransaction(message);
+  tx.sign([wallet]);
+  return connection.sendTransaction(tx);
+}
+```
+
+## Step 5: Track Positions
+
+Prevent re-buying tokens you already hold:
+
+```typescript
+const positions = new Map<string, BN>(); // mint → token amount
+
+async function refreshPosition(mint: PublicKey): Promise<BN> {
+  const balance = await onlineSdk.getTokenBalance(mint, wallet.publicKey);
+  positions.set(mint.toBase58(), balance);
+  return balance;
+}
+
+function hasPosition(mint: PublicKey): boolean {
+  const balance = positions.get(mint.toBase58());
+  return balance !== undefined && balance.gtn(0);
+}
+```
+
+## Step 6: Run the Bot Loop
+
+```typescript
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function runBot(mints: PublicKey[]) {
   const config = {
     maxMarketCapSol: 50,    // Target range ceiling
@@ -201,21 +302,38 @@ async function runBot(mints: PublicKey[]) {
       const snapshot = await getTokenSnapshot(mint);
       if (!snapshot) continue;
 
+      // Refresh position for this token
+      await refreshPosition(mint);
+
       const signal = evaluateToken(snapshot, config);
       console.log(`[${mint.toBase58().slice(0, 8)}...] ${signal.action}: ${signal.reason}`);
 
-      if (signal.action === "buy" && signal.amount) {
-        try {
+      try {
+        if (signal.action === "buy" && signal.amount && !hasPosition(mint)) {
           const sig = await executeBuy(mint, signal.amount);
           console.log(`  → Bought! Tx: ${sig}`);
-        } catch (err) {
-          console.error(`  → Buy failed:`, err);
+        } else if (signal.action === "buy" && hasPosition(mint)) {
+          console.log(`  → Already holding — skip`);
         }
+
+        if (signal.action === "sell" && hasPosition(mint)) {
+          const balance = positions.get(mint.toBase58())!;
+          if (snapshot.complete) {
+            const sig = await executeAmmSell(mint, balance);
+            console.log(`  → Sold on AMM! Tx: ${sig}`);
+          } else {
+            const sig = await executeSell(mint, balance);
+            console.log(`  → Sold on curve! Tx: ${sig}`);
+          }
+        }
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`  → Trade failed: ${message}`);
+        // Don't retry immediately — wait for next loop cycle
       }
     }
 
-    // Wait before next check
-    await new Promise(resolve => setTimeout(resolve, 10_000));
+    await sleep(10_000);
   }
 }
 
@@ -225,16 +343,41 @@ runBot([
 ]);
 ```
 
+## Running the Bot
+
+```bash
+# Install dependencies
+npm install @pump-fun/pump-sdk @solana/web3.js bn.js
+
+# Run with ts-node or tsx
+npx tsx bot.ts
+
+# Or with environment-loaded wallet
+WALLET_PATH=~/.config/solana/devnet.json npx tsx bot.ts
+```
+
+Load a real wallet from file instead of `Keypair.generate()`:
+
+```typescript
+import fs from "fs";
+
+const walletData = JSON.parse(fs.readFileSync(process.env.WALLET_PATH!, "utf-8"));
+const wallet = Keypair.fromSecretKey(Uint8Array.from(walletData));
+```
+
 ## Safety Considerations
 
 - **Always set slippage** — volatile tokens can move fast
-- **Use spending limits** — cap your total exposure
-- **Check `complete` before trading** — graduated tokens need the AMM
-- **Handle errors gracefully** — RPC calls can fail
+- **Use spending limits** — cap your total SOL exposure per token and globally
+- **Track positions** — avoid re-buying tokens you already hold (see Step 5)
+- **Check `complete` before trading** — graduated tokens need AMM instructions, not bonding curve
+- **Handle errors gracefully** — RPC calls can fail; never retry the same tx in a tight loop
+- **Respect RPC rate limits** — dedicated endpoints (Helius, Quicknode) are strongly recommended for bots
 - **Never hardcode private keys** — use environment variables or secure keystores
+- **Test on devnet first** — validate your strategy before using real SOL
 
 ## What's Next?
 
 - [Tutorial 12: Offline SDK vs Online SDK](./12-offline-vs-online.md)
-- [Tutorial 13: Generating Vanity Addresses](./13-vanity-addresses.md)
+- [Tutorial 24: Cross-Program Trading](./24-cross-program-trading.md) — Full bonding curve → AMM lifecycle
 

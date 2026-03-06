@@ -36,6 +36,8 @@ const MAX_CONCURRENCY = 1;
 const MIN_REQUEST_INTERVAL_MS = 1_000;
 const MAX_QUEUE_SIZE = 50;
 const RATE_LIMIT_LOG_WINDOW_MS = 30_000;
+const WS_HEARTBEAT_INTERVAL_MS = 60_000;
+const WS_HEARTBEAT_TIMEOUT_MS = 90_000;
 
 class RpcQueue {
     private queue: string[] = [];
@@ -111,6 +113,8 @@ export class ClaimMonitor {
     private isRunning = false;
     private startedAt = 0;
     private claimsDetected = 0;
+    private lastWsEventTime = 0;
+    private wsHeartbeatTimer?: ReturnType<typeof setInterval>;
 
     constructor(config: ChannelBotConfig, onClaim: (event: FeeClaimEvent) => void) {
         this.config = config;
@@ -146,6 +150,10 @@ export class ClaimMonitor {
 
     stop(): void {
         this.isRunning = false;
+        if (this.wsHeartbeatTimer) {
+            clearInterval(this.wsHeartbeatTimer);
+            this.wsHeartbeatTimer = undefined;
+        }
         if (this.wsConnection) {
             for (const id of this.wsSubscriptionIds) {
                 this.wsConnection.removeOnLogsListener(id).catch(() => {});
@@ -168,10 +176,13 @@ export class ClaimMonitor {
             disableRetryOnRateLimit: true,
         });
 
+        this.lastWsEventTime = Date.now();
+
         for (const pubkey of this.programPubkeys) {
             const subId = this.wsConnection.onLogs(
                 pubkey,
                 async (logInfo: Logs) => {
+                    this.lastWsEventTime = Date.now();
                     try { await this.handleLogEvent(logInfo); }
                     catch (err) { log.error('Log event error:', err); }
                 },
@@ -179,6 +190,37 @@ export class ClaimMonitor {
             );
             this.wsSubscriptionIds.push(subId);
         }
+
+        // Heartbeat: if no event for too long, reconnect
+        this.wsHeartbeatTimer = setInterval(() => {
+            if (!this.isRunning) return;
+            const elapsed = Date.now() - this.lastWsEventTime;
+            if (elapsed > WS_HEARTBEAT_TIMEOUT_MS) {
+                log.warn('Claim monitor WS silent for %ds — reconnecting...', Math.floor(elapsed / 1000));
+                this.reconnectWebSocket();
+            }
+        }, WS_HEARTBEAT_INTERVAL_MS);
+    }
+
+    private reconnectWebSocket(): void {
+        if (!this.isRunning) return;
+        // Clean up old connection
+        if (this.wsConnection) {
+            for (const id of this.wsSubscriptionIds) {
+                this.wsConnection.removeOnLogsListener(id).catch(() => {});
+            }
+            this.wsSubscriptionIds = [];
+        }
+        this.wsConnection = undefined;
+
+        this.startWebSocket().catch((err) => {
+            log.warn('Claim monitor WS reconnect failed, falling back to polling: %s', err);
+            if (this.wsHeartbeatTimer) {
+                clearInterval(this.wsHeartbeatTimer);
+                this.wsHeartbeatTimer = undefined;
+            }
+            this.startPolling();
+        });
     }
 
     private async handleLogEvent(logInfo: Logs): Promise<void> {

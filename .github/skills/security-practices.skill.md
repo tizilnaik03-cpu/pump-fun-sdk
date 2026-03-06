@@ -1,3 +1,6 @@
+---
+applyTo: "src/**,rust/**,typescript/**,scripts/**,security/**"
+---
 # Security Practices — Cryptographic Safety, Memory Zeroization & Hardened I/O
 
 ## Skill Description

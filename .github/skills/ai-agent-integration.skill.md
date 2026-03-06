@@ -1,3 +1,6 @@
+---
+applyTo: ".well-known/**,.github/skills/**,prompts/**,AGENTS.md,CLAUDE.md,GEMINI.md,COPILOT.md,llms*.txt"
+---
 # AI Agent Integration — LLM Context, Skills Registry & Agent Configuration
 
 ## Skill Description

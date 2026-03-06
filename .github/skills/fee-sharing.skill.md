@@ -1,3 +1,6 @@
+---
+applyTo: "src/**"
+---
 # Fee Sharing — Multi-Party Creator Fee Distribution
 
 ## Skill Description

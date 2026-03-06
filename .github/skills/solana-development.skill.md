@@ -1,3 +1,6 @@
+---
+applyTo: "src/**,typescript/**"
+---
 # Solana Development — Web3.js, Anchor, SPL Tokens & On-Chain Patterns
 
 ## Skill Description

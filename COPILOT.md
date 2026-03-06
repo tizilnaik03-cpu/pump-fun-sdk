@@ -78,10 +78,25 @@ All token/SOL amounts use `BN` (bn.js). Never use JavaScript `number` for financ
 
 ## Skill Files
 
-See `.github/skills/` for detailed agent skill documents covering:
-- SDK core, bonding curve math, token lifecycle, fee system, fee sharing
-- Token incentives, Solana program architecture, security practices
-- Rust/TypeScript vanity generators, shell scripting, MCP server
+See `.github/skills/` for detailed agent skill documents. Each skill has an `applyTo` frontmatter pattern — skills are only loaded when editing files matching their glob.
+
+Domains covered: SDK core, bonding curve math, token lifecycle, fee system, fee sharing, token incentives, Solana program architecture, security practices, Rust/TypeScript vanity generators, shell scripting, MCP server.
+
+## Performance Constraints
+
+| Component | Metric | Notes |
+|-----------|--------|-------|
+| SDK offline instructions | < 1ms | Pure functions, no async |
+| SDK online (RPC) | 50–500ms | Batch with `getMultipleAccountsInfo` |
+| Rust vanity | 100K+ keys/sec | Multi-threaded; use for production |
+| TS vanity | ~1K keys/sec | Educational only |
+| WebSocket relay | 10K conn, 50K msg/sec | Per vCPU |
+
+> Full benchmarks: `docs/performance.md`
+
+## MCP Server Status
+
+The MCP server is **designed but not yet implemented**. Design docs in `prompts/mcp-server/`. Do not reference MCP tools as available.
 
 ## Terminal Management (MANDATORY)
 

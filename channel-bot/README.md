@@ -2,6 +2,8 @@
 
 Read-only Telegram channel feed that broadcasts PumpFun on-chain activity — token launches, graduations, whale trades, fee claims, and fee distributions.
 
+> **Looking for interactive monitoring?** The [telegram-bot](../telegram-bot/) supports watch management, group chats, REST API, SSE streaming, and webhooks. Use this channel-bot for simple broadcast-only channels.
+
 ## Features
 
 | Feed | Description | Toggle |

@@ -1,5 +1,7 @@
 # Pump SDK - Full Context
 
+> **Usage**: Use `llms.txt` for quick reference. Use this file (`llms-full.txt`) only when you need complete API details, event types, or architecture context.
+
 This file provides comprehensive context for AI assistants working with this codebase.
 
 ## Project Overview
@@ -112,9 +114,9 @@ Educational reference implementation:
 - `lib/output.ts` — File output
 - `lib/security.ts` — Security utilities
 
-### MCP Server (mcp-server/)
+### MCP Server (mcp-server/) — NOT YET IMPLEMENTED
 
-Model Context Protocol server for AI agent integration:
+Design documents exist in `prompts/mcp-server/` for a planned Model Context Protocol server:
 - 53 tools: quoting, building transactions, fee management, analytics, AMM operations, social fees, wallet operations (generate_keypair, generate_vanity, sign_message, verify_signature, validate_address, estimate_vanity_time, restore_keypair, and 46 more)
 - 3 resource URIs: solana://config, solana://keypair/{id}, solana://address/{pubkey}
 - 3 prompts: create_wallet, security_audit, batch_generate
@@ -159,24 +161,19 @@ Standalone browser UIs for real-time PumpFun monitoring:
 
 ### Lair-TG (lair-tg/)
 
-Unified Telegram bot platform for DeFi intelligence, wallet management, and token launching.
+Unified Telegram bot platform for DeFi intelligence.
 
 ### DeFi Agents (packages/defi-agents/)
 
-43 production-ready AI agent definitions in universal JSON format. Each agent specifies capabilities, personality, knowledge domains, and task patterns. Works with any AI platform (Claude, GPT, LLaMA, local models). Includes agents-manifest.json registry. 18-language i18n support.
+43 AI agent definitions in JSON format. See `packages/defi-agents/README.md`.
 
 ### Plugin.delivery (packages/plugin.delivery/)
 
-AI Plugin Index for SperaxOS function-call plugins and tools. OpenAPI-compatible plugin SDK, gateway, and developer tools for building function-calling plugins with Vercel edge deployment.
+OpenAPI-compatible plugin SDK and gateway. See `packages/plugin.delivery/README.md`.
 
 ### PumpOS Website (website/)
 
-Static HTML/CSS/JS web desktop (PumpOS) with:
-- 169 Pump-Store apps: DeFi dashboards, trading tools, charts, wallet management, Pump SDK tools
-- Live trades dashboard: real-time token launches and trades via WebSocket relay
-- Bonding curve calculator, fee tier explorer, token launch simulator
-- Token incentives tracker, creator fee sharing configurator, SDK API reference
-- Migration tracker, smart money tracker, alpha terminal, whale alerts
+Static HTML/CSS/JS web desktop. See `website/README.md` for details.
 
 ### Shell Scripts (scripts/)
 

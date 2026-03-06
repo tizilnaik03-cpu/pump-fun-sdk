@@ -1,3 +1,6 @@
+---
+applyTo: "src/**"
+---
 # Admin Operations — Protocol Governance & Authority Management
 
 ## Skill Description

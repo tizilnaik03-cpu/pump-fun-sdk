@@ -1,3 +1,6 @@
+---
+applyTo: "rust/**"
+---
 # Rust Vanity Address Generator — High-Performance Multi-Threaded Keypair Generation
 
 ## Skill Description

@@ -1,3 +1,6 @@
+---
+applyTo: "skills/**,.well-known/**,prompts/**"
+---
 # OpenClaw — AI Agent Skill Packaging & Discovery
 
 ## Skill Description

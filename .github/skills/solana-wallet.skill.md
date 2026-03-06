@@ -1,3 +1,6 @@
+---
+applyTo: "src/**,rust/**,typescript/**,scripts/**"
+---
 # Solana Wallet — Key Generation, Vanity Addresses & Security
 
 ## Skill Description

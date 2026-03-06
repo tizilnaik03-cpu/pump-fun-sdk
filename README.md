@@ -82,7 +82,7 @@ Token Creation &nbsp;·&nbsp; Bonding Curves &nbsp;·&nbsp; AMM Trading &nbsp;·
 - [Vanity Generators](#-vanity-address-generators) — Rust (100K+ keys/sec) + TypeScript
 - [Scripts & Makefile](#️-shell-scripts--makefile) — Production CLI tools
 - [Testing & CI/CD](#-testing--cicd) — 6 GitHub Actions workflows
-- [Tutorials](#-tutorials) — 19 hands-on guides
+- [Tutorials](#-tutorials) — 35 hands-on guides
 - [Documentation](#-documentation) — Full guides and references
 - [Contributing](#-contributing) — Help make Pump SDK better
 
@@ -112,7 +112,7 @@ Token Creation &nbsp;·&nbsp; Bonding Curves &nbsp;·&nbsp; AMM Trading &nbsp;·
 <tr><td><strong>Telegram bot</strong></td><td align="center">✅ Claims + CTO + API</td><td align="center">❌</td><td align="center">❌</td></tr>
 <tr><td><strong>DeFi agents</strong></td><td align="center">✅ 43 agent definitions</td><td align="center">❌</td><td align="center">❌</td></tr>
 <tr><td><strong>x402 payments</strong></td><td align="center">✅ HTTP 402 + USDC</td><td align="center">❌</td><td align="center">❌</td></tr>
-<tr><td><strong>Tutorials</strong></td><td align="center">✅ 19 guides</td><td align="center">❌</td><td align="center">❌</td></tr>
+<tr><td><strong>Tutorials</strong></td><td align="center">✅ 35 guides</td><td align="center">❌</td><td align="center">❌</td></tr>
 <tr><td><strong>4 programs</strong></td><td align="center">✅ Pump + AMM + Fees + Mayhem</td><td align="center">⚠️ Manual</td><td align="center">❌ Not supported</td></tr>
 </table>
 
@@ -199,7 +199,7 @@ Token Creation &nbsp;·&nbsp; Bonding Curves &nbsp;·&nbsp; AMM Trading &nbsp;·
 - Telegram bot: fee claims, CTO, whale, graduation alerts
 - x402 HTTP 402 micropayments (Solana USDC)
 - Lair: unified DeFi intelligence bot platform
-- 19 hands-on tutorials covering every feature
+- 35 hands-on tutorials covering every feature
 
 </td>
 </tr>
@@ -983,7 +983,7 @@ bash docs/run-all-tests.sh         # Run comprehensive cross-language tests
 
 ## 📚 Tutorials
 
-19 hands-on guides in [`tutorials/`](tutorials/) covering every SDK feature:
+35 hands-on guides in [`tutorials/`](tutorials/) covering every SDK feature:
 
 | # | Tutorial | Topics |
 |---|----------|--------|
@@ -1006,6 +1006,22 @@ bash docs/run-all-tests.sh         # Run comprehensive cross-language tests
 | 17 | [Monitoring Website](tutorials/17-monitoring-website.md) | Live dashboard, real-time UI |
 | 18 | [Telegram Bot](tutorials/18-telegram-bot.md) | Bot setup, commands, alerts |
 | 19 | [CoinGecko Integration](tutorials/19-coingecko-integration.md) | Price feeds, market data |
+| 20 | [MCP Server for AI Agents](tutorials/20-mcp-server-ai-agents.md) | MCP, 53 AI tools, Claude/GPT/Cursor |
+| 21 | [WebSocket Real-Time Feeds](tutorials/21-websocket-realtime-feeds.md) | WebSocket streaming, live launches & trades |
+| 22 | [Channel Bot — Telegram Broadcasting](tutorials/22-channel-bot-setup.md) | Telegram channel, graduations, whale trades, fee claims |
+| 23 | [Mayhem Mode Trading](tutorials/23-mayhem-mode-trading.md) | Mayhem Mode, Token-2022, separate vaults |
+| 24 | [Cross-Program Trading](tutorials/24-cross-program-trading.md) | Full lifecycle, bonding curve → AMM transition |
+| 25 | [DeFi Agents Integration](tutorials/25-defi-agents-integration.md) | 43 AI agent definitions, LLM-powered assistants |
+| 26 | [Live Dashboard Deployment](tutorials/26-live-dashboard-deployment.md) | Real-time dashboards, zero build step, standalone HTML |
+| 27 | [Cashback & Social Fee PDAs](tutorials/27-cashback-social-fees.md) | Cashback rewards, social fee PDAs, off-chain identity |
+| 28 | [Analytics & Price Quotes](tutorials/28-analytics-price-quotes.md) | Quote functions, price impact, graduation progress |
+| 29 | [Event Parsing & Analytics](tutorials/29-event-parsing-analytics.md) | 20+ event types, program log parsing |
+| 30 | [Batch Shell Scripts](tutorials/30-batch-shell-scripts.md) | Bash automation, batch vanity generation |
+| 31 | [Rust Vanity Deep Dive](tutorials/31-rust-vanity-deep-dive.md) | Rust build/benchmark, 100K+ keys/sec, rayon |
+| 32 | [Plugin Delivery](tutorials/32-plugin-delivery.md) | Plugin creation, AI-compatible plugins |
+| 33 | [Error Handling Patterns](tutorials/33-error-handling-patterns.md) | SDK errors, fee share validation, resilience |
+| 34 | [AMM Liquidity Operations](tutorials/34-amm-liquidity-operations.md) | PumpAMM LP tokens, deposits, withdrawals |
+| 35 | [Admin & Protocol Management](tutorials/35-admin-protocol-management.md) | Protocol modes, authorities, fee config |
 
 ---
 

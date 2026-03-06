@@ -15,7 +15,7 @@ import { Bot } from 'grammy';
 import { loadConfig } from './config.js';
 import { ClaimMonitor } from './claim-monitor.js';
 import { EventMonitor } from './event-monitor.js';
-import { recordClaim, isFirstClaimOnToken } from './claim-tracker.js';
+import { recordClaim, isFirstClaimOnToken, loadPersistedClaims } from './claim-tracker.js';
 import { fetchTokenInfo, fetchCreatorProfile, fetchTokenHolders, fetchTokenTrades, fetchSolUsdPrice } from './pump-client.js';
 import { fetchRepoFromUrls, fetchGitHubUserFromUrls } from './github-client.js';
 import { generateClaimSummary } from './groq-client.js';
@@ -29,9 +29,11 @@ import {
 } from './formatters.js';
 import type { ClaimFeedContext } from './formatters.js';
 import { log, setLogLevel } from './logger.js';
+import { startHealthServer, stopHealthServer } from './health.js';
 import type {
     FeeClaimEvent,
     GraduationEvent,
+    TokenLaunchEvent,
     TradeAlertEvent,
     FeeDistributionEvent,
 } from './types.js';
@@ -39,6 +41,9 @@ import type {
 async function main(): Promise<void> {
     const config = loadConfig();
     setLogLevel(config.logLevel);
+
+    // Load persisted first-claim set to survive restarts
+    loadPersistedClaims();
 
     log.info('PumpFun Channel Bot starting...');
     log.info('  Channel: %s', config.channelId);
@@ -54,13 +59,37 @@ async function main(): Promise<void> {
         log.error('Bot error:', err.error);
     });
 
+    /** Retry helper for transient Telegram errors (429, 5xx). */
+    async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                return await fn();
+            } catch (err: unknown) {
+                const msg = String(err);
+                const is429 = msg.includes('429') || msg.includes('Too Many Requests');
+                const is5xx = msg.includes('500') || msg.includes('502') || msg.includes('503');
+                if ((is429 || is5xx) && attempt < maxRetries) {
+                    // Respect Telegram retry_after if present
+                    let delay = (attempt + 1) * 2000;
+                    const retryMatch = msg.match(/retry after (\d+)/i);
+                    if (retryMatch) delay = (Number(retryMatch[1]) + 1) * 1000;
+                    log.warn('Telegram %s — retry %d/%d in %dms', is429 ? '429' : '5xx', attempt + 1, maxRetries, delay);
+                    await new Promise(r => setTimeout(r, delay));
+                    continue;
+                }
+                throw err;
+            }
+        }
+        throw new Error('Unreachable');
+    }
+
     /** Send a message to the channel. */
     async function postToChannel(message: string): Promise<void> {
         try {
-            await bot.api.sendMessage(config.channelId, message, {
+            await withRetry(() => bot.api.sendMessage(config.channelId, message, {
                 parse_mode: 'HTML',
                 link_preview_options: { is_disabled: true },
-            });
+            }));
         } catch (err) {
             log.error('Failed to post to channel %s:', config.channelId, err);
         }
@@ -69,10 +98,10 @@ async function main(): Promise<void> {
     /** Send a photo with caption to the channel. Falls back to text if photo fails. */
     async function postPhotoToChannel(imageUrl: string, caption: string): Promise<void> {
         try {
-            await bot.api.sendPhoto(config.channelId, imageUrl, {
+            await withRetry(() => bot.api.sendPhoto(config.channelId, imageUrl, {
                 caption,
                 parse_mode: 'HTML',
-            });
+            }));
         } catch (err) {
             log.warn('Photo send failed, falling back to text: %s', err);
             await postToChannel(caption);
@@ -179,13 +208,20 @@ async function main(): Promise<void> {
         }
     });
 
-    // ── Event Monitor (graduations, whales, fee distributions) ───────
-    const hasEvents = config.feed.graduations || config.feed.whales || config.feed.feeDistributions;
+    // ── Event Monitor (launches, graduations, whales, fee distributions) ───
+    const hasEvents = config.feed.launches || config.feed.graduations || config.feed.whales || config.feed.feeDistributions;
     let eventMonitor: EventMonitor | null = null;
 
     if (hasEvents) {
         eventMonitor = new EventMonitor(
             config,
+            // Token launch
+            async (event: TokenLaunchEvent) => {
+                if (!config.feed.launches) return;
+                const creator = await fetchCreatorProfile(event.creatorWallet);
+                const message = formatLaunchFeed(event, creator);
+                await postToChannel(message);
+            },
             // Graduation
             async (event: GraduationEvent) => {
                 if (!config.feed.graduations) return;
@@ -223,11 +259,22 @@ async function main(): Promise<void> {
     log.info('Bot initialized: @%s', bot.botInfo.username);
     log.info('Channel feed is live! Events will be posted to %s', config.channelId);
 
+    // ── Health check server ──────────────────────────────────────────
+    const startedAt = Date.now();
+    startHealthServer({
+        startedAt,
+        getStats: () => ({
+            feeds: config.feed,
+            channel: config.channelId,
+        }),
+    });
+
     // ── Graceful shutdown ────────────────────────────────────────────
     const shutdown = () => {
         log.info('Shutting down...');
         claimMonitor.stop();
         if (eventMonitor) eventMonitor.stop();
+        stopHealthServer();
         process.exit(0);
     };
 

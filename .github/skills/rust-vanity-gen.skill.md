@@ -1,3 +1,6 @@
+---
+applyTo: "rust/**"
+---
 # Rust Vanity Generator — High-Performance Parallel Address Mining
 
 ## Skill Description

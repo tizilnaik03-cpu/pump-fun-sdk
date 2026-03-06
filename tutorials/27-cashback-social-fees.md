@@ -135,21 +135,32 @@ async function isCashbackEnabled(): Promise<boolean> {
 
 ### Step 6: Claim Cashback
 
-Claim accumulated cashback rewards from both programs:
+Claim accumulated cashback SOL from both programs. Cashback uses dedicated `claimCashbackInstruction` / `ammClaimCashbackInstruction` — these are separate from volume-based token incentives (`claimTokenIncentives`):
 
 ```typescript
-// Claim from both Pump and PumpAMM programs
-const claimIxs = await onlineSdk.claimTokenIncentivesBothPrograms(
-  trader.publicKey
-);
+import { TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 
-console.log(`Claim instructions: ${claimIxs.length}`);
+// Claim cashback from Pump bonding curve trades
+const pumpCashbackIx = await PUMP_SDK.claimCashbackInstruction({
+  user: trader.publicKey,
+});
 
-// Check unclaimed amount first
-const unclaimed = await onlineSdk.getTotalUnclaimedTokensBothPrograms(
-  trader.publicKey
-);
-console.log(`Unclaimed tokens: ${unclaimed.toString()}`);
+// Claim cashback from AMM trades
+const ammCashbackIx = await PUMP_SDK.ammClaimCashbackInstruction({
+  user: trader.publicKey,
+});
+
+const { blockhash } = await connection.getLatestBlockhash("confirmed");
+const message = new TransactionMessage({
+  payerKey: trader.publicKey,
+  recentBlockhash: blockhash,
+  instructions: [pumpCashbackIx, ammCashbackIx],
+}).compileToV0Message();
+
+const tx = new VersionedTransaction(message);
+tx.sign([trader]);
+await connection.sendTransaction(tx);
+console.log("Cashback claimed!");
 ```
 
 ---
@@ -176,20 +187,22 @@ User with matching identity claims fees
 ### Step 7: Derive a Social Fee PDA
 
 ```typescript
-import { socialFeePda } from "@pump-fun/pump-sdk";
+import { socialFeePda, Platform, SUPPORTED_SOCIAL_PLATFORMS } from "@pump-fun/pump-sdk";
 
-// Platform IDs:
-// 0 = Custom / Other
-// 1 = Twitter / X
-// 2 = Telegram
-// 3 = Discord
+// Platform enum (from src/state.ts):
+// Platform.Pump   = 0
+// Platform.X      = 1
+// Platform.GitHub  = 2
+//
+// Currently only Platform.GitHub is in SUPPORTED_SOCIAL_PLATFORMS.
+// Check SUPPORTED_SOCIAL_PLATFORMS for the latest supported list.
 
-const twitterUserId = "12345678"; // Twitter numeric user ID
-const platform = 1; // Twitter
+const githubUserId = "12345678"; // GitHub numeric user ID (from api.github.com/users/<username>)
+const platform = Platform.GitHub;
 
-const pda = socialFeePda(twitterUserId, platform);
+const pda = socialFeePda(githubUserId, platform);
 console.log("Social Fee PDA:", pda.toBase58());
-// Seeds: ["social-fee-pda", Buffer.from("12345678"), Buffer.from([1])]
+// Seeds: ["social-fee-pda", Buffer.from("12345678"), Buffer.from([2])]
 ```
 
 ### Step 8: Fetch Social Fee PDA State
@@ -204,7 +217,7 @@ interface SocialFeePda {
   lastClaimed: BN;
 }
 
-const state = await onlineSdk.fetchSocialFeePda(twitterUserId, platform);
+const state = await onlineSdk.fetchSocialFeePda(githubUserId, platform);
 
 console.log("User ID:", state.userId);
 console.log("Platform:", state.platform);
@@ -254,10 +267,9 @@ interface SocialFeeTracker {
 }
 
 const PLATFORM_NAMES: Record<number, string> = {
-  0: "Other",
-  1: "Twitter/X",
-  2: "Telegram",
-  3: "Discord",
+  0: "Pump",
+  1: "X (Twitter)",
+  2: "GitHub",
 };
 
 async function trackSocialFees(
@@ -298,13 +310,36 @@ async function trackSocialFees(
 
 // Track multiple social accounts
 const tracked = await trackSocialFees(onlineSdk, [
-  { userId: "12345678", platform: 1 },   // Twitter user
-  { userId: "telegram_user", platform: 2 }, // Telegram user
-  { userId: "discord_id", platform: 3 },   // Discord user
+  { userId: "12345678", platform: Platform.GitHub },    // GitHub user
 ]);
 
 console.table(tracked);
 ```
+
+### Step 10b: Create and Claim Social Fee PDAs
+
+To create a social fee PDA on-chain and claim accumulated fees:
+
+```typescript
+import { PUMP_SDK, Platform } from "@pump-fun/pump-sdk";
+
+// Create the PDA (anyone can pay)
+const createPdaIx = await PUMP_SDK.createSocialFeePdaInstruction({
+  payer: wallet.publicKey,
+  userId: "12345678",          // GitHub user ID
+  platform: Platform.GitHub,
+});
+
+// Claim accumulated fees (requires socialClaimAuthority signer)
+const claimPdaIx = await PUMP_SDK.claimSocialFeePdaInstruction({
+  recipient: wallet.publicKey,
+  socialClaimAuthority: authorityKeypair.publicKey,
+  userId: "12345678",
+  platform: Platform.GitHub,
+});
+```
+
+> **Note:** Only `Platform.GitHub` is currently supported. Check `SUPPORTED_SOCIAL_PLATFORMS` for the latest list. The `userId` must be the numeric GitHub user ID from `https://api.github.com/users/<username>`.
 
 ## Combining Cashback + Social Fees + Fee Sharing
 

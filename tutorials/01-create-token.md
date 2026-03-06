@@ -61,6 +61,21 @@ const createIx = await PUMP_SDK.createV2Instruction({
 - `mayhemMode` — When `true`, enables special Mayhem mode mechanics
 - `cashback` — When `true`, enables cashback rewards on this token
 
+### Token Metadata URI
+
+The `uri` should point to a JSON file following the Metaplex token metadata standard:
+
+```json
+{
+  "name": "My First Token",
+  "symbol": "MFT",
+  "description": "A token created with the Pump SDK",
+  "image": "https://example.com/token-image.png"
+}
+```
+
+Host this JSON on IPFS, Arweave, or any public URL. The image should be a square PNG or SVG (recommended 512×512).
+
 ## Step 4: Send the Transaction
 
 ```typescript
@@ -140,5 +155,6 @@ createToken();
 
 - [Tutorial 2: Buy Tokens from the Bonding Curve](./02-buy-tokens.md)
 - [Tutorial 4: Create and Buy in One Transaction](./04-create-and-buy.md)
-- [Tutorial 7: Set Up Fee Sharing](./07-fee-sharing.md)
+- [Tutorial 5: Bonding Curve Math Deep Dive](./05-bonding-curve-math.md) — Understand pricing
+- [Tutorial 7: Set Up Fee Sharing](./07-fee-sharing.md) — Split creator fees with your team
 

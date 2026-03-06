@@ -1,3 +1,6 @@
+---
+applyTo: "src/**"
+---
 # OpenClaw Token Trading — Buy & Sell on Bonding Curves
 
 ## Skill Description

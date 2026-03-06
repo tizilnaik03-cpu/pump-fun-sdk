@@ -25,9 +25,14 @@ RUN npm install --omit=dev && npm cache clean --force
 
 COPY --from=build /app/dist dist/
 
+# Writable data directory for persisted claim tracker
+RUN mkdir -p /app/data && chown bot:bot /app/data
+VOLUME ["/app/data"]
+ENV DATA_DIR=/app/data
+
 USER bot
 
-ENV NODE_ENV=production
+EXPOSE 3000
 
 CMD ["node", "--enable-source-maps", "dist/index.js"]
 

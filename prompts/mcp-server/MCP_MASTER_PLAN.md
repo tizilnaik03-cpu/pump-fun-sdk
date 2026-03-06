@@ -1,5 +1,9 @@
 # MCP Server Integration - Master Plan
 
+> **STATUS: NOT YET IMPLEMENTED** — These prompts describe a planned MCP server architecture.
+> The `mcp-server/` directory does not exist yet. These are design documents, not references to working code.
+> Do not attempt to import from or invoke tools from `mcp-server/` until it is implemented.
+
 ## Project Overview
 
 Build a production-grade Model Context Protocol (MCP) server that exposes the Solana Wallet Toolkit functionality to AI assistants like Claude, enabling programmatic wallet generation, signing, and verification.

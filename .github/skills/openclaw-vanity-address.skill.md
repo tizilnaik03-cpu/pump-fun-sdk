@@ -1,3 +1,6 @@
+---
+applyTo: "rust/**,typescript/**,scripts/**"
+---
 # OpenClaw Vanity Address — Custom Solana Address Generation
 
 ## Skill Description

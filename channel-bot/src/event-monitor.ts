@@ -46,6 +46,8 @@ import {
 const DISTRIBUTE_FEES_EVENT_DISCRIMINATOR = 'a537817004b3ca28';
 const MAX_WS_ERRORS = 5;
 const DEFAULT_TOKEN_TOTAL_SUPPLY = 1_000_000_000_000_000;
+const WS_HEARTBEAT_INTERVAL_MS = 60_000;
+const WS_HEARTBEAT_TIMEOUT_MS = 90_000;
 
 // ============================================================================
 // Event Monitor
@@ -70,6 +72,8 @@ export class EventMonitor {
     private wsErrorCount = 0;
     private stopped = false;
     private isRunning = false;
+    private lastWsEventTime = 0;
+    private wsHeartbeatTimer?: ReturnType<typeof setInterval>;
 
     constructor(
         config: ChannelBotConfig,
@@ -108,6 +112,10 @@ export class EventMonitor {
     stop(): void {
         this.stopped = true;
         this.isRunning = false;
+        if (this.wsHeartbeatTimer) {
+            clearInterval(this.wsHeartbeatTimer);
+            this.wsHeartbeatTimer = undefined;
+        }
         if (this.wsConnection && this.wsSubscriptionId !== undefined) {
             this.wsConnection.removeOnLogsListener(this.wsSubscriptionId).catch(() => {});
         }
@@ -125,14 +133,47 @@ export class EventMonitor {
             wsEndpoint: this.config.solanaWsUrl,
         });
 
+        this.lastWsEventTime = Date.now();
+
         this.wsSubscriptionId = this.wsConnection.onLogs(
             this.programPubkey,
             async (logInfo: Logs) => {
+                this.lastWsEventTime = Date.now();
                 try { await this.handleLogEvent(logInfo); }
                 catch (err) { log.error('Event log error:', err); }
             },
             'confirmed',
         );
+
+        // Heartbeat: if no event received for too long, reconnect
+        this.wsHeartbeatTimer = setInterval(() => {
+            if (this.stopped) return;
+            const elapsed = Date.now() - this.lastWsEventTime;
+            if (elapsed > WS_HEARTBEAT_TIMEOUT_MS) {
+                log.warn('Event monitor WS silent for %ds — reconnecting...', Math.floor(elapsed / 1000));
+                this.reconnectWebSocket();
+            }
+        }, WS_HEARTBEAT_INTERVAL_MS);
+    }
+
+    private reconnectWebSocket(): void {
+        if (this.stopped) return;
+        // Clean up old connection
+        if (this.wsConnection && this.wsSubscriptionId !== undefined) {
+            this.wsConnection.removeOnLogsListener(this.wsSubscriptionId).catch(() => {});
+        }
+        this.wsSubscriptionId = undefined;
+        this.wsConnection = undefined;
+
+        // Attempt to reconnect
+        this.startWebSocket().catch((err) => {
+            log.warn('Event monitor WS reconnect failed, falling back to polling: %s', err);
+            if (this.wsHeartbeatTimer) {
+                clearInterval(this.wsHeartbeatTimer);
+                this.wsHeartbeatTimer = undefined;
+            }
+            this.startPolling();
+        });
     }
 
     private async handleLogEvent(logInfo: Logs): Promise<void> {
@@ -442,3 +483,15 @@ export class EventMonitor {
     }
 }
 
+// ============================================================================
+// Helpers
+// ============================================================================
+
+const GITHUB_RE = /https?:\/\/github\.com\/[a-zA-Z0-9_.-]+(?:\/[a-zA-Z0-9_.-]+)?/gi;
+
+function extractGithubUrlsFromString(text: string): string[] {
+    if (!text) return [];
+    const matches = text.match(GITHUB_RE);
+    if (!matches) return [];
+    return [...new Set(matches)];
+}

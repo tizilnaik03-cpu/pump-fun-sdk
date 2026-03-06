@@ -1,3 +1,6 @@
+---
+applyTo: "src/**"
+---
 # Bonding Curve Mathematics — Constant-Product AMM Pricing
 
 ## Skill Description

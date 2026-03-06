@@ -1,3 +1,6 @@
+---
+applyTo: "src/**"
+---
 # Token Lifecycle — Create, Trade, Graduate, Migrate & Collect
 
 ## Skill Description

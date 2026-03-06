@@ -168,6 +168,24 @@ Every buy incurs fees that are split between:
 
 The fee tier depends on the bonding curve's market cap. See [Tutorial 9: Understanding the Fee System](./09-fee-system.md).
 
+## Common Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| Bonding curve complete | Token graduated to AMM | Use AMM buy instructions — see [Tutorial 24](./24-cross-program-trading.md) |
+| Insufficient SOL | Wallet doesn't have enough SOL for trade + fees + rent | Fund the wallet with more SOL |
+| Slippage exceeded | Price moved between quote and execution | Increase slippage tolerance or retry |
+| 0 tokens output | SOL amount too small after fees | Increase `solToSpend` amount |
+
+```typescript
+// Always check if the curve is still active before buying
+const bc = await onlineSdk.fetchBondingCurve(mint);
+if (bc.complete) {
+  console.log("Token graduated — use AMM instructions instead");
+  return;
+}
+```
+
 ## What's Next?
 
 - [Tutorial 3: Sell Tokens Back to the Curve](./03-sell-tokens.md)
