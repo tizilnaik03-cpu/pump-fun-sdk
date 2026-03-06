@@ -43,3 +43,4 @@ Based on that, we could make this diagram of the filesystem:
 ## For a more efficient filesystem
 
 We are putting in efforts to create the best filesystem on the web. Balancing speed and simplicity, we may create new filesystems that are better at doing what they should.
+
