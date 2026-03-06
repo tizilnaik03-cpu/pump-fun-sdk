@@ -8,6 +8,7 @@ export interface DashboardConfig {
   apiKey: string;
   services: ServiceConfig[];
   solanaRpcUrl: string;
+  solanaRpcUrls: string[];
 }
 
 export interface ServiceConfig {
@@ -61,10 +62,16 @@ export function loadConfig(): DashboardConfig {
     });
   }
 
+  const solanaRpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+  const solanaRpcUrls = process.env.SOLANA_RPC_URLS
+    ? process.env.SOLANA_RPC_URLS.split(',').map((s) => s.trim()).filter(Boolean)
+    : [solanaRpcUrl];
+
   return {
     port: Number(process.env.DASHBOARD_PORT || '8080'),
     apiKey: process.env.DASHBOARD_API_KEY || '',
     services,
-    solanaRpcUrl: process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
+    solanaRpcUrl,
+    solanaRpcUrls,
   };
 }

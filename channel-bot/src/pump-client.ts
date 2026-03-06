@@ -167,19 +167,44 @@ async function fetchTokenInfoPump(mint: string): Promise<TokenInfo | null> {
         const description = String(raw.description ?? '');
         const githubUrls = extractGithubUrls(description);
 
+        // Timestamps from API are ms — normalize to seconds
+        const createdTs = Number(raw.created_timestamp ?? 0);
+        const createdTimestamp = createdTs > 1e12 ? Math.floor(createdTs / 1000) : createdTs;
+        const kothTs = Number(raw.king_of_the_hill_timestamp ?? 0);
+        const kothTimestamp = kothTs > 1e12 ? Math.floor(kothTs / 1000) : kothTs;
+        const athTs = Number(raw.ath_market_cap_timestamp ?? 0);
+        const athTimestamp = athTs > 1e12 ? Math.floor(athTs / 1000) : athTs;
+        const lastTradeTs = Number(raw.last_trade_timestamp ?? 0);
+        const lastTradeTimestamp = lastTradeTs > 1e12 ? Math.floor(lastTradeTs / 1000) : lastTradeTs;
+        const lastReplyTs = Number(raw.last_reply ?? 0);
+        const lastReplyTimestamp = lastReplyTs > 1e12 ? Math.floor(lastReplyTs / 1000) : lastReplyTs;
+
         return {
             mint: String(raw.mint ?? mint),
             name: String(raw.name ?? 'Unknown'),
             symbol: String(raw.symbol ?? '???'),
             description,
             imageUri: String(raw.image_uri ?? ''),
+            bannerUri: String(raw.banner_uri ?? ''),
             creator: String(raw.creator ?? ''),
-            createdTimestamp: Number(raw.created_timestamp ?? 0),
+            createdTimestamp,
             complete,
             usdMarketCap: Number(raw.usd_market_cap ?? 0),
-            marketCapSol,
+            marketCapSol: Number(raw.market_cap ?? marketCapSol),
             priceSol,
             curveProgress,
+            athMarketCap: Number(raw.ath_market_cap ?? 0),
+            athTimestamp,
+            kothTimestamp,
+            lastTradeTimestamp,
+            lastReplyTimestamp,
+            replyCount: Number(raw.reply_count ?? 0),
+            pumpSwapPool: String(raw.pump_swap_pool ?? ''),
+            program: String(raw.program ?? 'pump'),
+            isCashbackEnabled: Boolean(raw.is_cashback_enabled),
+            isNsfw: Boolean(raw.nsfw),
+            isBanned: Boolean(raw.is_banned),
+            isHackathon: Boolean(raw.is_hackathon),
             website: raw.website ? String(raw.website) : undefined,
             twitter: raw.twitter ? String(raw.twitter) : undefined,
             telegram: raw.telegram ? String(raw.telegram) : undefined,
@@ -218,6 +243,7 @@ async function fetchTokenInfoDexScreener(mint: string): Promise<TokenInfo | null
             symbol: String(base?.symbol ?? '???'),
             description: '',
             imageUri: String(info?.imageUrl ?? ''),
+            bannerUri: '',
             creator: '',
             createdTimestamp: pair.pairCreatedAt
                 ? Math.floor(Number(pair.pairCreatedAt) / 1000)
@@ -227,6 +253,18 @@ async function fetchTokenInfoDexScreener(mint: string): Promise<TokenInfo | null
             marketCapSol: 0,
             priceSol: Number(pair.priceNative ?? 0),
             curveProgress: 100,
+            athMarketCap: 0,
+            athTimestamp: 0,
+            kothTimestamp: 0,
+            lastTradeTimestamp: 0,
+            lastReplyTimestamp: 0,
+            replyCount: 0,
+            pumpSwapPool: '',
+            program: 'pump',
+            isCashbackEnabled: false,
+            isNsfw: false,
+            isBanned: false,
+            isHackathon: false,
             website: (info?.websites as Array<Record<string, string>>)?.[0]?.url,
             twitter: socials.find((s) => s.type === 'twitter')?.url,
             telegram: socials.find((s) => s.type === 'telegram')?.url,

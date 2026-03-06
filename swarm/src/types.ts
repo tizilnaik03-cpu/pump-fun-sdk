@@ -2,7 +2,7 @@
 
 // ── Bot Identity ────────────────────────────────────────────────────
 
-export type BotId = 'telegram-bot' | 'outsiders-bot' | 'channel-bot' | 'websocket-server';
+export type BotId = 'telegram-bot' | 'outsiders-bot' | 'channel-bot' | 'websocket-server' | 'swarm-bot';
 
 export type BotStatus = 'stopped' | 'starting' | 'running' | 'error' | 'stopping';
 
@@ -196,4 +196,21 @@ export interface SwarmConfig {
   apiKey: string | null;
   autoStartBots: BotId[];
   corsOrigins: string;
+}
+
+// ── Env Config ──────────────────────────────────────────────────────
+
+export interface BotEnvConfig {
+  botId: BotId;
+  current: Record<string, string>;
+  required: string[];
+  optional: string[];
+}
+
+// ── Batch Operations ────────────────────────────────────────────────
+
+export interface BatchResult {
+  botId: BotId;
+  success: boolean;
+  message: string;
 }

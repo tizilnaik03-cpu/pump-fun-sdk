@@ -11,8 +11,10 @@ export interface ChannelBotConfig {
     telegramToken: string;
     /** Channel ID to post to (@channelname or -100xxx) */
     channelId: string;
-    /** Solana RPC HTTP URL */
+    /** Solana RPC HTTP URL (primary) */
     solanaRpcUrl: string;
+    /** All Solana RPC HTTP URLs for fallback (primary + backups) */
+    solanaRpcUrls: string[];
     /** Solana WebSocket URL (optional) */
     solanaWsUrl?: string;
     /** Polling interval in seconds */
@@ -50,6 +52,11 @@ export function loadConfig(): ChannelBotConfig {
 
     const solanaRpcUrl =
         process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+
+    // Support comma-separated fallback RPC URLs
+    const solanaRpcUrls = process.env.SOLANA_RPC_URLS
+        ? process.env.SOLANA_RPC_URLS.split(',').map((s) => s.trim()).filter(Boolean)
+        : [solanaRpcUrl];
 
     let solanaWsUrl = process.env.SOLANA_WS_URL;
     if (!solanaWsUrl) {
@@ -90,6 +97,7 @@ export function loadConfig(): ChannelBotConfig {
         pollIntervalSeconds,
         requireGithub,
         solanaRpcUrl,
+        solanaRpcUrls,
         solanaWsUrl,
         telegramToken,
         whaleThresholdSol,
