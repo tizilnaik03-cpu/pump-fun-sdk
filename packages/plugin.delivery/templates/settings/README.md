@@ -128,3 +128,4 @@ This displays an error card prompting the user to configure settings.
 - Use `format: "password"` for sensitive values
 - Never log or expose settings in responses
 - Validate settings server-side before use
+
