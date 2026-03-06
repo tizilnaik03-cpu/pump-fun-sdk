@@ -17,3 +17,4 @@ function greenflag() {
 ## Using MyWindow
 
 The default `myWindow` object (learn about myWindow) also gets loaded only when the `greenflag` is triggered. You cannot use `myWindow` before the `greenflag` function gets called.&#x20;
+
