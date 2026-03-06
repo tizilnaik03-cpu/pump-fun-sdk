@@ -734,3 +734,4 @@ plugins/
 
 *For development guide, see [PLUGIN_DEVELOPMENT_GUIDE.md](./PLUGIN_DEVELOPMENT_GUIDE.md)*
 *For MCP plugins, see [MCP_VS_PLUGINS.md](../SperaxOS/docs/MCP_VS_PLUGINS.md)*
+
