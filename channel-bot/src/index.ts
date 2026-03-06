@@ -52,6 +52,7 @@ async function main(): Promise<void> {
         config.feed.claims, config.feed.launches, config.feed.graduations,
         config.feed.whales, config.feed.feeDistributions,
     );
+    log.info('  Require GitHub: %s', config.requireGithub);
 
     const bot = new Bot(config.telegramToken);
 
@@ -119,9 +120,19 @@ async function main(): Promise<void> {
         // Only post the first-ever claim on each token
         if (!isFirstClaimOnToken(mint)) return;
 
-        // Enrich with all available data in parallel
-        const [token, creator, holders, trades, solUsdPrice] = await Promise.all([
-            fetchTokenInfo(event.tokenMint),
+        // Fetch token info first — needed for the GitHub gate
+        const token = await fetchTokenInfo(event.tokenMint);
+
+        // GitHub gate: skip tokens with no GitHub URLs in description
+        if (config.requireGithub) {
+            if (!token?.githubUrls?.length) {
+                log.debug('Skipping claim for %s — no GitHub URLs (requireGithub=true)', mint.slice(0, 8));
+                return;
+            }
+        }
+
+        // Enrich with remaining data in parallel
+        const [creator, holders, trades, solUsdPrice] = await Promise.all([
             event.claimerWallet ? fetchCreatorProfile(event.claimerWallet) : Promise.resolve(null),
             fetchTokenHolders(event.tokenMint),
             fetchTokenTrades(event.tokenMint),

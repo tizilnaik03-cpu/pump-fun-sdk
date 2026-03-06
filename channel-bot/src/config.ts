@@ -27,6 +27,8 @@ export interface ChannelBotConfig {
         whales: boolean;
         feeDistributions: boolean;
     };
+    /** Only post claims for tokens that have GitHub URLs in their description */
+    requireGithub: boolean;
     /** Minimum SOL for whale alerts */
     whaleThresholdSol: number;
 }
@@ -69,11 +71,13 @@ export function loadConfig(): ChannelBotConfig {
 
     const feed = {
         claims: (process.env.FEED_CLAIMS || 'true').toLowerCase() === 'true',
-        feeDistributions: (process.env.FEED_FEE_DISTRIBUTIONS || 'true').toLowerCase() === 'true',
-        graduations: (process.env.FEED_GRADUATIONS || 'true').toLowerCase() === 'true',
-        launches: (process.env.FEED_LAUNCHES || 'true').toLowerCase() === 'true',
-        whales: (process.env.FEED_WHALES || 'true').toLowerCase() === 'true',
+        feeDistributions: (process.env.FEED_FEE_DISTRIBUTIONS || 'false').toLowerCase() === 'true',
+        graduations: (process.env.FEED_GRADUATIONS || 'false').toLowerCase() === 'true',
+        launches: (process.env.FEED_LAUNCHES || 'false').toLowerCase() === 'true',
+        whales: (process.env.FEED_WHALES || 'false').toLowerCase() === 'true',
     };
+
+    const requireGithub = (process.env.REQUIRE_GITHUB || 'true').toLowerCase() === 'true';
 
     const whaleThresholdSol = Number.parseFloat(
         process.env.WHALE_THRESHOLD_SOL || '10',
@@ -84,6 +88,7 @@ export function loadConfig(): ChannelBotConfig {
         feed,
         logLevel,
         pollIntervalSeconds,
+        requireGithub,
         solanaRpcUrl,
         solanaWsUrl,
         telegramToken,
