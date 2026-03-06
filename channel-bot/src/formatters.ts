@@ -445,16 +445,9 @@ export function formatGraduationFeed(
     // ━━ LINE 7: TRADING BOT QUICK LINKS ━━━━━━━━━━━━━━━━
     L.push('');
     const bots: Array<{ abbr: string; url: string }> = [
-        { abbr: 'PH', url: `https://photon-sol.tinyastro.io/en/lp/${mint}` },
-        { abbr: 'AX', url: `https://axiom.trade/t/${mint}` },
-        { abbr: 'TJ', url: `https://t.me/paris_trojanbot?start=r-pumpdotfun-${mint}` },
-        { abbr: 'BA', url: `https://t.me/BananaGunSolana_bot?start=${mint}` },
-        { abbr: 'PR', url: `https://t.me/padre_bot?start=${mint}` },
-        { abbr: 'BL', url: `https://t.me/bloom_trading_bot?start=${mint}` },
-        { abbr: 'MA', url: `https://t.me/maestro?start=${mint}` },
-        { abbr: 'MT', url: `https://t.me/MaestroProBot?start=${mint}` },
-        { abbr: 'NE', url: `https://t.me/solana_bullx_bot?start=${mint}` },
-        { abbr: 'XX', url: `https://pump.fun/coin/${mint}` },
+        { abbr: 'Axiom', url: `https://axiom.trade/t/${mint}?ref=nich` },
+        { abbr: 'GMGN',  url: `https://gmgn.ai/sol/token/${mint}?ref=nichxbt` },
+        { abbr: 'Padre', url: `https://t.me/padre_trading_bot?start=token_${mint}_ref_nichxbt` },
     ];
     L.push(bots.map(b => `<a href="${b.url}">${b.abbr}</a>`).join(' | '));
 
