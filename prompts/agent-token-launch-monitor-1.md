@@ -178,3 +178,4 @@ After creating the files, verify there are no TypeScript errors by examining the
 - **Always use background terminals** (`isBackground: true`) for every command
 - **Always kill the terminal** after the command completes
 - Do not reuse foreground shell sessions
+
