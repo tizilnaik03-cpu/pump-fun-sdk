@@ -17,7 +17,7 @@ import { loadConfig } from './config.js';
 import { ClaimMonitor } from './claim-monitor.js';
 import { EventMonitor } from './event-monitor.js';
 import { isFirstClaimByGithubUser, isFirstClaimByWallet, loadPersistedClaims } from './claim-tracker.js';
-import { fetchCreatorProfile, fetchTokenInfo, fetchTokenHolders, fetchTokenTrades, fetchSolUsdPrice } from './pump-client.js';
+import { fetchCreatorProfile, fetchTokenInfo, fetchTopHolders, fetchTokenTrades, fetchDevWalletInfo, fetchSolUsdPrice } from './pump-client.js';
 import { fetchGitHubUserById } from './github-client.js';
 import { fetchXProfile } from './x-client.js';
 import { formatGitHubClaimFeed, formatCreatorClaimFeed, formatGraduationFeed } from './formatters.js';
@@ -216,15 +216,23 @@ async function main(): Promise<void> {
                         fetchSolUsdPrice(),
                     ]);
 
-                    const [creator, holders, trades] = await Promise.all([
+                    const [creator, holders, trades, devWallet] = await Promise.all([
                         token?.creator ? fetchCreatorProfile(token.creator) : Promise.resolve(null),
-                        fetchTokenHolders(event.mintAddress),
+                        fetchTopHolders(event.mintAddress),
                         fetchTokenTrades(event.mintAddress),
+                        token?.creator ? fetchDevWalletInfo(token.creator, event.mintAddress, config.solanaRpcUrl) : Promise.resolve(null),
                     ]);
+
+                    // Fetch X profile if token has a Twitter link
+                    let xProfile = null;
+                    if (token?.twitter) {
+                        const handle = token.twitter.replace(/.*twitter\.com\/|.*x\.com\//, '').replace(/\/+$/, '');
+                        if (handle) xProfile = await fetchXProfile(handle);
+                    }
 
                     const { imageUrl, caption } = formatGraduationFeed(
                         event, token, creator, solUsdPrice,
-                        { holders, trades },
+                        { holders, trades, devWallet, xProfile },
                     );
 
                     if (imageUrl) {
