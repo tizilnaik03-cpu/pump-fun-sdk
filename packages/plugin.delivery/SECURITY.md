@@ -88,3 +88,4 @@ If you discover a security issue, please report it responsibly:
 2. Email the maintainer or open a private security advisory on GitHub
 3. Include steps to reproduce the vulnerability
 4. Allow reasonable time for a fix before disclosure
+
