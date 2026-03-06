@@ -48,8 +48,9 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
             ? `  💹 $${formatCompact(tokenInfo.usdMarketCap)}`
             : tokenInfo.marketCapSol > 0 ? `  💹 ${tokenInfo.marketCapSol.toFixed(1)} SOL` : '';
         L.push(`🐙${ticker} — ${pfLink}${mcStr}`);
+        L.push(`  ↳ GitHub dev claimed PumpFun social fees`);
     } else {
-        L.push(`🐙 <b>GitHub Dev Claimed Fees</b>`);
+        L.push(`🐙 <b>GitHub dev claimed PumpFun social fees</b>`);
     }
 
     // ━━ INFLUENCER BADGE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
