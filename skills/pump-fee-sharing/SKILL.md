@@ -109,3 +109,4 @@ Trading fees ──► AMM Creator Vault (PumpAMM)
 - Two separate creator vaults exist with different PDA seeds (hyphen vs underscore)
 - `updateFeeShares` will fail on-chain if `adminRevoked === true`
 - Basis points use integer arithmetic — fractional bps are not possible
+
