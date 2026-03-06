@@ -68,3 +68,4 @@ minSolReceived = solAmount - (solAmount × slippage × 10 / 1000)
 - `BONDING_CURVE_NEW_SIZE = 151` — accounts may need extension before certain operations
 - `BondingCurve.complete === true` means the token has graduated to AMM — bonding curve operations will fail
 - The `createInstruction` (v1) is deprecated in favor of `createV2Instruction` (Token-2022)
+
