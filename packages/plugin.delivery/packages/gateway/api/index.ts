@@ -6,3 +6,4 @@ export default async (req: VercelRequest, response: VercelResponse) => {
   });
   return 'hello';
 };
+
