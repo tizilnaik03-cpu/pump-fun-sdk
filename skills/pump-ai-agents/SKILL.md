@@ -97,3 +97,4 @@ Configure AI agents (GitHub Copilot, Claude, Gemini) to work effectively with th
 - Missing skills from `skills.json` means agents won't discover them
 - Terminal management rules are critical in Codespaces — stale terminals block operations
 - MCP server must be registered in the agent's tool configuration
+
