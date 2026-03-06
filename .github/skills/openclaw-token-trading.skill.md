@@ -201,3 +201,4 @@ if (bondingCurve.virtualTokenReserves.eq(new BN(0))) {
 - Setting slippage to 0 — transactions will fail on any price movement
 - Passing token amount where SOL amount is expected, or vice versa
 - Not accounting for fees in quote calculations — net received differs from gross
+
