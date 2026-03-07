@@ -23,23 +23,6 @@ The SDK never sends transactions itself. It returns `TransactionInstruction[]` t
 
 ---
 
-## ✨ Features
-
-- **Offline Instruction Building** — Pure functions that return `TransactionInstruction[]` without requiring an RPC connection
-- **Bonding Curve Math** — Buy/sell quoting, market cap calculation, graduation progress tracking
-- **AMM Pool Trading** — Buy, sell, deposit, and withdraw on graduated PumpAMM pools
-- **Tiered Fee System** — Dynamic protocol and creator fees based on market cap thresholds
-- **Creator Fee Sharing** — Split creator fees among up to 10 shareholders with basis-point precision
-- **Volume Rewards** — Track trading volume and claim $PUMP token incentives
-- **Cashback & Mayhem Mode** — Special trading modes with fee rebates and randomized parameters
-- **Social Fee PDAs** — Referral fee accounts linked to social identities (GitHub, X)
-- **Event Decoding** — Decode all on-chain events from Pump, PumpAMM, and PumpFees programs
-- **Analytics** — Price impact, token pricing, and bonding curve summary calculations
-- **Dual Build** — Ships both CommonJS and ESM with full TypeScript declarations
-- **Rust Vanity Generator** — Multi-threaded address generator at 100K+ keys/sec
-- **TypeScript Vanity Generator** — Educational reference implementation
-
----
 
 ## 📋 Table of Contents
 
