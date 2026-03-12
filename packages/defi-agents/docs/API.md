@@ -319,7 +319,7 @@ MIT License - See [LICENSE](../LICENSE) for details.
 "systemRole": "string"
 },
 "schemaVersion": 1,
-"createAt": "ISO date string"
+"createdAt": "ISO date string"
 }
 ]
 }
@@ -356,7 +356,7 @@ curl https://nirholas.github.io/AI-Agents-Library/defi-yield-optimizer.json
   "config": {
     "systemRole": "You are a DeFi yield optimization specialist..."
   },
-  "createAt": "2024-01-15",
+  "createdAt": "2024-01-15",
   "identifier": "defi-yield-optimizer",
   "meta": {
     "title": "DeFi Yield Optimizer",
@@ -514,7 +514,7 @@ async function getMarketplaceStats() {
 
   // Sort agents by creation date
   stats.recentAgents = data.agents
-    .sort((a, b) => new Date(b.createAt) - new Date(a.createAt))
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 10);
 
   stats.authors = stats.authors.size;
@@ -544,7 +544,7 @@ interface Agent {
   config: {
     systemRole: string; // Full system prompt
   };
-  createAt: string; // ISO date
+  createdAt: string; // ISO date
 }
 ```
 

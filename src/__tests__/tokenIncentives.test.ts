@@ -1,4 +1,3 @@
-import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 
 import { totalUnclaimedTokens, currentDayTokens } from "../tokenIncentives";

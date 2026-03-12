@@ -23,7 +23,11 @@ export {
     CREATE_V2_DISCRIMINATOR,
     CREATE_DISCRIMINATOR,
     COMPLETE_EVENT_DISCRIMINATOR,
+    COMPLETE_AMM_MIGRATION_DISCRIMINATOR,
     TRADE_EVENT_DISCRIMINATOR,
+    DISTRIBUTE_FEES_EVENT_DISCRIMINATOR,
+    DEFAULT_TOKEN_TOTAL_SUPPLY,
+    DEFAULT_GRADUATION_SOL_THRESHOLD,
 } from './programs.js';
 
 export {
@@ -32,3 +36,8 @@ export {
     RpcFallback,
     type RpcOptions,
 } from './rpc.js';
+
+export {
+    decodePumpLogs,
+    type DecodedPumpEvent,
+} from './decoders.js';

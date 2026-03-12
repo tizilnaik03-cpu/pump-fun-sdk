@@ -30,24 +30,30 @@ export const MONITORED_PROGRAM_IDS = [
   PUMP_FEE_PROGRAM_ID,
 ] as const;
 
-// ── Instruction Discriminators ────────────────────────────────────────
+// ── Instruction Discriminators (hex strings, first 8 bytes) ───────────
 
 /** create_v2 instruction on Pump program */
-export const CREATE_V2_DISCRIMINATOR = Buffer.from([
-  0x19, 0xe0, 0x63, 0x50, 0x0d, 0x7a, 0xd8, 0x33,
-]);
+export const CREATE_V2_DISCRIMINATOR = 'd6904cec5f8b31b4';
 
 /** create (v1, deprecated) instruction on Pump program */
-export const CREATE_DISCRIMINATOR = Buffer.from([
-  0x18, 0x1e, 0xc8, 0x28, 0x05, 0x1c, 0x07, 0x77,
-]);
+export const CREATE_DISCRIMINATOR = '181ec828051c0777';
 
-/** CompleteEvent discriminator */
-export const COMPLETE_EVENT_DISCRIMINATOR = Buffer.from([
-  0xe9, 0x17, 0x0d, 0x1e, 0x0e, 0x10, 0x6c, 0x28,
-]);
+// ── Event Discriminators (hex strings, first 8 bytes) ─────────────────
 
-/** TradeEvent discriminator */
-export const TRADE_EVENT_DISCRIMINATOR = Buffer.from([
-  0xe4, 0x52, 0xf2, 0xd2, 0xb2, 0x32, 0xd1, 0x09,
-]);
+/** CompleteEvent — bonding curve graduation */
+export const COMPLETE_EVENT_DISCRIMINATOR = '5f72619cd42e9808';
+
+/** CompletePumpAmmMigrationEvent — AMM pool creation after graduation */
+export const COMPLETE_AMM_MIGRATION_DISCRIMINATOR = 'bde95db95c94ea94';
+
+/** TradeEvent — buy/sell on bonding curve */
+export const TRADE_EVENT_DISCRIMINATOR = 'bddb7fd34ee661ee';
+
+/** DistributeCreatorFeesEvent — fee distribution to shareholders */
+export const DISTRIBUTE_FEES_EVENT_DISCRIMINATOR = 'a537817004b3ca28';
+
+/** Default token total supply (1B tokens with 6 decimals) */
+export const DEFAULT_TOKEN_TOTAL_SUPPLY = 1_000_000_000_000_000;
+
+/** Approximate SOL threshold for bonding curve graduation (~85 SOL) */
+export const DEFAULT_GRADUATION_SOL_THRESHOLD = 85;

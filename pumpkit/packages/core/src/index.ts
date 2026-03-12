@@ -22,14 +22,17 @@ export type {
     WhaleTradeEventData, CTOEventData, FeeDistEventData,
 } from './formatter/index.js';
 
-// Solana — program IDs, RPC fallback, SDK bridge
+// Solana — program IDs, RPC fallback, SDK bridge, decoders
 export {
     PUMP_PROGRAM_ID, PUMP_AMM_PROGRAM_ID, PUMP_FEE_PROGRAM_ID,
     PUMPFUN_FEE_ACCOUNT, PUMPFUN_MIGRATION_AUTHORITY, WSOL_MINT,
     MONITORED_PROGRAM_IDS,
     CREATE_V2_DISCRIMINATOR, CREATE_DISCRIMINATOR,
-    COMPLETE_EVENT_DISCRIMINATOR, TRADE_EVENT_DISCRIMINATOR,
+    COMPLETE_EVENT_DISCRIMINATOR, COMPLETE_AMM_MIGRATION_DISCRIMINATOR,
+    TRADE_EVENT_DISCRIMINATOR, DISTRIBUTE_FEES_EVENT_DISCRIMINATOR,
+    DEFAULT_TOKEN_TOTAL_SUPPLY, DEFAULT_GRADUATION_SOL_THRESHOLD,
 } from './solana/programs.js';
+export { decodePumpLogs, type DecodedPumpEvent } from './solana/decoders.js';
 export {
     createRpcConnection, deriveWsUrl, RpcFallback, type RpcOptions,
 } from './solana/rpc.js';
@@ -45,6 +48,14 @@ export type {
     WhaleTradeEvent, CTOEvent, FeeDistEvent,
     PumpEventUnion, PumpEventType,
 } from './types/events.js';
+
+// Instruction discriminator types
+export type {
+    ClaimType, InstructionDef, CreatorChangeType, CreatorChangeInstructionDef,
+} from './types/programs.js';
+export {
+    CLAIM_INSTRUCTIONS, CTO_INSTRUCTIONS, CLAIM_EVENT_DISCRIMINATORS,
+} from './types/programs.js';
 
 // Storage
 export type { Store } from './storage/types.js';
