@@ -53,3 +53,47 @@ export class GraduationMonitor extends BaseMonitor {
           if (logInfo.err) return;
           const sig = logInfo.signature;
           if (this.seen.has(sig)) return;
+          this.seen.add(sig);
+          if (this.seen.size > 10_000) {
+            const entries = [...this.seen];
+            for (let i = 0; i < 5_000; i++) this.seen.delete(entries[i]!);
+          }
+
+          // Graduation = CompleteEvent — bonding curve is marked complete
+          const isGraduation = logInfo.logs.some(
+            (l) => l.includes('CompleteEvent') || l.includes('Program log: complete'),
+          );
+          if (!isGraduation) return;
+
+          const event: GraduationEvent = {
+            signature: sig,
+            mint: '',
+            tokenName: '',
+            tokenSymbol: '',
+            poolAddress: '',
+            timestamp: Date.now(),
+          };
+          this.recordEvent();
+          this.reconnectDelay = 1000;
+          Promise.resolve(this.onGraduation(event)).catch((err) =>
+            this.log.error('onGraduation callback error: %s', err),
+          );
+        },
+        'confirmed',
+      );
+      this.log.info('WebSocket subscription active');
+    } catch (err) {
+      this.log.warn('WebSocket failed, will retry: %s', err);
+      this.scheduleReconnect();
+    }
+  }
+
+  private scheduleReconnect(): void {
+    if (!this._running) return;
+    this.log.info('Reconnecting in %dms…', this.reconnectDelay);
+    setTimeout(() => {
+      if (this._running) this.subscribe();
+    }, this.reconnectDelay);
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxReconnectDelay);
+  }
+}

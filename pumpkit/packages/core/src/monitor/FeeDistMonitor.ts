@@ -1,42 +1,38 @@
 /**
- * @pumpkit/core — Whale Trade Monitor
+ * @pumpkit/core — Fee Distribution Monitor
  *
- * Detects large trades (buys/sells) that exceed a configurable SOL threshold.
- * Listens for TradeEvent in Pump program logs.
+ * Detects fee distribution events from the PumpFees program.
+ * Listens for distribute_fees instructions and shareholder payouts.
  */
 
 import type { Connection } from '@solana/web3.js';
 import { BaseMonitor } from './BaseMonitor.js';
-import { PUMP_PROGRAM_ID } from '../solana/programs.js';
-import type { WhaleTradeEvent } from '../types/events.js';
+import { PUMP_FEE_PROGRAM_ID } from '../solana/programs.js';
+import type { FeeDistEvent } from '../types/events.js';
 
-export interface WhaleMonitorOptions {
+export interface FeeDistMonitorOptions {
   connection: Connection;
-  /** Minimum SOL amount to qualify as a whale trade (default: 10) */
-  minSol?: number;
-  onWhaleTrade: (event: WhaleTradeEvent) => void | Promise<void>;
+  onFeeDist: (event: FeeDistEvent) => void | Promise<void>;
 }
 
-export class WhaleMonitor extends BaseMonitor {
+export class FeeDistMonitor extends BaseMonitor {
   private readonly connection: Connection;
-  private readonly onWhaleTrade: WhaleMonitorOptions['onWhaleTrade'];
-  private readonly minSol: number;
+  private readonly onFeeDist: FeeDistMonitorOptions['onFeeDist'];
   private subscriptionId: number | null = null;
   private readonly seen = new Set<string>();
   private reconnectDelay = 1000;
   private readonly maxReconnectDelay = 30_000;
 
-  constructor(options: WhaleMonitorOptions) {
-    super('WhaleMonitor');
+  constructor(options: FeeDistMonitorOptions) {
+    super('FeeDistMonitor');
     this.connection = options.connection;
-    this.onWhaleTrade = options.onWhaleTrade;
-    this.minSol = options.minSol ?? 10;
+    this.onFeeDist = options.onFeeDist;
   }
 
   start(): void {
     if (this._running) return;
     this._running = true;
-    this.log.info('Starting (minSol=%d)...', this.minSol);
+    this.log.info('Starting...');
     this.subscribe();
   }
 
@@ -52,7 +48,7 @@ export class WhaleMonitor extends BaseMonitor {
   private subscribe(): void {
     try {
       this.subscriptionId = this.connection.onLogs(
-        { mentions: [PUMP_PROGRAM_ID] } as Parameters<Connection['onLogs']>[0],
+        { mentions: [PUMP_FEE_PROGRAM_ID] } as Parameters<Connection['onLogs']>[0],
         (logInfo) => {
           if (logInfo.err) return;
           const sig = logInfo.signature;
@@ -63,30 +59,26 @@ export class WhaleMonitor extends BaseMonitor {
             for (let i = 0; i < 5_000; i++) this.seen.delete(entries[i]!);
           }
 
-          // Look for trade events (Buy / Sell)
-          const isTrade = logInfo.logs.some(
-            (l) => l.includes('TradeEvent') || l.includes('Instruction: Buy') || l.includes('Instruction: Sell'),
+          // Fee distribution instructions
+          const isFeeDist = logInfo.logs.some(
+            (l) =>
+              l.includes('Instruction: DistributeFees') ||
+              l.includes('FeeDistributionEvent') ||
+              l.includes('distribute_fees'),
           );
-          if (!isTrade) return;
+          if (!isFeeDist) return;
 
-          // Without full deserialization of event data, we emit the trade
-          // and rely on the callback handler to fetch transaction details
-          // and apply the minSol threshold with actual amounts
-          const side = logInfo.logs.some((l) => l.includes('Instruction: Buy')) ? 'buy' as const : 'sell' as const;
-
-          const event: WhaleTradeEvent = {
+          const event: FeeDistEvent = {
             signature: sig,
             mint: '',
-            trader: '',
-            side,
-            solAmount: 0,
-            tokenAmount: 0,
+            totalAmount: 0,
+            shareholders: [],
             timestamp: Date.now(),
           };
           this.recordEvent();
           this.reconnectDelay = 1000;
-          Promise.resolve(this.onWhaleTrade(event)).catch((err) =>
-            this.log.error('onWhaleTrade callback error: %s', err),
+          Promise.resolve(this.onFeeDist(event)).catch((err) =>
+            this.log.error('onFeeDist callback error: %s', err),
           );
         },
         'confirmed',
