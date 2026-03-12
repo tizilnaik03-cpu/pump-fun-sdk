@@ -457,6 +457,55 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         L.push(`<code>${mint}</code>`);
     }
 
+    // ━━ TLDR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push('');
+    L.push('━━━━━━━━━━━━━━━━');
+    L.push('<b>TLDR</b>');
+    if (tokenInfo) {
+        const ticker = tokenInfo.symbol ? `<b>$${esc(tokenInfo.symbol)}</b>` : '';
+        const name = tokenInfo.name ? esc(tokenInfo.name) : '';
+        L.push(`🐙 ${ticker}${ticker && name ? ' — ' : ''}${name}`);
+        if (tokenInfo.usdMarketCap > 0) {
+            L.push(`💰 MC: $${formatCompact(tokenInfo.usdMarketCap)}`);
+        } else if (tokenInfo.marketCapSol > 0) {
+            L.push(`💰 MC: ${tokenInfo.marketCapSol.toFixed(1)} SOL`);
+        }
+        if (tokenInfo.complete) {
+            L.push('🎓 Status: Graduated (AMM)');
+        } else if (tokenInfo.curveProgress > 0) {
+            const pct = Math.round(tokenInfo.curveProgress);
+            L.push(`📈 Status: Bonding curve (${pct > 0 ? `${pct}%` : '<1%'})`);
+        }
+        if (tokenInfo.athMarketCap > 0) {
+            L.push(`🏆 ATH: $${formatCompact(tokenInfo.athMarketCap)}`);
+        }
+    }
+    L.push('');
+    if (githubUser) {
+        const nameTag = githubUser.name ? ` (${esc(githubUser.name)})` : '';
+        L.push(`👨‍💻 Linked Dev`);
+        L.push(`${esc(githubUser.login)}${nameTag}`);
+        if (githubUser.publicRepos > 0) L.push(`📦 Repos: ${githubUser.publicRepos}`);
+        if (githubUser.followers > 0) L.push(`👁 Followers: ${githubUser.followers}`);
+        if (githubUser.createdAt) L.push(`📅 Account age: ${timeAgo(new Date(githubUser.createdAt).getTime() / 1000)}`);
+        L.push('');
+    }
+    if (ctx.repoInfo) {
+        L.push(`📂 GitHub Linked`);
+        L.push(`${esc(ctx.repoInfo.fullName)}`);
+    } else if (tokenInfo?.githubUrls?.length) {
+        const repoUrl = tokenInfo.githubUrls[0]!;
+        const repoPath = repoUrl.replace(/^https?:\/\/github\.com\//, '').replace(/\/+$/, '');
+        const isRepoUrl = repoPath.includes('/');
+        L.push(`📂 ${isRepoUrl ? 'Repo Linked' : 'GitHub Linked'}`);
+        L.push(`${esc(repoPath)}`);
+        if (!isRepoUrl) L.push(`<i>Profile linked — no specific repo</i>`);
+    }
+    L.push('');
+    if (mint) {
+        L.push(`CA: <code>${mint}</code>`);
+    }
+
     // Token image takes priority; fall back to GitHub avatar
     const imageUrl = tokenInfo?.imageUri || githubUser?.avatarUrl || null;
     return { imageUrl, caption: L.join('\n') };
