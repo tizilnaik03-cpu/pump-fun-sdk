@@ -235,6 +235,25 @@ export function isFirstClaimByGithubUser(githubUserId: string): boolean {
     return true;
 }
 
+/**
+ * Check if this GitHub user has already claimed, without marking them.
+ * Use markGithubUserClaimed() after a successful post.
+ */
+export function hasGithubUserClaimed(githubUserId: string): boolean {
+    return githubUserFirstClaim.has(githubUserId);
+}
+
+/** Mark a GitHub user as having claimed. Call after successful channel post. */
+export function markGithubUserClaimed(githubUserId: string): void {
+    if (githubUserFirstClaim.has(githubUserId)) return;
+    githubUserFirstClaim.add(githubUserId);
+    scheduleSave();
+    if (githubUserFirstClaim.size > MAX_ENTRIES) {
+        const first = githubUserFirstClaim.values().next().value;
+        if (first) githubUserFirstClaim.delete(first);
+    }
+}
+
 /** Total unique wallet+token pairs tracked. */
 export function getTrackedCount(): number {
     return claimHistory.size;

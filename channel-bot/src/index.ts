@@ -15,7 +15,7 @@ import { Bot, type BotError } from 'grammy';
 import { loadConfig } from './config.js';
 import { ClaimMonitor } from './claim-monitor.js';
 import { EventMonitor } from './event-monitor.js';
-import { isFirstClaimByGithubUser, loadPersistedClaims } from './claim-tracker.js';
+import { hasGithubUserClaimed, markGithubUserClaimed, loadPersistedClaims } from './claim-tracker.js';
 import { fetchTokenInfo, fetchTopHolders, fetchTokenTrades, fetchDevWalletInfo, fetchSolUsdPrice, fetchPoolLiquidity, fetchBundleInfo, fetchCreatorProfile } from './pump-client.js';
 import { fetchGitHubUserById } from './github-client.js';
 import { fetchXProfile } from './x-client.js';
@@ -71,7 +71,7 @@ async function main(): Promise<void> {
         throw new Error('Unreachable');
     }
 
-    /** Send a message to the channel. */
+    /** Send a message to the channel. Throws on failure. */
     async function postToChannel(message: string): Promise<void> {
         try {
             await withRetry(() => bot.api.sendMessage(config.channelId, message, {
@@ -79,7 +79,8 @@ async function main(): Promise<void> {
                 link_preview_options: { is_disabled: true },
             }));
         } catch (err) {
-            log.error('Failed to post to channel %s:', config.channelId, err);
+            log.error('Failed to post to channel %s: %s', config.channelId, err);
+            throw err;
         }
     }
 
@@ -120,7 +121,7 @@ async function main(): Promise<void> {
         if (event.claimType === 'claim_social_fee_pda' && event.socialPlatform === 2 && event.githubUserId) {
             pipeline.socialClaims++;
 
-            if (!isFirstClaimByGithubUser(event.githubUserId)) return;
+            if (hasGithubUserClaimed(event.githubUserId)) return;
             pipeline.firstClaim++;
 
             const mint = event.tokenMint?.trim() || '';
@@ -133,8 +134,8 @@ async function main(): Promise<void> {
                 ? await fetchXProfile(githubUser.twitterUsername)
                 : null;
 
-            log.info('📤 GitHub social fee claim by %s (%s) — %.4f SOL',
-                event.githubUserId, githubUser?.login ?? '?', event.amountSol);
+            log.info('📤 GitHub social fee claim by %s (%s) — %s SOL',
+                event.githubUserId, githubUser?.login ?? '?', event.amountSol.toFixed(4));
 
             const ctx: ClaimFeedContext = {
                 event,
@@ -145,14 +146,20 @@ async function main(): Promise<void> {
             };
 
             const { imageUrl, caption } = formatGitHubClaimFeed(ctx);
-            if (imageUrl) {
-                await postPhotoToChannel(imageUrl, caption);
-            } else {
-                await postToChannel(caption);
+            try {
+                if (imageUrl) {
+                    await postPhotoToChannel(imageUrl, caption);
+                } else {
+                    await postToChannel(caption);
+                }
+                markGithubUserClaimed(event.githubUserId);
+                pipeline.posted++;
+                log.info('✅ Posted GitHub claim by %s (%s) to %s',
+                    event.githubUserId, githubUser?.login ?? '?', config.channelId);
+            } catch (postErr) {
+                log.error('Failed to post claim by %s — will retry on next claim event: %s',
+                    event.githubUserId, postErr);
             }
-            pipeline.posted++;
-            log.info('✅ Posted GitHub claim by %s (%s) to %s',
-                event.githubUserId, githubUser?.login ?? '?', config.channelId);
         }
       } catch (err) {
         log.error('Claim handler error: %s', err);
