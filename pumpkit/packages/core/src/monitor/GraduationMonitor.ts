@@ -5,7 +5,7 @@
  * Listens for CompleteEvent discriminator in Pump program logs.
  */
 
-import type { Connection } from '@solana/web3.js';
+import { PublicKey, type Connection } from '@solana/web3.js';
 import { BaseMonitor } from './BaseMonitor.js';
 import { PUMP_PROGRAM_ID } from '../solana/programs.js';
 import type { GraduationEvent } from '../types/events.js';
@@ -48,7 +48,7 @@ export class GraduationMonitor extends BaseMonitor {
   private subscribe(): void {
     try {
       this.subscriptionId = this.connection.onLogs(
-        { mentions: [PUMP_PROGRAM_ID] } as Parameters<Connection['onLogs']>[0],
+        new PublicKey(PUMP_PROGRAM_ID),
         (logInfo) => {
           if (logInfo.err) return;
           const sig = logInfo.signature;

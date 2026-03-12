@@ -5,7 +5,7 @@
  * Listens for distribute_fees instructions and shareholder payouts.
  */
 
-import type { Connection } from '@solana/web3.js';
+import { PublicKey, type Connection } from '@solana/web3.js';
 import { BaseMonitor } from './BaseMonitor.js';
 import { PUMP_FEE_PROGRAM_ID } from '../solana/programs.js';
 import type { FeeDistEvent } from '../types/events.js';
@@ -48,7 +48,7 @@ export class FeeDistMonitor extends BaseMonitor {
   private subscribe(): void {
     try {
       this.subscriptionId = this.connection.onLogs(
-        { mentions: [PUMP_FEE_PROGRAM_ID] } as Parameters<Connection['onLogs']>[0],
+        new PublicKey(PUMP_FEE_PROGRAM_ID),
         (logInfo) => {
           if (logInfo.err) return;
           const sig = logInfo.signature;

@@ -6,7 +6,7 @@
  * Extracted from channel-bot's claim-monitor and telegram-bot's monitor.
  */
 
-import type { Connection } from '@solana/web3.js';
+import { PublicKey, type Connection } from '@solana/web3.js';
 import { BaseMonitor } from './BaseMonitor.js';
 import { PUMP_FEE_PROGRAM_ID } from '../solana/programs.js';
 import type { ClaimEvent } from '../types/events.js';
@@ -58,7 +58,7 @@ export class ClaimMonitor extends BaseMonitor {
   private subscribeWebSocket(): void {
     try {
       this.subscriptionId = this.connection.onLogs(
-        { mentions: [PUMP_FEE_PROGRAM_ID] } as Parameters<Connection['onLogs']>[0],
+        new PublicKey(PUMP_FEE_PROGRAM_ID),
         (logInfo) => {
           if (logInfo.err) return;
           const sig = logInfo.signature;

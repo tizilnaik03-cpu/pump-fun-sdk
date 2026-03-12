@@ -48,7 +48,7 @@ export type {
 
 // Storage
 export type { Store } from './storage/types.js';
-export { FileStore } from './storage/FileStore.js';
+export { FileStore, type FileStoreOptions } from './storage/FileStore.js';
 export { SqliteStore } from './storage/SqliteStore.js';
 
 // Monitors
