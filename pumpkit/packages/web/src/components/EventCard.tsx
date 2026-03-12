@@ -111,3 +111,29 @@ function EventContent({ event }: { event: FeedEvent }) {
       return null;
   }
 }
+
+export type { FeedEvent };
+
+export function EventCard({ event }: { event: FeedEvent }) {
+  const { emoji, bg } = avatarConfig[event.type] ?? { emoji: '📋', bg: 'bg-tg-input' };
+  const animClass = event.isNew ? 'animate-[slideIn_0.3s_ease-out]' : '';
+
+  return (
+    <div className={`flex gap-2 items-start ${animClass}`}>
+      {/* Channel avatar */}
+      <div
+        className={`w-10 h-10 rounded-full ${bg} flex items-center justify-center text-lg shrink-0`}
+      >
+        {emoji}
+      </div>
+      {/* Message bubble */}
+      <div className="bg-tg-bubble-in rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
+        <p className="text-tg-blue text-sm font-medium mb-1">PumpKit Live</p>
+        <EventContent event={event} />
+        <span className="text-[11px] text-zinc-500 block text-right mt-1">
+          {formatTime(event.timestamp)}
+        </span>
+      </div>
+    </div>
+  );
+}
