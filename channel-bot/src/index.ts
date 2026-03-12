@@ -121,7 +121,16 @@ async function main(): Promise<void> {
         if (event.claimType === 'claim_social_fee_pda' && event.socialPlatform === 2 && event.githubUserId) {
             pipeline.socialClaims++;
 
-            const isFirstClaim = !hasGithubUserClaimed(event.githubUserId);
+            // Use on-chain lifetime data as ground truth: if lifetime lamports
+            // significantly exceed this claim, the user has claimed before —
+            // regardless of what our local persistence says (it resets on redeploy).
+            let isFirstClaim = !hasGithubUserClaimed(event.githubUserId);
+            if (isFirstClaim && event.lifetimeClaimedLamports != null && event.lifetimeClaimedLamports > event.amountLamports * 1.01) {
+                // On-chain lifetime is larger than this single claim → not actually first
+                isFirstClaim = false;
+                // Backfill our local tracker so future claims aren't misclassified
+                markGithubUserClaimed(event.githubUserId);
+            }
             if (isFirstClaim) pipeline.firstClaim++;
             else pipeline.repeatClaim++;
 
