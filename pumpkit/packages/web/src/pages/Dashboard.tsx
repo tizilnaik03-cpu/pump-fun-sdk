@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EventCard } from '../components/EventCard';
+import { StatsBar } from '../components/StatsBar';
 import type { FeedEvent } from '../components/EventCard';
 import type { EventType } from '../types';
 
@@ -129,6 +130,9 @@ export function Dashboard() {
       {/* Event feed */}
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col gap-2 p-4 max-w-3xl mx-auto">
+          {/* Stats bar */}
+          <StatsBar events={events} connected={true} />
+
           {/* Date separator */}
           <div className="text-center py-2">
             <span className="bg-tg-input/80 text-zinc-400 text-xs px-3 py-1 rounded-full">
