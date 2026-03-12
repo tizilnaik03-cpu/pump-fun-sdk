@@ -1,8 +1,18 @@
-# Pump Fun SDK 
+# PumpOS — Web Desktop
 
-> A web-based operating system built entirely with HTML, CSS, and JavaScript, running in your browser.
+> **Purpose:** Full web-based operating system with app store, virtual file system, and 30+ installable DeFi apps.
+
+A web-based operating system built entirely with HTML, CSS, and JavaScript, running in your browser.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](license.md)
+
+This is one of three web directories in the repository:
+
+| Directory | Purpose |
+|-----------|--------|
+| [`website/`](../website/) | SDK documentation & marketing site |
+| [`pumpfun-site/`](../pumpfun-site/) | pump.fun UI design template (mock data, no blockchain) |
+| **`site/`** (this) | PumpOS — full web desktop OS with app store |
 
 ## Features
 

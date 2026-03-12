@@ -1,6 +1,14 @@
 # Pump SDK Website
 
-PumpFun-styled documentation and information site for the Pump SDK.
+> **Purpose:** SDK documentation and marketing site — searchable docs, architecture diagrams, tool listings.
+
+PumpFun-styled documentation and information site for the Pump SDK. This is one of three web directories in the repository:
+
+| Directory | Purpose |
+|-----------|--------|
+| **`website/`** (this) | SDK documentation & marketing site |
+| [`pumpfun-site/`](../pumpfun-site/) | pump.fun UI design template (mock data, no blockchain) |
+| [`site/`](../site/) | PumpOS — full web desktop OS with app store |
 
 ## Structure
 

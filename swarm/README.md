@@ -145,3 +145,169 @@ cd ../websocket-server && npm run build
 | `alert:cto` | telegram-bot | CTO (Creator Took Over) |
 | `alert:whale` | Multiple | Whale movement detected |
 | `system:metric` | Orchestrator | Internal metrics snapshot |
+
+## Project Structure
+
+```
+swarm/
+├── package.json          # Dependencies & scripts
+├── tsconfig.json         # TypeScript config
+├── README.md             # This file
+└── src/
+    ├── index.ts          # Entry point — initializes event bus, bot manager, API
+    ├── config.ts         # Environment config loader (SwarmConfig)
+    ├── logger.ts         # Leveled logger with timestamps
+    ├── types.ts          # All TypeScript types (BotId, SwarmEvent, DashboardState, etc.)
+    ├── event-bus.ts      # In-process pub/sub with circular buffer
+    ├── bot-manager.ts    # Bot lifecycle — spawn, stop, restart, health check
+    ├── api.ts            # REST API + WebSocket server + embedded dashboard
+    └── dashboard.ts      # HTML/CSS/JS SPA renderer (glassmorphism theme)
+```
+
+## Type System
+
+The swarm uses a strongly-typed event system. Key types:
+
+```typescript
+// Bot identity — only known bots are allowed
+type BotId = 'telegram-bot' | 'outsiders-bot' | 'channel-bot' | 'websocket-server' | 'swarm-bot';
+
+// Event envelope — every event has a type, source, and timestamp
+interface SwarmEvent<T = unknown> {
+  id: string;
+  type: SwarmEventType;
+  source: BotId | 'orchestrator';
+  timestamp: string;
+  data: T;
+}
+
+// Dashboard state — full snapshot sent on WS connect
+interface DashboardState {
+  bots: Record<BotId, BotHealth>;
+  events: SwarmEvent[];
+  metrics: SwarmMetrics;
+  uptime: number;
+  startedAt: string;
+}
+```
+
+See `src/types.ts` for the complete type definitions including `BotHealth`, `BotMetrics`, `SwarmMetrics`, trade/fee/call event payloads, and API response types.
+
+## Event Bus Details
+
+The cross-bot event bus is the heart of the swarm:
+
+```typescript
+// Subscribe to specific event types
+eventBus.on('token:launch', (event) => {
+  console.log(`New token: ${event.data.name} (${event.data.symbol})`);
+});
+
+// Subscribe to all events
+eventBus.on('*', (event) => {
+  metrics.totalEvents++;
+});
+
+// Emit from any bot
+eventBus.emit({
+  type: 'trade:whale',
+  source: 'channel-bot',
+  data: { mint, trader, solAmount: 50, isWhale: true },
+});
+```
+
+**Buffer management:**
+- Events stored in a fixed-size circular buffer (default: 5,000)
+- Oldest events are evicted when buffer is full
+- `eventsPerMinute` calculated via sliding window
+- Buffer size configurable via `SWARM_MAX_EVENTS`
+
+**Upgrade path:** The event bus interface is designed to swap in Redis pub/sub for multi-instance deployments without changing event consumers.
+
+## Deployment
+
+### Docker
+
+```bash
+# Build from repository root
+docker build -f swarm/Dockerfile -t pump-swarm .
+
+# Run
+docker run -d \
+  --name pump-swarm \
+  -p 4000:4000 \
+  --env-file swarm/.env \
+  pump-swarm
+```
+
+### Railway
+
+1. Connect your GitHub repository
+2. Set root directory to `swarm/`
+3. Add environment variables from `.env.example`
+4. Deploy — Railway auto-detects the `start` script
+
+### Production Checklist
+
+- [ ] Set `SWARM_API_KEY` to prevent unauthorized bot control
+- [ ] Set `SWARM_CORS_ORIGINS` to your dashboard domain (not `*`)
+- [ ] Set `SWARM_LOG_LEVEL` to `warn` for reduced log volume
+- [ ] Build all bots before starting the swarm
+- [ ] Use `SWARM_AUTO_START` for bots that should launch on startup
+- [ ] Mount persistent storage if you need event history across restarts
+- [ ] Place behind a reverse proxy (nginx/Caddy) with TLS for public access
+
+## Monitoring
+
+### Health Check
+
+```bash
+curl http://localhost:4000/health
+# { "status": "ok", "uptime": 3600, "activeBots": 3, "totalEvents": 12345 }
+```
+
+### Metrics
+
+```bash
+curl http://localhost:4000/api/v1/metrics
+# {
+#   "totalEvents": 12345,
+#   "eventsPerMinute": 42,
+#   "totalTokenLaunches": 890,
+#   "totalTrades": 5432,
+#   "totalFeeClaims": 234,
+#   "totalCalls": 567,
+#   "totalErrors": 3,
+#   "activeBots": 3,
+#   "peakMemory": 134217728
+# }
+```
+
+### Bot Logs
+
+```bash
+# View last 100 log lines for a specific bot
+curl http://localhost:4000/api/v1/bots/telegram-bot/logs
+```
+
+## Dependencies
+
+| Package | Purpose |
+|---------|---------|
+| `dotenv` | Environment variable loading |
+| `ws` | WebSocket server for dashboard + bot control |
+
+Dev-only: `@types/node`, `@types/ws`, `tsx`, `typescript`
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Development with tsx hot-reload |
+| `npm run build` | Compile TypeScript to `dist/` |
+| `npm start` | Run production build |
+| `npm run typecheck` | Type-check without emitting |
+
+## License
+
+MIT — Part of [pump-fun-sdk](https://github.com/nirholas/pump-fun-sdk)

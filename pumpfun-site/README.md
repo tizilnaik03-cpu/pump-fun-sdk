@@ -1,6 +1,16 @@
 # PumpFun Site — Design Template
 
+> **Purpose:** Static UI design template of pump.fun — mock data only, no blockchain integration.
+
 Static design template clone of pump.fun for the Pump SDK project. **No blockchain functionality** — pure HTML/CSS/JS with mock data.
+
+This is one of three web directories in the repository:
+
+| Directory | Purpose |
+|-----------|--------|
+| [`website/`](../website/) | SDK documentation & marketing site |
+| **`pumpfun-site/`** (this) | pump.fun UI design template (mock data, no blockchain) |
+| [`site/`](../site/) | PumpOS — full web desktop OS with app store |
 
 ## Pages
 
