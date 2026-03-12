@@ -8,6 +8,7 @@ export { log, setLogLevel, getLogLevel, type LogLevel } from './logger.js';
 export { startHealthServer, stopHealthServer, type HealthStats } from './health.js';
 export { requireEnv, optionalEnv, parseListEnv, parseIntEnv } from './config.js';
 export { onShutdown, installShutdownHandlers } from './shutdown.js';
+export { createBot, broadcast, type BotOptions, type CommandHandler } from './bot/index.js';
 export type { BaseBotConfig, ShutdownHandler, PumpEvent, TokenInfo } from './types.js';
 
 // Formatter — link helpers + notification templates

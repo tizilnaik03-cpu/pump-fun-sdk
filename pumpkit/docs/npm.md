@@ -1,6 +1,6 @@
 # npm Packages
 
-> 🚧 **Coming Soon** — PumpKit packages will be published to npm under the `@pumpkit` scope.
+PumpKit packages are available under the `@pumpkit` scope. Currently distributed via the monorepo — install from source using workspace references.
 
 ## Packages
 
