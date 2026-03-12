@@ -70,14 +70,6 @@ screenshots/
 # Sectbot
 *sectbot*
 
-# Swarm / swarm-bot / pumpswarms
-swarm/
-swarm-bot/
-pumpswarms/
-pump-swarms/
-pump_swarms/
-*pumpswarm*
-
 # Workspace prompts (local agent prompts, not for version control)
 prompts/
 
@@ -87,5 +79,3 @@ site/
 # Security audits (kept local)
 security/
 rick.png
-/swarm-bot 
-/swarm
