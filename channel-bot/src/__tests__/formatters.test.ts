@@ -47,18 +47,13 @@ describe('formatGitHubClaimFeed', () => {
         expect(caption).toContain('FIRST CREATOR FEE CLAIM');
     });
 
-    it('shows FAKE CLAIM badge for fake claims', () => {
-        const ctx = makeClaimFeedContext({ isFake: true, isFirstClaim: false });
+    it('always shows FIRST CREATOR FEE CLAIM badge', () => {
+        const ctx = makeClaimFeedContext();
         const { caption } = formatGitHubClaimFeed(ctx);
 
-        expect(caption).toContain('FAKE CLAIM');
-    });
-
-    it('shows REPEAT CLAIM badge with number', () => {
-        const ctx = makeClaimFeedContext({ isFirstClaim: false, isFake: false, claimNumber: 5 });
-        const { caption } = formatGitHubClaimFeed(ctx);
-
-        expect(caption).toContain('REPEAT CLAIM #5');
+        expect(caption).toContain('FIRST CREATOR FEE CLAIM');
+        expect(caption).not.toContain('FAKE CLAIM');
+        expect(caption).not.toContain('REPEAT CLAIM');
     });
 
     it('includes token info section', () => {

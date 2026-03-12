@@ -154,8 +154,17 @@ async function main(): Promise<void> {
                 // Backfill our local tracker so future claims aren't misclassified
                 markGithubUserClaimed(event.githubUserId, mint);
             }
+            const isFake = event.isFake === true;
             if (isFirstClaim) pipeline.firstClaim++;
             else pipeline.repeatClaim++;
+
+            // Only post FIRST claims — skip fake and repeat claims entirely
+            if (isFake || !isFirstClaim) {
+                log.debug('Skipping %s claim by %s on %s',
+                    isFake ? 'fake' : 'repeat', event.githubUserId, mint.slice(0, 8));
+                return;
+            }
+
             const [githubUser, tokenInfo, solUsdPrice] = await Promise.all([
                 fetchGitHubUserById(event.githubUserId),
                 mint ? fetchTokenInfo(mint) : Promise.resolve(null),
@@ -183,14 +192,8 @@ async function main(): Promise<void> {
                 ? await fetchDevWalletInfo(tokenInfo.creator, mint, config.solanaRpcUrl)
                 : null;
 
-            const isFake = event.isFake === true;
-            let claimNumber = isFake ? 0 : incrementGithubClaimCount(event.githubUserId, mint);
-            // If on-chain says not first claim but local counter is 1 (post-redeploy),
-            // use -1 as sentinel to display "#?" instead of a misleading "#1"
-            if (!isFirstClaim && claimNumber === 1) claimNumber = -1;
-            const emoji = isFake ? '⚠️' : isFirstClaim ? '🚨' : '📤';
-            log.info('%s %sGitHub social fee claim by %s (%s) — %s SOL',
-                emoji, isFake ? 'FAKE ' : '',
+            const claimNumber = incrementGithubClaimCount(event.githubUserId, mint);
+            log.info('🚨 GitHub social fee FIRST claim by %s (%s) — %s SOL',
                 event.githubUserId, githubUser?.login ?? '?', event.amountSol.toFixed(4));
 
             const ctx: ClaimFeedContext = {
@@ -199,8 +202,8 @@ async function main(): Promise<void> {
                 githubUser,
                 xProfile,
                 tokenInfo,
-                isFirstClaim: isFake ? false : isFirstClaim,
-                isFake,
+                isFirstClaim: true,
+                isFake: false,
                 claimNumber,
                 lifetimeClaimedSol: event.lifetimeClaimedLamports != null
                     ? event.lifetimeClaimedLamports / 1e9
@@ -223,7 +226,7 @@ async function main(): Promise<void> {
                 } else {
                     await postToChannel(caption);
                 }
-                if (!isFake && isFirstClaim) markGithubUserClaimed(event.githubUserId, mint);
+                markGithubUserClaimed(event.githubUserId, mint);
                 pipeline.posted++;
                 log.info('✅ Posted GitHub claim by %s (%s) to %s',
                     event.githubUserId, githubUser?.login ?? '?', config.channelId);

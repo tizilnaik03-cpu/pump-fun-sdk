@@ -186,57 +186,6 @@ describe('Formatters', () => {
     expect(result.caption).toContain('TST');
     expect(result.caption).toContain('Bonding curve');
   });
-
-  it('formats fake claim with warning banner', () => {
-    const ctx: import('../formatters.js').ClaimFeedContext = {
-      event: {
-        txSignature: 'sig_fake',
-        slot: 300_000_000,
-        timestamp: 1700000000,
-        claimerWallet: 'FakeWallet',
-        tokenMint: 'FakeMint',
-        amountSol: 0,
-        amountLamports: 0,
-        claimType: 'claim_social_fee_pda',
-        isCashback: false,
-        programId: '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P',
-        claimLabel: 'Claim Social Fee PDA',
-      },
-      solUsdPrice: 180,
-      githubUser: null,
-      xProfile: null,
-      isFake: true,
-    };
-
-    const result = formatters.formatGitHubClaimFeed(ctx);
-    expect(result.caption).toContain('FAKE CLAIM');
-  });
-
-  it('formats repeat claim with claim number', () => {
-    const ctx: import('../formatters.js').ClaimFeedContext = {
-      event: {
-        txSignature: 'sig_repeat',
-        slot: 300_000_000,
-        timestamp: 1700000000,
-        claimerWallet: 'RepeatWallet',
-        tokenMint: 'RepeatMint',
-        amountSol: 0.5,
-        amountLamports: 500_000_000,
-        claimType: 'claim_social_fee_pda',
-        isCashback: false,
-        programId: '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P',
-        claimLabel: 'Claim Social Fee PDA',
-      },
-      solUsdPrice: 180,
-      githubUser: null,
-      xProfile: null,
-      isFirstClaim: false,
-      claimNumber: 3,
-    };
-
-    const result = formatters.formatGitHubClaimFeed(ctx);
-    expect(result.caption).toContain('REPEAT CLAIM #3');
-  });
 });
 
 // ── RPC Fallback Tests ─────────────────────────────────────────────────────

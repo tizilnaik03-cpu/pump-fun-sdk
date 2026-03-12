@@ -71,22 +71,7 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
     const aff = ctx.affiliates;
 
     // ━━ HEADER BADGE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Determine if on-chain lifetime proves this is a repeat even if local counter is 1
-    const isOnChainRepeat = !ctx.isFirstClaim
-        && ctx.lifetimeClaimedSol != null
-        && ctx.lifetimeClaimedSol > event.amountSol * 1.01;
-    if (ctx.isFake) {
-        L.push(`⚠️⚠️⚠️ <b>FAKE CLAIM</b>`);
-        L.push(`<i>Instruction called but no fees were paid out</i>`);
-    } else if (ctx.isFirstClaim) {
-        L.push(`🚨🚨🚨 <b>FIRST CREATOR FEE CLAIM</b>`);
-    } else if (ctx.claimNumber && ctx.claimNumber > 1) {
-        L.push(`🔄 <b>REPEAT CLAIM #${ctx.claimNumber}</b>`);
-    } else if (ctx.claimNumber === -1 || isOnChainRepeat) {
-        L.push(`🔄 <b>REPEAT CLAIM</b>`);
-    } else {
-        L.push(`💸 <b>CREATOR FEE CLAIM</b>`);
-    }
+    L.push(`🚨🚨🚨 <b>FIRST CREATOR FEE CLAIM</b>`);
 
     // Influencer badge right after header
     const tier = getInfluencerTier(
@@ -167,14 +152,7 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
 
     // ━━ CLAIM STATS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     L.push(`💸 <b>Claim Stats</b>`);
-    // Only show claim # when we trust it (not reset by redeploy)
-    if (ctx.claimNumber && ctx.claimNumber > 1) {
-        L.push(`Claim #${ctx.claimNumber}`);
-    } else if (ctx.isFirstClaim) {
-        L.push(`Claim #1`);
-    } else if (ctx.claimNumber === -1) {
-        L.push(`Claim (repeat)`);
-    }
+    L.push(`Claim #1`);
     const claimSol = event.amountSol.toFixed(4);
     const claimUsd = solUsdPrice > 0 ? ` ($${(event.amountSol * solUsdPrice).toFixed(2)})` : '';
     L.push(`${claimSol} SOL${claimUsd}`);
@@ -386,9 +364,6 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         if (githubUser && githubUser.publicRepos === 0) {
             warnings.push('⚠️ 0 public repos');
         }
-        if (ctx.isFake) {
-            warnings.push('🚩 Fake claim — no fees paid out');
-        }
         if (ctx.repoInfo?.isFork) {
             warnings.push('⚠️ Claimed repo is a fork');
         }
@@ -469,6 +444,8 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         const padreUrl = `https://trade.padre.gg/rk/${encodeURIComponent(aff?.padre ?? 'nichxbt')}`;
         L.push(`💹 Trade`);
         L.push(`<a href="${axiomUrl}">Axiom</a> | <a href="${gmgnUrl}">GMGN</a> | <a href="${padreUrl}">Padre</a>`);
+        L.push('');
+        L.push(`<code>${mint}</code>`);
     }
 
     // Token image takes priority; fall back to GitHub avatar
