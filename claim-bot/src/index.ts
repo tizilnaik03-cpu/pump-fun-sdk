@@ -15,6 +15,7 @@
 import { loadConfig } from './config.js';
 import { createBot, createClaimHandler, registerStatusCommand } from './bot.js';
 import { ClaimMonitor } from './monitor.js';
+import { RpcClaimMonitor } from './rpc-monitor.js';
 import { loadTracked } from './store.js';
 import { log, setLogLevel } from './logger.js';
 
@@ -23,7 +24,6 @@ async function main(): Promise<void> {
     setLogLevel(config.logLevel);
 
     log.info('PumpFun Claim Bot starting...');
-    log.info('  Relay: %s', config.relayWsUrl);
 
     // Load persisted tracking data
     loadTracked();
@@ -34,10 +34,24 @@ async function main(): Promise<void> {
     // Wire claim handler
     const claimHandler = createClaimHandler(bot, config);
 
-    // Create claim monitor
-    const monitor = new ClaimMonitor(config, (event) => {
+    // Create claim monitor — use direct RPC if SOLANA_RPC_URL is set, otherwise relay
+    const onClaimEvent = (event: Parameters<typeof claimHandler>[0]) => {
         claimHandler(event).catch((err) => log.error('Claim handler error: %s', err));
-    });
+    };
+
+    let monitor: ClaimMonitor | RpcClaimMonitor;
+    if (config.solanaRpcUrl) {
+        log.info('Mode: Direct RPC monitoring');
+        log.info('  RPC: %s', config.solanaRpcUrl.replace(/api-key=[\w-]+/, 'api-key=***'));
+        if (config.solanaWsUrl) {
+            log.info('  WS:  %s', config.solanaWsUrl.replace(/api-key=[\w-]+/, 'api-key=***'));
+        }
+        monitor = new RpcClaimMonitor(config, onClaimEvent);
+    } else {
+        log.info('Mode: WebSocket relay');
+        log.info('  Relay: %s', config.relayWsUrl);
+        monitor = new ClaimMonitor(config, onClaimEvent);
+    }
 
     // Wire status command (needs monitor reference)
     registerStatusCommand(bot, monitor);

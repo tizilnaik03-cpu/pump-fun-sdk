@@ -113,7 +113,13 @@ export interface TrackedItem {
 export interface BotConfig {
     telegramToken: string;
     /** WebSocket relay URL (e.g. ws://localhost:3099/ws) */
-    relayWsUrl: string;
+    relayWsUrl?: string;
+    /** Solana RPC HTTP URL (for direct monitoring) */
+    solanaRpcUrl?: string;
+    /** Solana WebSocket URL (for direct monitoring) */
+    solanaWsUrl?: string;
+    /** Polling interval in seconds (default 15) */
+    pollIntervalSeconds?: number;
     logLevel: 'debug' | 'info' | 'warn' | 'error';
     twitterBearerToken?: string;
     twitterInfluencerIds: string[];

@@ -35,6 +35,7 @@ import {
 } from './store.js';
 import { log } from './logger.js';
 import type { ClaimMonitor } from './monitor.js';
+import type { RpcClaimMonitor } from './rpc-monitor.js';
 
 // ============================================================================
 // Bot Factory
@@ -230,7 +231,7 @@ async function handleList(ctx: Context): Promise<void> {
 // Status handler factory (needs monitor reference)
 // ============================================================================
 
-export function registerStatusCommand(bot: Bot, monitor: ClaimMonitor): void {
+export function registerStatusCommand(bot: Bot, monitor: ClaimMonitor | RpcClaimMonitor): void {
     bot.command('status', async (ctx) => {
         const tokens = getTrackedTokensForChat(ctx.chat!.id);
         const handles = getTrackedXHandlesForChat(ctx.chat!.id);

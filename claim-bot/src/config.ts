@@ -16,7 +16,19 @@ export function loadConfig(): BotConfig {
         );
     }
 
-    const relayWsUrl = process.env.RELAY_WS_URL || 'ws://localhost:3099/ws';
+    const relayWsUrl = process.env.RELAY_WS_URL;
+    const solanaRpcUrl = process.env.SOLANA_RPC_URL;
+    const solanaWsUrl = process.env.SOLANA_WS_URL;
+    const pollIntervalSeconds = process.env.POLL_INTERVAL_SECONDS
+        ? parseInt(process.env.POLL_INTERVAL_SECONDS, 10)
+        : 15;
+
+    if (!relayWsUrl && !solanaRpcUrl) {
+        throw new Error(
+            'Either RELAY_WS_URL or SOLANA_RPC_URL is required. ' +
+            'Set SOLANA_RPC_URL for direct RPC monitoring, or RELAY_WS_URL for relay mode.',
+        );
+    }
 
     const logLevel = (process.env.LOG_LEVEL || 'info') as BotConfig['logLevel'];
 
@@ -29,6 +41,9 @@ export function loadConfig(): BotConfig {
     return {
         logLevel,
         relayWsUrl,
+        solanaRpcUrl,
+        solanaWsUrl,
+        pollIntervalSeconds,
         telegramToken,
         twitterBearerToken,
         twitterInfluencerIds,
