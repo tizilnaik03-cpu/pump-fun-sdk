@@ -30,6 +30,12 @@ export interface ClaimFeedContext {
     affiliates?: { axiom: string; gmgn: string; padre: string };
     /** True when this GitHub user is claiming for the very first time. */
     isFirstClaim?: boolean;
+    /** True when the claim instruction was called but no event was emitted (fake/scam claim). */
+    isFake?: boolean;
+    /** Sequential claim number tracked by the bot (persisted across restarts). */
+    claimNumber?: number;
+    /** Lifetime total SOL claimed from this PDA (from on-chain event data). */
+    lifetimeClaimedSol?: number;
 }
 
 /**
@@ -65,6 +71,23 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         xProfile?.followers ?? null,
     );
     if (tier) L.push(influencerLabel(tier));
+
+    // ━━ FAKE CLAIM WARNING ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (ctx.isFake) {
+        L.push('');
+        L.push(`⚠️ <b>FAKE CLAIM</b> — instruction called but no fees were paid out`);
+    }
+
+    // ━━ CLAIM STATS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const stats: string[] = [];
+    if (ctx.claimNumber && ctx.claimNumber > 0) stats.push(`Claim #${ctx.claimNumber}`);
+    if (ctx.lifetimeClaimedSol != null && ctx.lifetimeClaimedSol > 0) {
+        const ltUsd = solUsdPrice > 0 ? ` ($${(ctx.lifetimeClaimedSol * solUsdPrice).toFixed(2)})` : '';
+        stats.push(`${ctx.lifetimeClaimedSol.toFixed(4)} SOL lifetime${ltUsd}`);
+    }
+    if (stats.length > 0) {
+        L.push(`📊 ${stats.join(' · ')}`);
+    }
 
     // ━━ AMOUNT + RECIPIENT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     L.push('');
@@ -109,6 +132,75 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         L.push(`👤 ${ghIdLink}`);
     }
 
+    // ━━ TOKEN INTEL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (tokenInfo) {
+        L.push('');
+        // Status + curve progress + age
+        const statusParts: string[] = [];
+        if (tokenInfo.complete) {
+            statusParts.push('🎓 Graduated (AMM)');
+        } else if (tokenInfo.curveProgress > 0) {
+            statusParts.push(`📈 Bonding curve (${Math.round(tokenInfo.curveProgress * 100)}%)`);
+        } else {
+            statusParts.push('📈 Bonding curve');
+        }
+        if (tokenInfo.createdTimestamp > 0) {
+            statusParts.push(`Created ${timeAgo(tokenInfo.createdTimestamp)}`);
+        }
+        if (tokenInfo.replyCount > 0) {
+            statusParts.push(`💬 ${tokenInfo.replyCount}`);
+        }
+        L.push(statusParts.join(' · '));
+
+        // Socials row
+        const socials: string[] = [];
+        if (tokenInfo.twitter) {
+            const handle = tokenInfo.twitter.replace(/.*(?:twitter|x)\.com\//, '').replace(/\/+$/, '');
+            socials.push(`<a href="${esc(tokenInfo.twitter)}">𝕏 ${esc(handle || 'Twitter')}</a>`);
+        }
+        if (tokenInfo.telegram) {
+            socials.push(`<a href="${esc(tokenInfo.telegram)}">💬 TG</a>`);
+        }
+        if (tokenInfo.website) {
+            const host = tokenInfo.website.replace(/^https?:\/\//, '').replace(/\/+$/, '').slice(0, 30);
+            socials.push(`<a href="${esc(tokenInfo.website)}">🌐 ${esc(host)}</a>`);
+        }
+        if (socials.length > 0) L.push(socials.join(' · '));
+
+        // Flags
+        const flags: string[] = [];
+        if (tokenInfo.isNsfw) flags.push('🔞 NSFW');
+        if (tokenInfo.isBanned) flags.push('🚫 BANNED');
+        if (tokenInfo.isCashbackEnabled) flags.push('💸 Cashback');
+        if (flags.length > 0) L.push(flags.join(' · '));
+    }
+
+    // ━━ TRUST SIGNALS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    {
+        const warnings: string[] = [];
+        // New GitHub account warning (< 30 days)
+        if (githubUser?.createdAt) {
+            const accountAgeDays = (Date.now() - new Date(githubUser.createdAt).getTime()) / 86_400_000;
+            if (accountAgeDays < 7) {
+                warnings.push(`⚠️ GitHub account created ${Math.floor(accountAgeDays)}d ago`);
+            } else if (accountAgeDays < 30) {
+                warnings.push(`⚠️ GitHub account created ${Math.floor(accountAgeDays)}d ago`);
+            }
+        }
+        // Zero repos
+        if (githubUser && githubUser.publicRepos === 0) {
+            warnings.push('⚠️ 0 public repos');
+        }
+        // Fake claim
+        if (ctx.isFake) {
+            warnings.push('🚩 Fake claim — no fees paid out');
+        }
+        if (warnings.length > 0) {
+            L.push('');
+            for (const w of warnings) L.push(w);
+        }
+    }
+
     // ━━ CA + TRADING LINKS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     L.push('');
     if (mint) {
@@ -120,13 +212,51 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
     } else {
         L.push(`<i>CA resolving…</i>`);
     }
-
+    // ━━ TOKEN INFO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (tokenInfo) {
+        const infoItems: string[] = [];
+        // Bonding curve progress or graduated status
+        if (tokenInfo.complete) {
+            infoItems.push('🎓 Graduated');
+        } else if (tokenInfo.curveProgress > 0) {
+            infoItems.push(`📈 ${(tokenInfo.curveProgress * 100).toFixed(0)}% bonded`);
+        }
+        // Token age
+        if (tokenInfo.createdTimestamp > 0) {
+            infoItems.push(`⏱ ${timeAgo(tokenInfo.createdTimestamp)}`);
+        }
+        // ATH market cap
+        if (tokenInfo.athMarketCap > 0) {
+            infoItems.push(`🏆 ATH $${formatCompact(tokenInfo.athMarketCap)}`);
+        }
+        if (infoItems.length > 0) {
+            L.push(`${infoItems.join(' · ')}`);
+        }
+        // Safety flags
+        const flags: string[] = [];
+        if (tokenInfo.isBanned) flags.push('🚫 Banned');
+        if (tokenInfo.isNsfw) flags.push('🔞 NSFW');
+        if (flags.length > 0) L.push(flags.join(' · '));
+        // Token socials
+        const socials: string[] = [];
+        if (tokenInfo.website) socials.push(`<a href="${esc(tokenInfo.website)}">Website</a>`);
+        if (tokenInfo.twitter) {
+            const handle = extractTwitterHandle(tokenInfo.twitter);
+            socials.push(`<a href="${esc(tokenInfo.twitter)}">${handle ? esc(handle) : '𝕏'}</a>`);
+        }
+        if (tokenInfo.telegram) socials.push(`<a href="${esc(tokenInfo.telegram)}">Telegram</a>`);
+        if (tokenInfo.githubUrls.length > 0) {
+            socials.push(`<a href="${esc(tokenInfo.githubUrls[0]!)}">GitHub</a>`);
+        }
+        if (socials.length > 0) L.push(`🔗 ${socials.join(' · ')}`);
+    }
     // ━━ FOOTER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     L.push('');
     const txLink = event.txSignature
         ? `<a href="https://solscan.io/tx/${event.txSignature}">TX</a>`
         : null;
-    L.push(`${txLink ? `🔍 ${txLink} · ` : ''}🕐 ${formatTime(event.timestamp)}`);
+    if (txLink) L.push(`🔍 ${txLink}`);
+    L.push(formatMultiTz(event.timestamp));
 
     // Token image takes priority; fall back to GitHub avatar
     const imageUrl = tokenInfo?.imageUri || githubUser?.avatarUrl || null;
@@ -581,6 +711,27 @@ function formatTime(unixSeconds: number): string {
         .toISOString()
         .replace('T', ' ')
         .slice(0, 19) + ' UTC';
+}
+
+/** HH:MM in a given IANA timezone */
+function tzShort(d: Date, tz: string): string {
+    return d.toLocaleString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+/** Multi-timezone footer for traders worldwide */
+function formatMultiTz(unixSeconds: number): string {
+    if (!unixSeconds || unixSeconds < 1_000_000) return '🕐 unknown';
+    const d = new Date(unixSeconds * 1000);
+    const parts = [
+        `🇺🇸 ${tzShort(d, 'America/Los_Angeles')} PT`,
+        `${tzShort(d, 'America/New_York')} ET`,
+        `🇬🇧 ${tzShort(d, 'Europe/London')} GMT`,
+        `🇪🇺 ${tzShort(d, 'Europe/Berlin')} CET`,
+        `🇸🇬 ${tzShort(d, 'Asia/Singapore')} SGT`,
+        `🇯🇵 ${tzShort(d, 'Asia/Tokyo')} JST`,
+        `🇦🇺 ${tzShort(d, 'Australia/Sydney')} AEST`,
+    ];
+    return `🕐 ${parts.join(' · ')}`;
 }
 
 function formatDateTime(unixSeconds: number): string {

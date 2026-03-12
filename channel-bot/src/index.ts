@@ -15,7 +15,7 @@ import { Bot, type BotError } from 'grammy';
 import { loadConfig } from './config.js';
 import { ClaimMonitor } from './claim-monitor.js';
 import { EventMonitor } from './event-monitor.js';
-import { hasGithubUserClaimed, markGithubUserClaimed, loadPersistedClaims } from './claim-tracker.js';
+import { hasGithubUserClaimed, markGithubUserClaimed, incrementGithubClaimCount, loadPersistedClaims } from './claim-tracker.js';
 import { fetchTokenInfo, fetchTopHolders, fetchTokenTrades, fetchDevWalletInfo, fetchSolUsdPrice, fetchPoolLiquidity, fetchBundleInfo, fetchCreatorProfile } from './pump-client.js';
 import { fetchGitHubUserById } from './github-client.js';
 import { fetchXProfile } from './x-client.js';
@@ -135,8 +135,11 @@ async function main(): Promise<void> {
                 ? await fetchXProfile(githubUser.twitterUsername)
                 : null;
 
-            log.info('%s GitHub social fee claim by %s (%s) — %s SOL',
-                isFirstClaim ? '🚨' : '📤',
+            const isFake = event.isFake === true;
+            const claimNumber = isFake ? 0 : incrementGithubClaimCount(event.githubUserId);
+            const emoji = isFake ? '⚠️' : isFirstClaim ? '🚨' : '📤';
+            log.info('%s %sGitHub social fee claim by %s (%s) — %s SOL',
+                emoji, isFake ? 'FAKE ' : '',
                 event.githubUserId, githubUser?.login ?? '?', event.amountSol.toFixed(4));
 
             const ctx: ClaimFeedContext = {
@@ -145,7 +148,12 @@ async function main(): Promise<void> {
                 githubUser,
                 xProfile,
                 tokenInfo,
-                isFirstClaim,
+                isFirstClaim: isFake ? false : isFirstClaim,
+                isFake,
+                claimNumber,
+                lifetimeClaimedSol: event.lifetimeClaimedLamports != null
+                    ? event.lifetimeClaimedLamports / 1e9
+                    : undefined,
             };
 
             const { imageUrl, caption } = formatGitHubClaimFeed(ctx);
@@ -155,7 +163,7 @@ async function main(): Promise<void> {
                 } else {
                     await postToChannel(caption);
                 }
-                if (isFirstClaim) markGithubUserClaimed(event.githubUserId);
+                if (!isFake && isFirstClaim) markGithubUserClaimed(event.githubUserId);
                 pipeline.posted++;
                 log.info('✅ Posted GitHub claim by %s (%s) to %s',
                     event.githubUserId, githubUser?.login ?? '?', config.channelId);

@@ -427,6 +427,7 @@ export class ClaimMonitor {
         let socialPlatform: number | undefined;
         let recipientWallet: string | undefined;
         let socialFeePda: string | undefined;
+        let lifetimeClaimedLamports: number | undefined;
 
         if (def.claimType === 'distribute_creator_fees') {
             // distribute_creator_fees: accounts[0] = mint
@@ -526,6 +527,14 @@ export class ClaimMonitor {
                     if (bytes.length >= offset + 8) {
                         const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
                         amountLamports = Number(view.getBigUint64(offset, true));
+                        offset += 8;
+                    }
+                    // claimable_before: u64 — skip
+                    offset += 8;
+                    // lifetime_claimed: u64
+                    if (bytes.length >= offset + 8) {
+                        const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+                        lifetimeClaimedLamports = Number(view.getBigUint64(offset, true));
                     }
                 }
             } catch { /* skip unparseable log lines */ }
@@ -560,8 +569,39 @@ export class ClaimMonitor {
             }
         }
 
-        // Skip dust amounts
-        if (amountLamports < 1000) return null;
+        // Detect fake claims: claim_social_fee_pda was called but no
+        // SocialFeePdaClaimed event was emitted (amount stays 0).
+        // Parse user_id and platform from the instruction arguments instead.
+        let isFake = false;
+        if (def.claimType === 'claim_social_fee_pda' && amountLamports === 0) {
+            isFake = true;
+            // Try to extract user_id & platform from instruction args
+            // Anchor ix data: disc(8) + user_id(borsh string: 4-byte len + N) + platform(u8)
+            if ('data' in ix && ix.data && !githubUserId) {
+                try {
+                    const ixBytes = bs58.decode(ix.data);
+                    if (ixBytes.length > 12) {
+                        let offset = 8; // skip discriminator
+                        const uidLen = Buffer.from(ixBytes.subarray(offset, offset + 4)).readUInt32LE(0);
+                        offset += 4;
+                        if (uidLen > 0 && uidLen <= 20 && ixBytes.length >= offset + uidLen) {
+                            githubUserId = Buffer.from(ixBytes.subarray(offset, offset + uidLen)).toString('utf8');
+                            offset += uidLen;
+                        }
+                        if (ixBytes.length >= offset + 1) {
+                            socialPlatform = ixBytes[offset];
+                        }
+                    }
+                } catch { /* ignore parse errors */ }
+            }
+            // Resolve socialFeePda from instruction accounts
+            if ('accounts' in ix && Array.isArray(ix.accounts) && ix.accounts.length >= 2 && !socialFeePda) {
+                socialFeePda = ix.accounts[1]?.toBase58();
+            }
+        }
+
+        // Skip non-social dust amounts (real social claims always emit event data)
+        if (!isFake && amountLamports < 1000) return null;
 
         // For social fee PDA claims, resolve mint from the index
         if (def.claimType === 'claim_social_fee_pda' && socialFeePda && !tokenMint) {
@@ -584,6 +624,8 @@ export class ClaimMonitor {
             socialPlatform,
             recipientWallet,
             socialFeePda,
+            isFake,
+            lifetimeClaimedLamports,
         };
     }
 

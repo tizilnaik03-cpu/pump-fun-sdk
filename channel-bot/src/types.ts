@@ -99,6 +99,10 @@ export interface FeeClaimEvent {
     recipientWallet?: string;
     /** Social fee PDA account for social claims */
     socialFeePda?: string;
+    /** True when instruction was called but no SocialFeePdaClaimed event was emitted (scam/fake claim) */
+    isFake?: boolean;
+    /** Lifetime total claimed in lamports (from on-chain event, cumulative across all claims) */
+    lifetimeClaimedLamports?: number;
 }
 
 export interface TokenLaunchEvent {

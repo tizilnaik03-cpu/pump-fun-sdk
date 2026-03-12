@@ -40,6 +40,9 @@ const walletFirstClaim = new Set<string>();
 /** Tracks which GitHub user IDs have ever claimed their social fee PDA */
 const githubUserFirstClaim = new Set<string>();
 
+/** Tracks how many times each GitHub user ID has claimed (persisted) */
+const githubUserClaimCounts = new Map<string, number>();
+
 /** Max entries before eviction of oldest */
 const MAX_ENTRIES = 50_000;
 
@@ -49,6 +52,7 @@ const DATA_DIR = process.env.DATA_DIR || join(process.cwd(), 'data');
 const FIRST_CLAIMS_FILE = join(DATA_DIR, 'first-claims.json');
 const WALLET_FIRST_CLAIMS_FILE = join(DATA_DIR, 'wallet-first-claims.json');
 const GITHUB_FIRST_CLAIMS_FILE = join(DATA_DIR, 'github-first-claims.json');
+const GITHUB_CLAIM_COUNTS_FILE = join(DATA_DIR, 'github-claim-counts.json');
 const SAVE_DEBOUNCE_MS = 5_000;
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -89,6 +93,16 @@ export function loadPersistedClaims(): void {
                 log.info('Loaded %d persisted first-claim GitHub users', githubUserFirstClaim.size);
             }
         }
+        if (existsSync(GITHUB_CLAIM_COUNTS_FILE)) {
+            const raw = readFileSync(GITHUB_CLAIM_COUNTS_FILE, 'utf8');
+            const counts: unknown = JSON.parse(raw);
+            if (counts && typeof counts === 'object') {
+                for (const [k, v] of Object.entries(counts)) {
+                    if (typeof v === 'number') githubUserClaimCounts.set(k, v);
+                }
+                log.info('Loaded %d persisted GitHub claim counts', githubUserClaimCounts.size);
+            }
+        }
     } catch (err) {
         log.warn('Failed to load persisted claims: %s', err);
     }
@@ -114,6 +128,10 @@ function scheduleSave(): void {
             const ghArr = [...githubUserFirstClaim];
             const ghToSave = ghArr.length > MAX_ENTRIES ? ghArr.slice(ghArr.length - MAX_ENTRIES) : ghArr;
             writeFileSync(GITHUB_FIRST_CLAIMS_FILE, JSON.stringify(ghToSave), 'utf8');
+
+            const countsObj: Record<string, number> = {};
+            for (const [k, v] of githubUserClaimCounts) countsObj[k] = v;
+            writeFileSync(GITHUB_CLAIM_COUNTS_FILE, JSON.stringify(countsObj), 'utf8');
 
             log.debug('Persisted %d first-claim tokens + %d wallets + %d GitHub users to disk', toSave.length, walletToSave.length, ghToSave.length);
         } catch (err) {
@@ -257,5 +275,18 @@ export function markGithubUserClaimed(githubUserId: string): void {
 /** Total unique wallet+token pairs tracked. */
 export function getTrackedCount(): number {
     return claimHistory.size;
+}
+
+/** Increment and return the claim count for a GitHub user. */
+export function incrementGithubClaimCount(githubUserId: string): number {
+    const count = (githubUserClaimCounts.get(githubUserId) ?? 0) + 1;
+    githubUserClaimCounts.set(githubUserId, count);
+    scheduleSave();
+    return count;
+}
+
+/** Get the claim count for a GitHub user without incrementing. */
+export function getGithubClaimCount(githubUserId: string): number {
+    return githubUserClaimCounts.get(githubUserId) ?? 0;
 }
 
