@@ -17,10 +17,10 @@ import { ClaimMonitor } from './claim-monitor.js';
 import { EventMonitor } from './event-monitor.js';
 import { hasGithubUserClaimed, markGithubUserClaimed, incrementGithubClaimCount, loadPersistedClaims } from './claim-tracker.js';
 import { fetchTokenInfo, fetchTopHolders, fetchTokenTrades, fetchDevWalletInfo, fetchSolUsdPrice, fetchPoolLiquidity, fetchBundleInfo, fetchCreatorProfile } from './pump-client.js';
-import { fetchGitHubUserById } from './github-client.js';
+import { fetchGitHubUserById, fetchRepoFromUrls } from './github-client.js';
 import { fetchXProfile } from './x-client.js';
-import { formatGitHubClaimFeed, formatGraduationFeed } from './formatters.js';
-import type { ClaimFeedContext } from './formatters.js';
+import { formatGitHubClaimFeed, formatCreatorClaimFeed, formatGraduationFeed } from './formatters.js';
+import type { ClaimFeedContext, CreatorClaimContext } from './formatters.js';
 import { log, setLogLevel } from './logger.js';
 import { startHealthServer, stopHealthServer } from './health.js';
 import { maskUrl } from './rpc-fallback.js';
@@ -98,10 +98,10 @@ async function main(): Promise<void> {
     }
 
     // ── Pipeline Counters ─────────────────────────────────────────────
-    const pipeline = { total: 0, socialClaims: 0, firstClaim: 0, posted: 0, skippedCashback: 0, repeatClaim: 0 };
+    const pipeline = { total: 0, socialClaims: 0, creatorClaims: 0, firstClaim: 0, posted: 0, skippedCashback: 0, repeatClaim: 0 };
     setInterval(() => {
-        log.info('Pipeline: %d total → %d social → %d first / %d repeat → %d posted (skip: %d cashback)',
-            pipeline.total, pipeline.socialClaims, pipeline.firstClaim, pipeline.repeatClaim, pipeline.posted, pipeline.skippedCashback);
+        log.info('Pipeline: %d total → %d social + %d creator → %d first / %d repeat → %d posted (skip: %d cashback)',
+            pipeline.total, pipeline.socialClaims, pipeline.creatorClaims, pipeline.firstClaim, pipeline.repeatClaim, pipeline.posted, pipeline.skippedCashback);
     }, 60_000);
 
     // ── Claim Monitor ────────────────────────────────────────────────
@@ -131,9 +131,14 @@ async function main(): Promise<void> {
                 mint ? fetchTokenInfo(mint) : Promise.resolve(null),
                 fetchSolUsdPrice(),
             ]);
-            const xProfile = githubUser?.twitterUsername
-                ? await fetchXProfile(githubUser.twitterUsername)
-                : null;
+            const [xProfile, repoInfo] = await Promise.all([
+                githubUser?.twitterUsername
+                    ? fetchXProfile(githubUser.twitterUsername)
+                    : Promise.resolve(null),
+                tokenInfo?.githubUrls?.length
+                    ? fetchRepoFromUrls(tokenInfo.githubUrls)
+                    : Promise.resolve(null),
+            ]);
 
             const isFake = event.isFake === true;
             const claimNumber = isFake ? 0 : incrementGithubClaimCount(event.githubUserId);
@@ -154,6 +159,7 @@ async function main(): Promise<void> {
                 lifetimeClaimedSol: event.lifetimeClaimedLamports != null
                     ? event.lifetimeClaimedLamports / 1e9
                     : undefined,
+                repoInfo,
             };
 
             const { imageUrl, caption } = formatGitHubClaimFeed(ctx);
@@ -170,6 +176,42 @@ async function main(): Promise<void> {
             } catch (postErr) {
                 log.error('Failed to post claim by %s — will retry on next claim event: %s',
                     event.githubUserId, postErr);
+            }
+        }
+
+        // ── Path B: Creator fee claims (collect_creator_fee, collect_coin_creator_fee, distribute_creator_fees) ──
+        else if (event.claimType === 'collect_creator_fee' ||
+                 event.claimType === 'collect_coin_creator_fee' ||
+                 event.claimType === 'distribute_creator_fees') {
+            pipeline.creatorClaims++;
+
+            const mint = event.tokenMint?.trim() || '';
+            const [tokenInfo, solUsdPrice, creator] = await Promise.all([
+                mint ? fetchTokenInfo(mint) : Promise.resolve(null),
+                fetchSolUsdPrice(),
+                fetchCreatorProfile(event.claimerWallet),
+            ]);
+
+            log.info('💰 Creator fee claim by %s — %s SOL (%s)',
+                event.claimerWallet.slice(0, 8), event.amountSol.toFixed(4), event.claimLabel);
+
+            const ctx: CreatorClaimContext = {
+                event,
+                solUsdPrice,
+                creator,
+            };
+
+            const { imageUrl, caption } = formatCreatorClaimFeed(ctx);
+            try {
+                if (imageUrl) {
+                    await postPhotoToChannel(imageUrl, caption);
+                } else {
+                    await postToChannel(caption);
+                }
+                pipeline.posted++;
+                log.info('✅ Posted creator claim by %s to %s', event.claimerWallet.slice(0, 8), config.channelId);
+            } catch (postErr) {
+                log.error('Failed to post creator claim by %s: %s', event.claimerWallet.slice(0, 8), postErr);
             }
         }
       } catch (err) {

@@ -25,6 +25,8 @@ import {
 import type { FeeClaimEvent, ClaimType } from './types.js';
 import {
     CLAIM_INSTRUCTIONS,
+    PUMP_PROGRAM_ID,
+    PUMP_AMM_PROGRAM_ID,
     PUMP_FEE_PROGRAM_ID,
     type InstructionDef,
 } from './types.js';
@@ -138,8 +140,12 @@ export class ClaimMonitor {
         if (config.solanaRpcUrls.length > 1) {
             log.info('Claim monitor: %d RPC endpoints configured (fallback enabled)', config.solanaRpcUrls.length);
         }
-        // Only monitor PUMP_FEE_PROGRAM_ID — the only program with claim_social_fee_pda
-        this.programPubkeys = [new PublicKey(PUMP_FEE_PROGRAM_ID)];
+        // Monitor all three programs: PumpFees (social fee PDA), Pump (creator fees), PumpAMM (coin creator fees)
+        this.programPubkeys = [
+            new PublicKey(PUMP_FEE_PROGRAM_ID),
+            new PublicKey(PUMP_PROGRAM_ID),
+            new PublicKey(PUMP_AMM_PROGRAM_ID),
+        ];
         this.rpcQueue = new RpcQueue((sig) => this.processTransaction(sig));
     }
 
@@ -369,12 +375,12 @@ export class ClaimMonitor {
             const timestamp = tx.blockTime ?? Math.floor(Date.now() / 1000);
             const slot = tx.slot;
 
-            // Only process claim_social_fee_pda instructions
+            // Process all claim instructions (social, creator, distribution — not just social)
             for (const ix of instructions) {
                 if (!('data' in ix) || !ix.data) continue;
                 const programId = ix.programId.toBase58();
                 const matchedDef = this.matchClaimInstruction(ix.data, programId);
-                if (!matchedDef || matchedDef.claimType !== 'claim_social_fee_pda') continue;
+                if (!matchedDef) continue;
 
                 const event = this.buildClaimEvent(
                     signature, slot, timestamp, tx, matchedDef, ix,
