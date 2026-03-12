@@ -1,35 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EventCard } from '../components/EventCard';
 import { StatsBar } from '../components/StatsBar';
+import { StatusDot } from '../components/StatusDot';
 import { useEventStream } from '../hooks/useEventStream';
 import type { FeedEvent } from '../components/EventCard';
 import type { EventType } from '../types';
-import type { BaseEvent } from '../lib/types';
 
-// ── Map API events to FeedEvent shape ───────────────────
-
-let feedIdCounter = 0;
-
-function apiEventToFeedEvent(raw: BaseEvent, isNew: boolean): FeedEvent {
-  const id = `sse-${++feedIdCounter}`;
-  const r = raw as unknown as unknown as Record<string, unknown>;
-  return {
-    id,
-    type: raw.type as FeedEvent['type'],
-    timestamp: raw.timestamp,
-    txSignature: raw.txSignature,
-    tokenName: (r.tokenName as string) ?? (r.name as string) ?? 'Unknown',
-    tokenSymbol: (r.tokenSymbol as string) ?? (r.symbol as string) ?? '???',
-    creator: (r.creator as string) ?? (r.claimerWallet as string) ?? (r.wallet as string) ?? '',
-    amountSol: (r.amountSol as number) ?? 0,
-    direction: r.direction as 'buy' | 'sell' | undefined,
-    newCreator: r.newCreator as string | undefined,
-    shareholders: r.shareholders as { address: string; amount: number }[] | undefined,
-    isNew,
-  };
-}
-
-// ── Mock data (fallback when no API configured) ─────────
+// ── Mock data (fallback when API is not available) ──────
 
 const MOCK_TOKENS = [
   { name: 'PumpKitty', symbol: 'KITTY', creator: '7xKp...3nRm' },
@@ -80,17 +57,14 @@ function generateEvent(timestamp: Date, isNew: boolean): FeedEvent {
   };
 }
 
-// ── useMockFeed hook ────────────────────────────────────
-
 function useMockFeed() {
   const [events, setEvents] = useState<FeedEvent[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Generate initial batch on mount
   useEffect(() => {
     const now = Date.now();
     const initial: FeedEvent[] = [];
-    const count = 8 + Math.floor(Math.random() * 5); // 8-12
+    const count = 8 + Math.floor(Math.random() * 5);
     for (let i = 0; i < count; i++) {
       const ts = new Date(now - (count - i) * 20_000 - Math.random() * 10_000);
       initial.push(generateEvent(ts, false));
@@ -98,7 +72,6 @@ function useMockFeed() {
     setEvents(initial);
   }, []);
 
-  // Auto-add events at random 3-5s intervals
   const scheduleNext = useCallback(() => {
     const delay = 3000 + Math.random() * 2000;
     timerRef.current = setTimeout(() => {
@@ -118,6 +91,24 @@ function useMockFeed() {
   return events;
 }
 
+/** Convert SSE PumpEvent to FeedEvent for EventCard */
+function toFeedEvent(e: { type: string; txSignature: string; timestamp: string; [k: string]: unknown }, i: number): FeedEvent {
+  return {
+    id: `sse-${e.txSignature}-${i}`,
+    type: e.type as EventType,
+    timestamp: e.timestamp,
+    txSignature: e.txSignature,
+    tokenName: (e.tokenName as string) ?? (e.name as string) ?? 'Unknown',
+    tokenSymbol: (e.tokenSymbol as string) ?? (e.symbol as string) ?? '???',
+    creator: (e.creator as string) ?? (e.claimerWallet as string) ?? (e.wallet as string) ?? '',
+    amountSol: (e.amountSol as number) ?? 0,
+    direction: e.direction as 'buy' | 'sell' | undefined,
+    newCreator: e.newCreator as string | undefined,
+    shareholders: e.shareholders as { address: string; amount: number }[] | undefined,
+    isNew: true,
+  };
+}
+
 // ── Filter config ───────────────────────────────────────
 
 const FILTERS: { key: EventType | 'all'; label: string }[] = [
@@ -132,27 +123,26 @@ const FILTERS: { key: EventType | 'all'; label: string }[] = [
 
 // ── Dashboard ───────────────────────────────────────────
 
-const hasApiUrl = !!import.meta.env.VITE_API_URL;
-
 export function Dashboard() {
-  // Use real SSE stream when API is configured, mock feed otherwise
-  const sseEvents = useEventStream();
+  const { events: sseEvents, status } = useEventStream();
   const mockEvents = useMockFeed();
-  const isLive = hasApiUrl && sseEvents.length > 0;
-
-  // Convert SSE BaseEvent[] into FeedEvent[] for EventCard
-  const liveEvents: FeedEvent[] = sseEvents.map((e, i) => apiEventToFeedEvent(e, i === 0));
-  const events = isLive ? liveEvents : mockEvents;
-
   const [filter, setFilter] = useState<EventType | 'all'>('all');
 
-  const filtered = filter === 'all' ? events : events.filter((e) => e.type === filter);
+  // Use SSE events when connected and receiving data, otherwise mock
+  const isLive = status === 'connected' && sseEvents.length > 0;
+  const feedEvents: FeedEvent[] = isLive
+    ? sseEvents.map(toFeedEvent)
+    : mockEvents;
+
+  const filtered = filter === 'all' ? feedEvents : feedEvents.filter((e) => e.type === filter);
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem-2.75rem)]">
       {/* Filter bar */}
       <div className="sticky top-0 z-10 bg-tg-chat/95 backdrop-blur-sm border-b border-tg-border px-4 py-2">
-        <div className="flex gap-2 overflow-x-auto max-w-3xl mx-auto">
+        <div className="flex gap-2 overflow-x-auto max-w-3xl mx-auto items-center">
+          <StatusDot status={status} />
+          <div className="w-px h-5 bg-tg-border mx-1" />
           {FILTERS.map((f) => (
             <button
               key={f.key}
@@ -173,12 +163,12 @@ export function Dashboard() {
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col gap-2 p-4 max-w-3xl mx-auto">
           {/* Stats bar */}
-          <StatsBar events={events} connected={isLive} />
+          <StatsBar events={feedEvents} connected={isLive} />
 
-          {/* Date separator */}
+          {/* Mode indicator */}
           <div className="text-center py-2">
             <span className="bg-tg-input/80 text-zinc-400 text-xs px-3 py-1 rounded-full">
-              Today
+              {isLive ? 'Live Feed' : 'Demo Mode'}
             </span>
           </div>
 
@@ -193,13 +183,9 @@ export function Dashboard() {
       {/* Bottom info bar */}
       <div className="border-t border-tg-border px-4 py-2 text-center">
         <span className="text-xs text-zinc-500">
-          {isLive ? (
-            <>🟢 Live feed from monitor bot</>
-          ) : hasApiUrl ? (
-            <>🟡 Connecting to monitor bot…</>
-          ) : (
-            <>Simulated feed &bull; Set <code className="text-tg-blue">VITE_API_URL</code> for live data</>
-          )}
+          {isLive
+            ? `Live stream \u2022 ${sseEvents.length} events received`
+            : 'Simulated feed \u2022 Set VITE_API_URL to connect your bot'}
         </span>
       </div>
     </div>
