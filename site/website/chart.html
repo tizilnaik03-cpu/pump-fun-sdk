@@ -400,7 +400,17 @@ function findNearestCandleTime(timestamp) {
 // ══════════════════════════════════════════════════════════════════════════
 // Chart setup (from Chart.tsx createChart config)
 // ══════════════════════════════════════════════════════════════════════════
+function destroyChart() {
+  if (chart) {
+    try { chart.remove(); } catch (_) {}
+    chart = null;
+    candleSeries = null;
+    volumeSeries = null;
+  }
+}
+
 function initChart() {
+  destroyChart();
   const container = document.getElementById('chart-container');
   const h = window.innerHeight - 48; // subtract header
   const area = document.getElementById('chart-area');
@@ -514,6 +524,7 @@ function initChart() {
 
   // Resize
   window.addEventListener('resize', () => {
+    if (!chart) return;
     const newH = window.innerHeight - 48;
     const newW = feedOpen ? window.innerWidth - 380 : window.innerWidth;
     area.style.height = newH + 'px';
@@ -538,7 +549,7 @@ function initChart() {
 function drawMarkers() {
   const canvas = document.getElementById('markers-canvas');
   const area = document.getElementById('chart-area');
-  if (!canvas || !chart || !candleSeries) return;
+  if (!canvas || !chart || !candleSeries || !volumeSeries) return;
 
   const dpr = window.devicePixelRatio || 1;
   const w = area.clientWidth, h = area.clientHeight;
@@ -882,7 +893,7 @@ async function fetchOHLCV(type, agg) {
 async function loadTimeframe(type, agg) {
   currentTf = { type, agg };
   const data = await fetchOHLCV(type, agg);
-  if (!data.length) return;
+  if (!data.length || !chart || !candleSeries || !volumeSeries) return;
 
   candles = data;
   candleTimes = data.map(c => c.time);
@@ -980,6 +991,7 @@ function toggleFeed() {
 
   // Resize chart to make room
   setTimeout(() => {
+    if (!chart) return;
     const w = feedOpen ? window.innerWidth - 380 : window.innerWidth;
     const area = document.getElementById('chart-area');
     const container = document.getElementById('chart-container');
@@ -990,13 +1002,21 @@ function toggleFeed() {
   }, 300);
 }
 
+let statsInterval, refreshInterval;
+
 (async function init() {
   initChart();
   await Promise.all([fetchTokenIcon(), fetchDexStats()]);
   await loadTimeframe('minute', 1);
-  setInterval(fetchDexStats, 10000);
-  setInterval(() => loadTimeframe(currentTf.type, currentTf.agg), 30000);
+  statsInterval = setInterval(fetchDexStats, 10000);
+  refreshInterval = setInterval(() => loadTimeframe(currentTf.type, currentTf.agg), 30000);
 })();
+
+window.addEventListener('beforeunload', () => {
+  clearInterval(statsInterval);
+  clearInterval(refreshInterval);
+  destroyChart();
+});
 </script>
 </body>
 </html>

@@ -1,5 +1,10 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { WatchForm } from './WatchForm';
+import { WatchList } from './WatchList';
+import { StatusDot } from './StatusDot';
+import { useWatches } from '../hooks/useWatches';
+import { useHealth } from '../hooks/useHealth';
 
 const channels = [
   { path: '/', label: 'PumpKit', emoji: '🚀', preview: 'Create your own PumpFun bot', unread: false },
@@ -13,6 +18,8 @@ export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [search, setSearch] = useState('');
   const current = channels.find((c) => c.path === location.pathname) ?? channels[0]!;
+  const { watches, loading: watchesLoading, add: addWatch, remove: removeWatch } = useWatches();
+  const { health } = useHealth();
 
   const filteredChannels = search
     ? channels.filter(
@@ -89,8 +96,15 @@ export function Layout() {
           })}
         </nav>
 
+        {/* Watch list section */}
+        <div className="border-t border-tg-border flex flex-col flex-1 min-h-0">
+          <p className="text-xs text-zinc-500 font-medium px-4 py-2">Watched Wallets ({watches.length})</p>
+          <WatchForm onAdd={addWatch} />
+          <WatchList watches={watches} loading={watchesLoading} onRemove={removeWatch} />
+        </div>
+
         {/* Sidebar footer */}
-        <div className="border-t border-tg-border px-4 py-3">
+        <div className="border-t border-tg-border px-4 py-3 shrink-0">
           <a
             href="https://github.com/nirholas/pumpkit"
             target="_blank"
@@ -123,6 +137,7 @@ export function Layout() {
             <p className="text-xs text-zinc-500">{current.preview}</p>
           </div>
           <div className="ml-auto flex items-center gap-3">
+            <StatusDot status={health ? 'connected' : 'disconnected'} />
             <a
               href="https://github.com/nirholas/pumpkit"
               target="_blank"
