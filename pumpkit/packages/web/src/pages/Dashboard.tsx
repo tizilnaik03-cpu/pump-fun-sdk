@@ -148,10 +148,10 @@ export function Dashboard() {
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-full text-sm transition whitespace-nowrap active:scale-95 ${
                 filter === f.key
-                  ? 'bg-tg-blue text-white'
-                  : 'bg-tg-input text-zinc-400 hover:text-white'
+                  ? 'bg-tg-blue text-white shadow-tg'
+                  : 'bg-tg-input text-zinc-400 hover:text-white hover:bg-tg-hover'
               }`}
             >
               {f.label}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 
 const sections = [
   { id: 'getting-started', label: 'Getting Started' },
@@ -81,6 +82,18 @@ function methodColor(method: string) {
   return 'text-pump-pink';
 }
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      className="absolute top-2 right-2 text-xs bg-tg-input/80 hover:bg-tg-input text-zinc-400 hover:text-tg-blue px-2 py-1 rounded transition"
+    >
+      {copied ? '✓ Copied' : 'Copy'}
+    </button>
+  );
+}
+
 function BotBubble({ children, id }: { children: React.ReactNode; id?: string }) {
   return (
     <>
@@ -144,8 +157,8 @@ export function Docs() {
               onClick={() => scrollTo(s.id)}
               className={`shrink-0 text-xs px-3 py-1.5 rounded-full transition ${
                 activeSection === s.id
-                  ? 'bg-tg-blue text-white'
-                  : 'bg-tg-input text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-tg-blue text-white shadow-tg'
+                  : 'bg-tg-input text-zinc-400 hover:text-zinc-200 hover:bg-tg-hover'
               }`}
             >
               {s.label}
@@ -154,7 +167,7 @@ export function Docs() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 p-4 max-w-3xl mx-auto pb-20">
+      <div className="flex flex-col gap-3 p-4 max-w-3xl mx-auto pb-20 bubble-stagger">
         {/* Date separator */}
         <div className="text-center">
           <span className="bg-tg-input/80 text-zinc-400 text-xs px-3 py-1 rounded-full">
@@ -177,7 +190,8 @@ export function Docs() {
             <li>• A Solana RPC URL (Helius, Quicknode, etc.)</li>
           </ul>
           <p className="text-sm font-medium mb-1">Installation:</p>
-          <div className="bg-[#1a2332] rounded-lg p-3 font-mono text-sm text-zinc-300 overflow-x-auto mt-2">
+          <div className="bg-[#1a2332] rounded-lg p-3 font-mono text-sm text-zinc-300 overflow-x-auto mt-2 relative">
+            <CopyButton text={`git clone https://github.com/nirholas/pumpkit.git\ncd pumpkit && npm install`} />
             <pre className="whitespace-pre">{`git clone https://github.com/nirholas/pumpkit.git
 cd pumpkit && npm install`}</pre>
           </div>
@@ -297,7 +311,7 @@ cd pumpkit && npm install`}</pre>
               href="https://github.com/nirholas/pumpkit"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-tg-input text-tg-blue text-xs rounded-lg px-3 py-1.5 text-center hover:brightness-110 transition"
+              className="bg-tg-input text-tg-blue text-xs rounded-lg px-3 py-1.5 text-center hover:brightness-125 transition active:scale-[0.98]"
             >
               ⭐ GitHub
             </a>
@@ -305,10 +319,16 @@ cd pumpkit && npm install`}</pre>
               href="https://github.com/nirholas/pumpkit/discussions"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-tg-input text-tg-blue text-xs rounded-lg px-3 py-1.5 text-center hover:brightness-110 transition"
+              className="bg-tg-input text-tg-blue text-xs rounded-lg px-3 py-1.5 text-center hover:brightness-125 transition active:scale-[0.98]"
             >
-              💬 Telegram
+              💬 Discussions
             </a>
+            <Link
+              to="/packages"
+              className="bg-tg-input text-tg-blue text-xs rounded-lg px-3 py-1.5 text-center hover:brightness-125 transition active:scale-[0.98]"
+            >
+              📦 Packages
+            </Link>
 
           </div>
         </BotBubble>
