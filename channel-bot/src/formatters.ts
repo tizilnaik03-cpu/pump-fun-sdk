@@ -176,7 +176,7 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
     if (githubUser) {
         const nameTag = githubUser.name ? ` (${esc(githubUser.name)})` : '';
         L.push(`<a href="${esc(githubUser.htmlUrl)}">${esc(githubUser.login)}</a>${nameTag}`);
-        L.push(`📦 Repos: ${githubUser.publicRepos}`);
+        L.push(`📦 Repos: <a href="${esc(githubUser.htmlUrl)}?tab=repositories">${githubUser.publicRepos}</a>`);
         if (githubUser.followers > 0) L.push(`👁 Followers: ${githubUser.followers}`);
         if (githubUser.following > 0) L.push(`👥 Following: ${githubUser.following}`);
         if (githubUser.createdAt) L.push(`📅 Account age: ${timeAgo(new Date(githubUser.createdAt).getTime() / 1000)}`);
@@ -226,10 +226,12 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         if (ctx.repoInfo.isFork) L.push('⚠️ This is a fork');
         L.push('');
     } else if (tokenInfo?.githubUrls?.length) {
-        L.push(`📂 <b>Repo Claimed</b>`);
         const repoUrl = tokenInfo.githubUrls[0]!;
-        const repoName = repoUrl.replace(/^https?:\/\/github\.com\//, '').replace(/\/+$/, '');
-        L.push(`<a href="${esc(repoUrl)}">${esc(repoName)}</a>`);
+        const repoPath = repoUrl.replace(/^https?:\/\/github\.com\//, '').replace(/\/+$/, '');
+        const isRepoUrl = repoPath.includes('/');
+        L.push(`📂 <b>${isRepoUrl ? 'Repo Claimed' : 'GitHub Linked'}</b>`);
+        L.push(`<a href="${esc(repoUrl)}">${esc(repoPath)}</a>`);
+        if (!isRepoUrl) L.push(`<i>Profile linked — no specific repo</i>`);
         L.push('');
     }
 
