@@ -55,12 +55,14 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
     }
     if (tokenInfo) {
         const pfLink = `<a href="https://pump.fun/coin/${mint}">${esc(tokenInfo.name || mint.slice(0, 8))}</a>`;
-        const ticker = tokenInfo.symbol ? ` <b>$${esc(tokenInfo.symbol)}</b>` : '';
-        const mcStr = tokenInfo.usdMarketCap > 0
-            ? `  💹 $${formatCompact(tokenInfo.usdMarketCap)}`
-            : tokenInfo.marketCapSol > 0 ? `  💹 ${tokenInfo.marketCapSol.toFixed(1)} SOL` : '';
-        L.push(`🐙${ticker} — ${pfLink}${mcStr}`);
-        L.push(`  ↳ GitHub dev claimed PumpFun social fees`);
+        const ticker = tokenInfo.symbol ? `<b>$${esc(tokenInfo.symbol)}</b>` : '';
+        L.push(`🐙 ${ticker ? ticker + ' — ' : ''}${pfLink}`);
+        if (tokenInfo.usdMarketCap > 0) {
+            L.push(`💹 $${formatCompact(tokenInfo.usdMarketCap)}`);
+        } else if (tokenInfo.marketCapSol > 0) {
+            L.push(`💹 ${tokenInfo.marketCapSol.toFixed(1)} SOL`);
+        }
+        L.push(`↳ GitHub dev claimed PumpFun social fees`);
     } else {
         L.push(`🐙 <b>GitHub dev claimed PumpFun social fees</b>`);
     }
@@ -79,14 +81,12 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
     }
 
     // ━━ CLAIM STATS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const stats: string[] = [];
-    if (ctx.claimNumber && ctx.claimNumber > 0) stats.push(`Claim #${ctx.claimNumber}`);
+    if (ctx.claimNumber && ctx.claimNumber > 0) {
+        L.push(`📊 Claim #${ctx.claimNumber}`);
+    }
     if (ctx.lifetimeClaimedSol != null && ctx.lifetimeClaimedSol > 0) {
         const ltUsd = solUsdPrice > 0 ? ` ($${(ctx.lifetimeClaimedSol * solUsdPrice).toFixed(2)})` : '';
-        stats.push(`${ctx.lifetimeClaimedSol.toFixed(4)} SOL lifetime${ltUsd}`);
-    }
-    if (stats.length > 0) {
-        L.push(`📊 ${stats.join(' · ')}`);
+        L.push(`💰 ${ctx.lifetimeClaimedSol.toFixed(4)} SOL lifetime${ltUsd}`);
     }
 
     // ━━ AMOUNT + RECIPIENT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -97,7 +97,7 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
     const recipient = event.recipientWallet ?? event.claimerWallet;
     if (recipient) {
         const recipientLink = `<a href="https://pump.fun/profile/${recipient}">${shortAddr(recipient)}</a>`;
-        L.push(`  ↳ ${recipientLink}`);
+        L.push(`↳ ${recipientLink}`);
     }
 
     // ━━ GITHUB PROFILE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -107,21 +107,21 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         const nameTag = githubUser.name ? ` (${esc(githubUser.name)})` : '';
         L.push(`👤 ${userLink}${nameTag}`);
 
-        // Compact meta row
-        const meta: string[] = [];
-        if (githubUser.publicRepos > 0) meta.push(`📦 ${githubUser.publicRepos}`);
-        if (githubUser.followers > 0) meta.push(`👁 ${githubUser.followers}`);
-        if (githubUser.createdAt) meta.push(`📅 ${timeAgo(new Date(githubUser.createdAt).getTime() / 1000)}`);
-        if (meta.length > 0) L.push(`  ↳ ${meta.join(' · ')}`);
+        if (githubUser.publicRepos > 0) L.push(`📦 ${githubUser.publicRepos} repos`);
+        if (githubUser.followers > 0) L.push(`👁 ${githubUser.followers} followers`);
+        if (githubUser.createdAt) L.push(`📅 ${timeAgo(new Date(githubUser.createdAt).getTime() / 1000)}`);
 
         if (githubUser.bio) {
             const bio = githubUser.bio.length > 80 ? githubUser.bio.slice(0, 77) + '...' : githubUser.bio;
-            L.push(`  <i>${esc(bio)}</i>`);
+            L.push(`<i>${esc(bio)}</i>`);
         }
         if (githubUser.twitterUsername) {
-            const xLink = `<a href="https://x.com/${esc(githubUser.twitterUsername)}">${esc(githubUser.twitterUsername)}</a>`;
-            const xFollowers = xProfile && xProfile.followers > 0 ? ` · ${formatFollowerCount(xProfile.followers)}` : '';
-            L.push(`𝕏 ${xLink}${xFollowers}`);
+            const handle = cleanXHandle(githubUser.twitterUsername);
+            if (handle) {
+                const xLink = `<a href="https://x.com/${esc(handle)}">${esc(handle)}</a>`;
+                L.push(`𝕏 ${xLink}`);
+                if (xProfile && xProfile.followers > 0) L.push(`𝕏 ${formatFollowerCount(xProfile.followers)} followers`);
+            }
         }
         if (githubUser.location) L.push(`📍 ${esc(githubUser.location)}`);
         if (githubUser.blog) L.push(`🌐 <a href="${esc(githubUser.blog)}">${esc(githubUser.blog.replace(/^https?:\/\//, '').slice(0, 40))}</a>`);
@@ -135,55 +135,43 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
     // ━━ TOKEN INTEL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     if (tokenInfo) {
         L.push('');
-        // Status + curve progress + age
-        const statusParts: string[] = [];
         if (tokenInfo.complete) {
-            statusParts.push('🎓 Graduated (AMM)');
+            L.push('🎓 Graduated (AMM)');
         } else if (tokenInfo.curveProgress > 0) {
-            statusParts.push(`📈 Bonding curve (${Math.round(tokenInfo.curveProgress * 100)}%)`);
+            L.push(`📈 Bonding curve (${Math.round(tokenInfo.curveProgress * 100)}%)`);
         } else {
-            statusParts.push('📈 Bonding curve');
+            L.push('📈 Bonding curve');
         }
         if (tokenInfo.createdTimestamp > 0) {
-            statusParts.push(`Created ${timeAgo(tokenInfo.createdTimestamp)}`);
+            L.push(`⏱ Created ${timeAgo(tokenInfo.createdTimestamp)}`);
         }
         if (tokenInfo.replyCount > 0) {
-            statusParts.push(`💬 ${tokenInfo.replyCount}`);
+            L.push(`💬 ${tokenInfo.replyCount} replies`);
         }
-        L.push(statusParts.join(' · '));
 
-        // Socials row
-        const socials: string[] = [];
         if (tokenInfo.twitter) {
-            const handle = tokenInfo.twitter.replace(/.*(?:twitter|x)\.com\//, '').replace(/\/+$/, '');
-            socials.push(`<a href="${esc(tokenInfo.twitter)}">𝕏 ${esc(handle || 'Twitter')}</a>`);
+            const handle = cleanXHandle(tokenInfo.twitter);
+            L.push(`<a href="${esc(tokenInfo.twitter)}">𝕏 ${esc(handle || 'Twitter')}</a>`);
         }
         if (tokenInfo.telegram) {
-            socials.push(`<a href="${esc(tokenInfo.telegram)}">💬 TG</a>`);
+            L.push(`<a href="${esc(tokenInfo.telegram)}">💬 Telegram</a>`);
         }
         if (tokenInfo.website) {
             const host = tokenInfo.website.replace(/^https?:\/\//, '').replace(/\/+$/, '').slice(0, 30);
-            socials.push(`<a href="${esc(tokenInfo.website)}">🌐 ${esc(host)}</a>`);
+            L.push(`<a href="${esc(tokenInfo.website)}">🌐 ${esc(host)}</a>`);
         }
-        if (socials.length > 0) L.push(socials.join(' · '));
 
-        // Flags
-        const flags: string[] = [];
-        if (tokenInfo.isNsfw) flags.push('🔞 NSFW');
-        if (tokenInfo.isBanned) flags.push('🚫 BANNED');
-        if (tokenInfo.isCashbackEnabled) flags.push('💸 Cashback');
-        if (flags.length > 0) L.push(flags.join(' · '));
+        if (tokenInfo.isNsfw) L.push('🔞 NSFW');
+        if (tokenInfo.isBanned) L.push('🚫 BANNED');
+        if (tokenInfo.isCashbackEnabled) L.push('💸 Cashback');
     }
 
     // ━━ TRUST SIGNALS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     {
         const warnings: string[] = [];
-        // New GitHub account warning (< 30 days)
         if (githubUser?.createdAt) {
             const accountAgeDays = (Date.now() - new Date(githubUser.createdAt).getTime()) / 86_400_000;
-            if (accountAgeDays < 7) {
-                warnings.push(`⚠️ GitHub account created ${Math.floor(accountAgeDays)}d ago`);
-            } else if (accountAgeDays < 30) {
+            if (accountAgeDays < 30) {
                 warnings.push(`⚠️ GitHub account created ${Math.floor(accountAgeDays)}d ago`);
             }
         }
@@ -208,47 +196,11 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         const axiomUrl = `https://axiom.trade/t/${mint}?ref=${encodeURIComponent(aff?.axiom ?? 'nich')}`;
         const gmgnUrl  = `https://gmgn.ai/sol/token/${mint}?ref=${encodeURIComponent(aff?.gmgn ?? 'nichxbt')}`;
         const padreUrl = `https://t.me/padre_trading_bot?start=token_${mint}_ref_${encodeURIComponent(aff?.padre ?? 'nichxbt')}`;
-        L.push(`<a href="${axiomUrl}">Axiom</a> · <a href="${gmgnUrl}">GMGN</a> · <a href="${padreUrl}">Padre</a>`);
+        L.push(`<a href="${axiomUrl}">Axiom</a>`);
+        L.push(`<a href="${gmgnUrl}">GMGN</a>`);
+        L.push(`<a href="${padreUrl}">Padre</a>`);
     } else {
         L.push(`<i>CA resolving…</i>`);
-    }
-    // ━━ TOKEN INFO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    if (tokenInfo) {
-        const infoItems: string[] = [];
-        // Bonding curve progress or graduated status
-        if (tokenInfo.complete) {
-            infoItems.push('🎓 Graduated');
-        } else if (tokenInfo.curveProgress > 0) {
-            infoItems.push(`📈 ${(tokenInfo.curveProgress * 100).toFixed(0)}% bonded`);
-        }
-        // Token age
-        if (tokenInfo.createdTimestamp > 0) {
-            infoItems.push(`⏱ ${timeAgo(tokenInfo.createdTimestamp)}`);
-        }
-        // ATH market cap
-        if (tokenInfo.athMarketCap > 0) {
-            infoItems.push(`🏆 ATH $${formatCompact(tokenInfo.athMarketCap)}`);
-        }
-        if (infoItems.length > 0) {
-            L.push(`${infoItems.join(' · ')}`);
-        }
-        // Safety flags
-        const flags: string[] = [];
-        if (tokenInfo.isBanned) flags.push('🚫 Banned');
-        if (tokenInfo.isNsfw) flags.push('🔞 NSFW');
-        if (flags.length > 0) L.push(flags.join(' · '));
-        // Token socials
-        const socials: string[] = [];
-        if (tokenInfo.website) socials.push(`<a href="${esc(tokenInfo.website)}">Website</a>`);
-        if (tokenInfo.twitter) {
-            const handle = extractTwitterHandle(tokenInfo.twitter);
-            socials.push(`<a href="${esc(tokenInfo.twitter)}">${handle ? esc(handle) : '𝕏'}</a>`);
-        }
-        if (tokenInfo.telegram) socials.push(`<a href="${esc(tokenInfo.telegram)}">Telegram</a>`);
-        if (tokenInfo.githubUrls.length > 0) {
-            socials.push(`<a href="${esc(tokenInfo.githubUrls[0]!)}">GitHub</a>`);
-        }
-        if (socials.length > 0) L.push(`🔗 ${socials.join(' · ')}`);
     }
     // ━━ FOOTER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     L.push('');
@@ -256,7 +208,6 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         ? `<a href="https://solscan.io/tx/${event.txSignature}">TX</a>`
         : null;
     if (txLink) L.push(`🔍 ${txLink}`);
-    L.push(formatMultiTz(event.timestamp));
 
     // Token image takes priority; fall back to GitHub avatar
     const imageUrl = tokenInfo?.imageUri || githubUser?.avatarUrl || null;
@@ -713,26 +664,7 @@ function formatTime(unixSeconds: number): string {
         .slice(0, 19) + ' UTC';
 }
 
-/** HH:MM in a given IANA timezone */
-function tzShort(d: Date, tz: string): string {
-    return d.toLocaleString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
-}
 
-/** Multi-timezone footer for traders worldwide */
-function formatMultiTz(unixSeconds: number): string {
-    if (!unixSeconds || unixSeconds < 1_000_000) return '🕐 unknown';
-    const d = new Date(unixSeconds * 1000);
-    const parts = [
-        `🇺🇸 ${tzShort(d, 'America/Los_Angeles')} PT`,
-        `${tzShort(d, 'America/New_York')} ET`,
-        `🇬🇧 ${tzShort(d, 'Europe/London')} GMT`,
-        `🇪🇺 ${tzShort(d, 'Europe/Berlin')} CET`,
-        `🇸🇬 ${tzShort(d, 'Asia/Singapore')} SGT`,
-        `🇯🇵 ${tzShort(d, 'Asia/Tokyo')} JST`,
-        `🇦🇺 ${tzShort(d, 'Australia/Sydney')} AEST`,
-    ];
-    return `🕐 ${parts.join(' · ')}`;
-}
 
 function formatDateTime(unixSeconds: number): string {
     const d = new Date(unixSeconds * 1000);
@@ -785,10 +717,23 @@ function formatDuration(seconds: number): string {
 }
 
 /** Extract @handle from a Twitter/X URL. */
-function extractTwitterHandle(url: string): string | null {
-    const match = url.match(/(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)/i);
-    if (match && match[1] && !['home', 'search', 'explore', 'settings', 'i'].includes(match[1].toLowerCase())) {
-        return `@${match[1]}`;
+/**
+ * Extract a clean X/Twitter handle from a URL or raw username string.
+ * Handles full URLs, tweet status links, and bare usernames.
+ * Returns just the handle (without @) or null if unparseable.
+ */
+function cleanXHandle(input: string): string | null {
+    if (!input) return null;
+    // Strip URL prefix to get the path
+    const path = input.replace(/^https?:\/\/(?:www\.)?(?:twitter|x)\.com\//, '').replace(/^@/, '');
+    // Take only the first path segment (the username), ignore /status/... etc.
+    const handle = path.split(/[/?#]/)[0]?.trim();
+    if (!handle || ['home', 'search', 'explore', 'settings', 'i'].includes(handle.toLowerCase())) {
+        return null;
+    }
+    // Validate it looks like a username (alphanumeric + underscore)
+    if (/^[a-zA-Z0-9_]{1,15}$/.test(handle)) {
+        return handle;
     }
     return null;
 }
