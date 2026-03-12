@@ -252,6 +252,31 @@ npx serve .
 
 ---
 
+## Live Deployments
+
+Current production deployments and their hosting platforms:
+
+### Vercel
+
+| URL | Component | Notes |
+|-----|-----------|-------|
+| [pump-fun-websocket.vercel.app](https://pump-fun-websocket.vercel.app/) | Live dashboards (index) | Token launch dashboard |
+| [pump-fun-websocket.vercel.app/trades](https://pump-fun-websocket.vercel.app/trades) | Live dashboards (trades) | Real-time trade analytics |
+
+- **Vercel project:** `pump-fun-sdk1`
+- **Source branch:** `main`
+- **Preview URLs:** `pump-fun-sdk1-*.vercel.app` (auto-generated per deployment)
+
+### Railway
+
+| Component | Notes |
+|-----------|-------|
+| Telegram bots | Channel bot, claim bot, outsiders bot |
+
+> Most Telegram bots are deployed on Railway. Live dashboards and static sites are on Vercel.
+
+---
+
 ## Production Checklist
 
 ### Before Going Live
