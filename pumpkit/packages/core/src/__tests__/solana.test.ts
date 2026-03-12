@@ -23,17 +23,20 @@ import {
 describe('programs constants', () => {
   it('exports valid Pump program ID', () => {
     expect(PUMP_PROGRAM_ID).toBe('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P');
-    expect(PUMP_PROGRAM_ID).toHaveLength(44);
+    expect(PUMP_PROGRAM_ID.length).toBeGreaterThanOrEqual(32);
+    expect(PUMP_PROGRAM_ID.length).toBeLessThanOrEqual(44);
   });
 
   it('exports valid PumpAMM program ID', () => {
     expect(PUMP_AMM_PROGRAM_ID).toBe('pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA');
-    expect(PUMP_AMM_PROGRAM_ID).toHaveLength(44);
+    expect(PUMP_AMM_PROGRAM_ID.length).toBeGreaterThanOrEqual(32);
+    expect(PUMP_AMM_PROGRAM_ID.length).toBeLessThanOrEqual(44);
   });
 
   it('exports valid PumpFees program ID', () => {
     expect(PUMP_FEE_PROGRAM_ID).toBe('pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ');
-    expect(PUMP_FEE_PROGRAM_ID).toHaveLength(44);
+    expect(PUMP_FEE_PROGRAM_ID.length).toBeGreaterThanOrEqual(32);
+    expect(PUMP_FEE_PROGRAM_ID.length).toBeLessThanOrEqual(44);
   });
 
   it('exports valid known accounts', () => {
@@ -199,7 +202,9 @@ describe('RpcFallback', () => {
         return 'fallback-result';
       });
       expect(result).toBe('fallback-result');
-      expect(callCount).toBe(2);
+      // Primary retries 3 times (reportFailure triggers rotation after 3 consecutive fails),
+      // then fallback succeeds = 4 total calls
+      expect(callCount).toBe(4);
     });
 
     it('throws non-retryable errors immediately', async () => {

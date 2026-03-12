@@ -98,6 +98,136 @@ swarm-bot/
         └── ...          # Pluggable trading strategies
 ```
 
+## Strategies
+
+### Sniper
+
+Buys new token launches instantly, sells at profit target or stop-loss.
+
+| Parameter | Description |
+|-----------|-------------|
+| `maxAgeSec` | Maximum age of launch to consider |
+| `maxMarketCapSol` | Maximum market cap (SOL) to enter |
+| `takeProfitMultiple` | Sell when price reaches this multiple of entry |
+| `stopLossPercent` | Sell when price drops by this percentage |
+
+### Momentum
+
+Buys tokens with rising market cap velocity, rides the wave.
+
+| Parameter | Description |
+|-----------|-------------|
+| `minMcapSol` / `maxMcapSol` | Market cap range to consider |
+| `entryVelocityPctPerSec` | Required mcap growth rate to enter |
+| `exitVelocityPctPerSec` | Mcap decline rate triggering exit |
+| `takeProfitPct` / `stopLossPct` | Profit target and stop loss |
+| `windowSec` | Lookback window for velocity calculation |
+
+### Graduation
+
+Accumulates tokens approaching graduation, sells into AMM liquidity.
+
+| Parameter | Description |
+|-----------|-------------|
+| `minProgressBps` | Minimum graduation progress to monitor |
+| `entryProgressBps` | Progress threshold to start buying |
+| `maxEntrySol` | Maximum SOL to spend on entry |
+| `entryTranches` | Number of buy tranches |
+| `holdAfterGradMs` | Hold duration after graduation (ms) |
+| `takeProfitPct` / `stopLossPct` | Profit target and stop loss |
+
+### Market Maker
+
+Grid-style buy/sell around the bonding curve midpoint.
+
+| Parameter | Description |
+|-----------|-------------|
+| `targetPositionSol` | Target position size in SOL |
+| `gridSpreadPct` | Spread between grid levels |
+| `rebalanceThresholdPct` | Deviation threshold to rebalance |
+| `minMcapSol` / `maxMcapSol` | Market cap operating range |
+| `maxInventoryDeviationPct` | Maximum inventory imbalance |
+
+## API Reference
+
+All endpoints are prefixed with `/api/`. The server also serves the dashboard at `/` and WebSocket at `/ws`.
+
+### Bot Management
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/bots` | List all bots |
+| `POST` | `/api/bots` | Create a new bot |
+| `GET` | `/api/bots/:id` | Get bot details + open positions |
+| `DELETE` | `/api/bots/:id` | Delete a bot |
+
+### Bot Actions
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/bots/:id/start` | Start a bot |
+| `POST` | `/api/bots/:id/pause` | Pause a running bot |
+| `POST` | `/api/bots/:id/resume` | Resume a paused bot |
+| `POST` | `/api/bots/:id/stop` | Stop a bot |
+| `POST` | `/api/bots/:id/emergency-exit` | Sell all positions immediately |
+
+### Mint Management
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/bots/:id/mints` | Add a mint to track |
+| `DELETE` | `/api/bots/:id/mints/:mint` | Remove a tracked mint |
+
+### Swarm Control
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/swarm/start-all` | Start all bots |
+| `POST` | `/api/swarm/stop-all` | Stop all bots |
+| `POST` | `/api/swarm/emergency-shutdown` | Emergency exit all bots |
+
+### Info
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/stats` | Global swarm statistics |
+| `GET` | `/api/strategies` | List available strategies with params |
+| `GET` | `/api/health` | Health check |
+
+### Create Bot Example
+
+```bash
+curl -X POST http://localhost:3100/api/bots \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "alpha-sniper",
+    "strategy": "sniper",
+    "maxBuySol": 1,
+    "maxPositions": 5,
+    "slippageBps": 500,
+    "params": {
+      "maxAgeSec": 30,
+      "maxMarketCapSol": 100,
+      "takeProfitMultiple": 3,
+      "stopLossPercent": 30
+    }
+  }'
+```
+
+### WebSocket
+
+Connect to `ws://localhost:3100/ws` for real-time streaming of bot status changes, trade executions, token launches, price updates, and graduation events.
+
+## Dashboard
+
+The embedded web dashboard is served at `http://localhost:3100` and provides:
+
+- **Bot Fleet Overview** — status, strategy, wallet, and position count per bot
+- **Real-Time Events** — token launches, trades, and graduations
+- **Position Tracking** — open positions with entry price, current price, and unrealized PnL
+- **Strategy Controls** — create, start, pause, resume, and stop bots
+- **Global Stats** — total SOL deployed, active bots, and tokens tracked
+
 ## Docker
 
 ```bash
@@ -110,6 +240,8 @@ docker run -d \
   -p 3100:3100 \
   -v swarm-data:/app/data \
   -e SOLANA_RPC_URL=https://your-rpc.com \
+  -e MAX_POSITION_SOL_PER_BOT=2 \
+  -e MAX_TOTAL_POSITION_SOL=20 \
   pump-swarm-bot
 ```
 
@@ -118,6 +250,39 @@ The Docker image uses:
 - **tini** — Proper PID 1 init for signal handling
 - **Multi-stage build** — Build artifacts only in production image
 - **Persistent volume** at `/app/data` for SQLite database
+
+## Development
+
+### Adding a Strategy
+
+1. Create `src/strategies/my-strategy.ts` implementing the `Strategy` interface:
+
+```typescript
+import type { Strategy, TradeSignal, TokenSnapshot, StrategyConfig } from './types.js';
+
+export class MyStrategy implements Strategy {
+  name = 'my-strategy';
+
+  init(config: StrategyConfig): void {
+    // Initialize with user params
+  }
+
+  evaluate(snapshot: TokenSnapshot): TradeSignal {
+    return { action: 'hold', mint: snapshot.mint, reason: 'waiting', urgency: 0 };
+  }
+}
+```
+
+2. Register in `src/strategies/index.ts`:
+
+```typescript
+export const STRATEGY_REGISTRY: Record<string, () => Strategy> = {
+  // ...existing
+  'my-strategy': () => new MyStrategy(),
+};
+```
+
+3. The strategy is immediately available via the API and dashboard.
 
 ## Dependencies
 
@@ -147,6 +312,15 @@ The Docker image uses:
 - Set `MAX_POSITION_SOL_PER_BOT` and `MAX_TOTAL_POSITION_SOL` conservatively
 - Monitor the dashboard for unexpected position sizes
 - SQLite database contains trade history — protect file permissions
+
+## Related Components
+
+| Component | Directory | Description |
+|-----------|-----------|-------------|
+| Swarm Orchestrator | `swarm/` | Higher-level fleet orchestration + event bus |
+| Telegram Bot | `telegram-bot/` | PumpFun monitoring Telegram bot |
+| Dashboard | `dashboard/` | Standalone multi-service dashboard |
+| Pump SDK | `src/` | Core SDK for PumpFun instructions |
 
 ## License
 

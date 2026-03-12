@@ -12,12 +12,10 @@ import { ClaimMonitor } from '../monitor/ClaimMonitor.js';
 type LogCallback = (logInfo: { err: null | object; signature: string; logs: string[] }) => void;
 
 function createMockConnection() {
-  let logCallback: LogCallback | null = null;
   let subscriptionCounter = 0;
 
-  return {
-    onLogs: vi.fn((_filter: unknown, callback: LogCallback) => {
-      logCallback = callback;
+  const mock = {
+    onLogs: vi.fn((_filter: unknown, _callback: LogCallback) => {
       return ++subscriptionCounter;
     }),
     removeOnLogsListener: vi.fn(async () => {}),
@@ -25,12 +23,14 @@ function createMockConnection() {
     rpcEndpoint: 'https://api.devnet.solana.com',
     /** Simulate receiving a log event on the WebSocket */
     _emitLog(signature: string, logs: string[], err: null | object = null) {
-      logCallback?.({ err, signature, logs });
-    },
-    _getCallback() {
-      return logCallback;
+      // Get the callback from the last onLogs call's second argument
+      const calls = mock.onLogs.mock.calls;
+      const lastCall = calls[calls.length - 1];
+      const callback = lastCall?.[1] as LogCallback | undefined;
+      callback?.({ err, signature, logs });
     },
   };
+  return mock;
 }
 
 // ── BaseMonitor ──────────────────────────────────────────────────────
@@ -515,9 +515,11 @@ describe('Monitor reconnect behavior', () => {
   it('falls back to reconnect when onLogs throws', () => {
     vi.useFakeTimers();
     const conn = createMockConnection();
-    // Make onLogs throw to trigger reconnect
-    conn.onLogs.mockImplementationOnce(() => {
-      throw new Error('WebSocket broke');
+    let callCount = 0;
+    conn.onLogs.mockImplementation((_f: unknown, _cb: LogCallback) => {
+      callCount++;
+      if (callCount === 1) throw new Error('WebSocket broke');
+      return 1;
     });
 
     const monitor = new LaunchMonitor({
@@ -527,14 +529,12 @@ describe('Monitor reconnect behavior', () => {
 
     monitor.start();
     // First call threw, should schedule reconnect
+    expect(callCount).toBe(1);
     expect(monitor.status().running).toBe(true);
 
     // After the reconnect delay, it should try again
-    conn.onLogs.mockImplementation((_f: unknown, cb: LogCallback) => {
-      return 1;
-    });
     vi.advanceTimersByTime(1000);
-    expect(conn.onLogs).toHaveBeenCalledTimes(2);
+    expect(callCount).toBe(2);
 
     monitor.stop();
     vi.useRealTimers();
