@@ -5,11 +5,11 @@
 ## Prerequisites
 
 - Node.js 18+
-- `@pump-fun/pump-sdk` installed
+- `@nirholas/pump-sdk` installed
 - Understanding of [Tutorial 02](./02-buy-tokens.md) (buying) and [Tutorial 06](./06-migration.md) (migration)
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js bn.js
+npm install @nirholas/pump-sdk @solana/web3.js bn.js
 ```
 
 ## The Two Programs
@@ -38,7 +38,7 @@ Pump tokens live on **two different programs** depending on their lifecycle stag
 
 ```typescript
 import { Connection, PublicKey } from "@solana/web3.js";
-import { OnlinePumpSdk, bondingCurveGraduationProgress } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, bondingCurveGraduationProgress } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
@@ -74,7 +74,7 @@ import {
   PUMP_SDK,
   getBuyTokenAmountFromSolAmount,
   getSellSolAmountFromTokenAmount,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 async function buyOnBondingCurve(mint: PublicKey, user: PublicKey, solAmount: BN) {
   const bc = await onlineSdk.fetchBondingCurve(mint);

@@ -23,7 +23,7 @@ import {
   bondingCurvePda,
   canonicalPumpPoolPda,
   isCreatorUsingSharingConfig,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const sdk = new OnlinePumpSdk(connection);
@@ -225,7 +225,7 @@ After migration, the token trades on the PumpAMM program with pool-based swaps.
 After migration, buy and sell tokens on the AMM pool:
 
 ```typescript
-import { canonicalPumpPoolPda } from "@pump-fun/pump-sdk";
+import { canonicalPumpPoolPda } from "@nirholas/pump-sdk";
 
 const pool = canonicalPumpPoolPda(mint.publicKey);
 

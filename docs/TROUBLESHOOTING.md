@@ -6,12 +6,12 @@
 
 ## Installation Issues
 
-### `Cannot find module '@pump-fun/pump-sdk'`
+### `Cannot find module '@nirholas/pump-sdk'`
 
 Make sure you've installed both the SDK and its peer dependencies:
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js @coral-xyz/anchor @solana/spl-token bn.js
+npm install @nirholas/pump-sdk @solana/web3.js @coral-xyz/anchor @solana/spl-token bn.js
 ```
 
 ### `Error: Cannot find module '@coral-xyz/anchor'`
@@ -36,10 +36,10 @@ The SDK ships both ESM and CJS builds. If you're getting import errors:
 
 ```typescript
 // ESM (import)
-import { PumpSdk, PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PumpSdk, PUMP_SDK } from "@nirholas/pump-sdk";
 
 // CJS (require)
-const { PumpSdk, PUMP_SDK } = require("@pump-fun/pump-sdk");
+const { PumpSdk, PUMP_SDK } = require("@nirholas/pump-sdk");
 ```
 
 If you're in a `.mjs` file or `"type": "module"` in package.json, use the ESM import.

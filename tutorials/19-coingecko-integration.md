@@ -31,7 +31,7 @@ The Pump SDK gives you on-chain bonding curve data (SOL-denominated). CoinGecko 
 ## Step 1: Setup
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js bn.js
+npm install @nirholas/pump-sdk @solana/web3.js bn.js
 ```
 
 CoinGecko's free API requires no API key for basic endpoints. For higher rate limits, get a key at [coingecko.com](https://www.coingecko.com/en/api).
@@ -164,7 +164,7 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import {
   OnlinePumpSdk,
   bondingCurveMarketCap,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 import BN from "bn.js";
 import { coingecko } from "./coingecko";
 
@@ -327,7 +327,7 @@ export const priceFeed = new PriceFeed(60_000); // Refresh every 60s
 ### Usage with Pump SDK
 
 ```typescript
-import { OnlinePumpSdk, bondingCurveMarketCap } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, bondingCurveMarketCap } from "@nirholas/pump-sdk";
 import { priceFeed } from "./price-feed";
 
 const bc = await onlineSdk.fetchBondingCurve(mint);
@@ -394,7 +394,7 @@ Compare Pump bonding curve price vs CoinGecko price for graduated tokens:
 ```typescript
 // src/price-comparison.ts
 import { Connection, PublicKey } from "@solana/web3.js";
-import { OnlinePumpSdk, bondingCurveMarketCap } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, bondingCurveMarketCap } from "@nirholas/pump-sdk";
 import { coingecko } from "./coingecko";
 
 const connection = new Connection(process.env.SOLANA_RPC_URL!, "confirmed");

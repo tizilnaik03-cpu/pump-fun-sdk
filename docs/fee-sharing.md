@@ -19,7 +19,7 @@ import {
   OnlinePumpSdk,
   isCreatorUsingSharingConfig,
   feeSharingConfigPda,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const onlineSdk = new OnlinePumpSdk(connection);
@@ -41,7 +41,7 @@ const ix = await PUMP_SDK.createFeeSharingConfig({
 });
 
 // For graduated tokens (on AMM), you must provide the pool:
-import { canonicalPumpPoolPda } from "@pump-fun/pump-sdk";
+import { canonicalPumpPoolPda } from "@nirholas/pump-sdk";
 const pool = canonicalPumpPoolPda(mint);
 
 const ix = await PUMP_SDK.createFeeSharingConfig({

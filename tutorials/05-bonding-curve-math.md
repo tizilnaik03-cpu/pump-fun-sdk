@@ -17,7 +17,7 @@ As tokens are bought, `virtualTokenReserves` decreases and `virtualSolReserves` 
 ## Key State Variables
 
 ```typescript
-import { BondingCurve } from "@pump-fun/pump-sdk";
+import { BondingCurve } from "@nirholas/pump-sdk";
 
 // These are the fields on every BondingCurve account:
 interface BondingCurve {
@@ -37,7 +37,7 @@ interface BondingCurve {
 Given a SOL amount, how many tokens will you receive?
 
 ```typescript
-import { getBuyTokenAmountFromSolAmount, OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { getBuyTokenAmountFromSolAmount, OnlinePumpSdk } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
@@ -66,7 +66,7 @@ console.log(`1 SOL buys ${tokensOut.toString()} tokens`);
 Given a token amount, how much SOL will you receive?
 
 ```typescript
-import { getSellSolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getSellSolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 
 const tokenAmount = new BN("1000000000"); // Tokens to sell
 const solOut = getSellSolAmountFromTokenAmount({
@@ -85,7 +85,7 @@ console.log(`Selling tokens → ${solOut.toNumber() / 1e9} SOL`);
 How much SOL to buy a specific number of tokens?
 
 ```typescript
-import { getBuySolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getBuySolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 
 const wantTokens = new BN("5000000000"); // Want this many tokens
 const solCost = getBuySolAmountFromTokenAmount({
@@ -102,7 +102,7 @@ console.log(`Cost to buy tokens: ${solCost.toNumber() / 1e9} SOL`);
 ## Market Cap Calculation
 
 ```typescript
-import { bondingCurveMarketCap } from "@pump-fun/pump-sdk";
+import { bondingCurveMarketCap } from "@nirholas/pump-sdk";
 
 const marketCap = bondingCurveMarketCap({
   mintSupply: bondingCurve.tokenTotalSupply,
@@ -119,7 +119,7 @@ console.log("Market cap:", marketCap.toNumber() / 1e9, "SOL");
 Generate price points across the bonding curve to plot a chart:
 
 ```typescript
-import { newBondingCurve, getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk";
+import { newBondingCurve, getBuyTokenAmountFromSolAmount } from "@nirholas/pump-sdk";
 
 function generatePriceCurve(global: Global, feeConfig: FeeConfig, steps: number = 20) {
   const curve = newBondingCurve(global);

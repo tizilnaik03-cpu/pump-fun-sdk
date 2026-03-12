@@ -1,7 +1,7 @@
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
-import { OnlinePumpSdk } from '@pump-fun/pump-sdk';
-import { getGraduationProgress, bondingCurveMarketCap } from '@pump-fun/pump-sdk';
+import { OnlinePumpSdk } from '@nirholas/pump-sdk';
+import { getGraduationProgress, bondingCurveMarketCap } from '@nirholas/pump-sdk';
 import type { Strategy, StrategyConfig, TokenSnapshot, TradeSignal } from '../strategies/types.js';
 import { STRATEGY_REGISTRY } from '../strategies/index.js';
 import { Executor } from './executor.js';

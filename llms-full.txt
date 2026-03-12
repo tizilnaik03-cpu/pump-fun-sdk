@@ -6,7 +6,7 @@ This file provides comprehensive context for AI assistants working with this cod
 
 ## Project Overview
 
-The Pump SDK (`@pump-fun/pump-sdk`) is a TypeScript SDK for the Pump protocol — a Solana-based token launchpad with bonding curve pricing, automatic AMM migration, tiered fees, creator fee sharing, token incentives, and social fee integrations. Also includes vanity address generators (Rust + TypeScript), MCP server (53 tools), WebSocket relay, live dashboards, Telegram bot (10 commands), and production shell scripts. Uses ONLY official Solana Labs libraries for all cryptographic operations.
+The Pump SDK (`@nirholas/pump-sdk`) is a TypeScript SDK for the Pump protocol — a Solana-based token launchpad with bonding curve pricing, automatic AMM migration, tiered fees, creator fee sharing, token incentives, and social fee integrations. Also includes vanity address generators (Rust + TypeScript), MCP server (53 tools), WebSocket relay, live dashboards, Telegram bot (10 commands), and production shell scripts. Uses ONLY official Solana Labs libraries for all cryptographic operations.
 
 ## Official Libraries Only
 
@@ -217,7 +217,7 @@ TypeScript Vanity:
 
 ### SDK Usage
 ```typescript
-import { OnlinePumpSdk, PUMP_SDK, getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, PUMP_SDK, getBuyTokenAmountFromSolAmount } from "@nirholas/pump-sdk";
 
 const sdk = new OnlinePumpSdk(connection);
 const global = await sdk.fetchGlobal();
@@ -297,7 +297,7 @@ See `.github/skills/` for 28 detailed skill documents:
 ## Repository
 
 - URL: https://github.com/nirholas/pump-fun-sdk
-- npm: https://www.npmjs.com/package/@pump-fun/pump-sdk
+- npm: https://www.npmjs.com/package/@nirholas/pump-sdk
 - Language: TypeScript
 - License: MIT
 - Author: nirholas

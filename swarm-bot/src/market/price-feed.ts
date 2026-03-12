@@ -1,7 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
-import { OnlinePumpSdk } from '@pump-fun/pump-sdk';
-import { bondingCurveMarketCap, getGraduationProgress } from '@pump-fun/pump-sdk';
+import { OnlinePumpSdk } from '@nirholas/pump-sdk';
+import { bondingCurveMarketCap, getGraduationProgress } from '@nirholas/pump-sdk';
 import { EventEmitter } from 'events';
 import { logger } from '../logger.js';
 

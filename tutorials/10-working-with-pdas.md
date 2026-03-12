@@ -24,7 +24,7 @@ import {
   GLOBAL_PDA,
   PUMP_FEE_CONFIG_PDA,
   GLOBAL_VOLUME_ACCUMULATOR_PDA,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 import { PublicKey } from "@solana/web3.js";
 ```
 
@@ -82,7 +82,7 @@ console.log("Creator vault:", vault.toBase58());
 After graduation, creator fees accumulate in a separate AMM vault:
 
 ```typescript
-import { ammCreatorVaultPda } from "@pump-fun/pump-sdk";
+import { ammCreatorVaultPda } from "@nirholas/pump-sdk";
 
 const ammVault = ammCreatorVaultPda(creator);
 console.log("AMM creator vault:", ammVault.toBase58());
@@ -93,7 +93,7 @@ console.log("AMM creator vault:", ammVault.toBase58());
 ### Fee Program Global
 
 ```typescript
-import { feeProgramGlobalPda } from "@pump-fun/pump-sdk";
+import { feeProgramGlobalPda } from "@nirholas/pump-sdk";
 
 const feeGlobal = feeProgramGlobalPda();
 console.log("Fee program global:", feeGlobal.toBase58());
@@ -105,7 +105,7 @@ console.log("Fee program global:", feeGlobal.toBase58());
 Social fee PDAs link off-chain user identities (e.g., Telegram user IDs) to on-chain fee accounts:
 
 ```typescript
-import { socialFeePda } from "@pump-fun/pump-sdk";
+import { socialFeePda } from "@nirholas/pump-sdk";
 
 const userId = "user123";
 const platform = 1; // platform identifier (e.g., 1 = Telegram)
@@ -132,7 +132,7 @@ console.log("User volume accumulator:", userVolume.toBase58());
 Volume on the AMM is tracked separately:
 
 ```typescript
-import { ammUserVolumeAccumulatorPda } from "@pump-fun/pump-sdk";
+import { ammUserVolumeAccumulatorPda } from "@nirholas/pump-sdk";
 
 const ammUserVolume = ammUserVolumeAccumulatorPda(user);
 console.log("AMM volume accumulator:", ammUserVolume.toBase58());
@@ -172,7 +172,7 @@ import {
   PUMP_EVENT_AUTHORITY_PDA,
   PUMP_AMM_EVENT_AUTHORITY_PDA,
   PUMP_FEE_EVENT_AUTHORITY_PDA,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 console.log("Pump global:", GLOBAL_PDA.toBase58());
 console.log("AMM global:", AMM_GLOBAL_PDA.toBase58());
@@ -188,7 +188,7 @@ console.log("AMM global config:", AMM_GLOBAL_CONFIG_PDA.toBase58());
 V2 PDAs use updated seed derivation. These are required for new tokens created after the V2 upgrade:
 
 ```typescript
-import { bondingCurveV2Pda, poolV2Pda } from "@pump-fun/pump-sdk";
+import { bondingCurveV2Pda, poolV2Pda } from "@nirholas/pump-sdk";
 
 const mint = new PublicKey("YOUR_MINT");
 
@@ -214,7 +214,7 @@ import {
   canonicalPumpPoolPda,
   feeSharingConfigPda,
   PUMP_SDK,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 async function exploreToken(mint: PublicKey) {
   const connection = new Connection("https://api.devnet.solana.com", "confirmed");

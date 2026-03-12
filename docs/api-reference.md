@@ -1,6 +1,6 @@
 # API Reference
 
-Complete reference for all public classes, functions, types, and constants exported by `@pump-fun/pump-sdk`.
+Complete reference for all public classes, functions, types, and constants exported by `@nirholas/pump-sdk`.
 
 The SDK exposes **42 instruction builders** across 4 on-chain programs (Pump, PumpAMM, PumpFees, Mayhem), plus decoders, analytics, PDA helpers, and fee math.
 
@@ -904,7 +904,7 @@ const socialFee = await sdk.fetchSocialFeePda("user123", 1);
 Calculate how many tokens you receive for a given SOL amount.
 
 ```typescript
-import { getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk";
+import { getBuyTokenAmountFromSolAmount } from "@nirholas/pump-sdk";
 
 const tokens = getBuyTokenAmountFromSolAmount({
   global: Global,
@@ -978,7 +978,7 @@ const curve = newBondingCurve(global: Global);
 Compute total unclaimed token incentive rewards.
 
 ```typescript
-import { totalUnclaimedTokens } from "@pump-fun/pump-sdk";
+import { totalUnclaimedTokens } from "@nirholas/pump-sdk";
 
 const unclaimed = totalUnclaimedTokens(
   globalVolumeAccumulator,
@@ -1036,7 +1036,7 @@ const todayRewards = currentDayTokens(
 Calculates the total fee (protocol + creator) for a given trade amount.
 
 ```typescript
-import { getFee } from "@pump-fun/pump-sdk";
+import { getFee } from "@nirholas/pump-sdk";
 
 const fee = getFee({
   global: Global,
@@ -1053,7 +1053,7 @@ const fee = getFee({
 Compute the protocol and creator fee rates in basis points. Uses tiered fees when available, otherwise falls back to global defaults.
 
 ```typescript
-import { computeFeesBps } from "@pump-fun/pump-sdk";
+import { computeFeesBps } from "@nirholas/pump-sdk";
 
 const { protocolFeeBps, creatorFeeBps } = computeFeesBps({
   global: Global,
@@ -1069,7 +1069,7 @@ const { protocolFeeBps, creatorFeeBps } = computeFeesBps({
 Select the appropriate fee tier based on market cap. Returns the full `Fees` object.
 
 ```typescript
-import { calculateFeeTier } from "@pump-fun/pump-sdk";
+import { calculateFeeTier } from "@nirholas/pump-sdk";
 
 const fees: Fees = calculateFeeTier({
   feeTiers: FeeTier[],

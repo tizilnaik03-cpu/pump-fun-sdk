@@ -9,7 +9,7 @@ When you create a token and buy separately, someone could frontrun your buy. By 
 ## Prerequisites
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js bn.js
+npm install @nirholas/pump-sdk @solana/web3.js bn.js
 ```
 
 ## Using `createV2AndBuyInstructions`
@@ -18,7 +18,7 @@ The SDK provides a dedicated method that combines token creation and buying:
 
 ```typescript
 import { Connection, Keypair, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
-import { PUMP_SDK, OnlinePumpSdk, getBuyTokenAmountFromSolAmount, newBondingCurve } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, OnlinePumpSdk, getBuyTokenAmountFromSolAmount, newBondingCurve } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 async function createAndBuy() {
@@ -86,7 +86,7 @@ createAndBuy();
 Since the token doesn't exist yet, you can't fetch its bonding curve. Use `newBondingCurve(global)` to create a virtual bonding curve representing the initial state:
 
 ```typescript
-import { newBondingCurve, bondingCurveMarketCap } from "@pump-fun/pump-sdk";
+import { newBondingCurve, bondingCurveMarketCap } from "@nirholas/pump-sdk";
 
 const initial = newBondingCurve(global);
 console.log("Initial virtual SOL reserves:", initial.virtualSolReserves.toString());
@@ -117,7 +117,7 @@ Since you're the first buyer on an atomic create-and-buy, you can use very tight
 You can combine create-and-buy with immediate fee sharing setup — launch a token with shareholders from the start:
 
 ```typescript
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 
 // First, build the create+buy instructions
 const createBuyIxs = await PUMP_SDK.createV2AndBuyInstructions({

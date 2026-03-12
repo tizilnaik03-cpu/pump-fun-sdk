@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { PUMP_SDK, canonicalPumpPoolPda } from "@pump-fun/pump-sdk";
-import type { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, canonicalPumpPoolPda } from "@nirholas/pump-sdk";
+import type { OnlinePumpSdk } from "@nirholas/pump-sdk";
 import { publicKeySchema, bnStringSchema } from "../utils/validation.js";
 import { formatBN, instructionsToJson } from "../utils/formatting.js";
 import { success, error, getErrorMessage } from "../types.js";

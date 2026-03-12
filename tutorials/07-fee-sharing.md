@@ -9,7 +9,7 @@ When tokens trade on Pump, creator fees are generated on every buy and sell. By 
 ## Prerequisites
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js
+npm install @nirholas/pump-sdk @solana/web3.js
 ```
 
 ## Step 1: Create a Fee Sharing Config
@@ -18,7 +18,7 @@ First, the token creator must create a sharing config:
 
 ```typescript
 import { Connection, Keypair, PublicKey, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const creator = Keypair.generate(); // The token creator
@@ -48,7 +48,7 @@ console.log("Fee sharing config created!");
 Define how fees are split. Shares are in **basis points** (BPS) where 10,000 BPS = 100%:
 
 ```typescript
-import { Shareholder } from "@pump-fun/pump-sdk";
+import { Shareholder } from "@nirholas/pump-sdk";
 
 const shareholders: Shareholder[] = [
   { address: new PublicKey("Wallet1..."), shareBps: 5000 }, // 50%
@@ -89,7 +89,7 @@ console.log("Fee shares updated!");
 Fees accumulate in a vault. Anyone can trigger distribution:
 
 ```typescript
-import { feeSharingConfigPda } from "@pump-fun/pump-sdk";
+import { feeSharingConfigPda } from "@nirholas/pump-sdk";
 
 const sharingConfigAddress = feeSharingConfigPda(mint);
 
@@ -131,7 +131,7 @@ import {
   ZeroShareError,
   InvalidShareTotalError,
   DuplicateShareholderError,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 try {
   await PUMP_SDK.updateFeeShares({
@@ -154,7 +154,7 @@ try {
 ## Checking if a Token Uses Fee Sharing
 
 ```typescript
-import { isCreatorUsingSharingConfig } from "@pump-fun/pump-sdk";
+import { isCreatorUsingSharingConfig } from "@nirholas/pump-sdk";
 
 const bondingCurve = await onlineSdk.fetchBondingCurve(mint);
 
@@ -235,7 +235,7 @@ const updateIx = await PUMP_SDK.updateFeeShares({
 For tokens that have graduated to the AMM, pass the pool address when creating the config:
 
 ```typescript
-import { canonicalPumpPoolPda } from "@pump-fun/pump-sdk";
+import { canonicalPumpPoolPda } from "@nirholas/pump-sdk";
 
 const pool = canonicalPumpPoolPda(mint);
 

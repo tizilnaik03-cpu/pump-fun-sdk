@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-The Pump SDK (`@pump-fun/pump-sdk`) is a TypeScript SDK for the Pump protocol — a Solana-based token launchpad. It provides offline-first instruction builders for token creation, buying, selling, migration, and fee management across three on-chain programs.
+The Pump SDK (`@nirholas/pump-sdk`) is a TypeScript SDK for the Pump protocol — a Solana-based token launchpad. It provides offline-first instruction builders for token creation, buying, selling, migration, and fee management across three on-chain programs.
 
 The repository also includes:
 - **Rust vanity address generator** — multi-threaded, 100K+ keys/sec with rayon + solana-sdk

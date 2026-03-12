@@ -5,11 +5,11 @@
 ## Prerequisites
 
 - Node.js 18+
-- `@pump-fun/pump-sdk` installed
+- `@nirholas/pump-sdk` installed
 - An MCP-compatible AI client (Claude Desktop, Cursor, or any MCP host)
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js @modelcontextprotocol/sdk bn.js bs58
+npm install @nirholas/pump-sdk @solana/web3.js @modelcontextprotocol/sdk bn.js bs58
 ```
 
 ## What Is MCP?
@@ -40,7 +40,7 @@ import {
   CallToolRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import { OnlinePumpSdk, PUMP_SDK } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, PUMP_SDK } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const connection = new Connection(
@@ -135,7 +135,7 @@ import {
   getBuyTokenAmountFromSolAmount,
   bondingCurveMarketCap,
   bondingCurveGraduationProgress,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;

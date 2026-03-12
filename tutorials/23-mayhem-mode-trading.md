@@ -5,11 +5,11 @@
 ## Prerequisites
 
 - Node.js 18+
-- `@pump-fun/pump-sdk` installed
+- `@nirholas/pump-sdk` installed
 - Understanding of [Tutorial 01](./01-create-token.md) (basic token creation)
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js bn.js
+npm install @nirholas/pump-sdk @solana/web3.js bn.js
 ```
 
 ## What Is Mayhem Mode?
@@ -31,7 +31,7 @@ Mayhem Mode is an alternative token creation path on Pump. When enabled:
 
 ```typescript
 import { Connection, Keypair, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
-import { PUMP_SDK, OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const creator = Keypair.generate(); // Your funded wallet
@@ -60,7 +60,7 @@ import {
   getMayhemStatePda,
   getSolVaultPda,
   getTokenVaultPda,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 // Mayhem-specific PDAs
 const globalParams = getGlobalParamsPda();
@@ -85,7 +85,7 @@ console.log("Token Vault PDA:", tokenVault.toBase58());
 Buying works the same as standard tokens — the SDK handles routing internally:
 
 ```typescript
-import { getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk";
+import { getBuyTokenAmountFromSolAmount } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const onlineSdk = new OnlinePumpSdk(connection);
@@ -119,7 +119,7 @@ const buyIxs = await onlineSdk.buyInstructions({
 In standard mode, fee tiers are calculated against a fixed supply of 1 billion tokens. In Mayhem Mode, the **actual minted supply** is used, which can place your token in a different fee tier:
 
 ```typescript
-import { computeFeesBps } from "@pump-fun/pump-sdk";
+import { computeFeesBps } from "@nirholas/pump-sdk";
 
 // Standard mode — always uses ONE_BILLION_SUPPLY
 const standardFees = computeFeesBps(feeConfig, new BN("1000000000000000")); // 1B supply

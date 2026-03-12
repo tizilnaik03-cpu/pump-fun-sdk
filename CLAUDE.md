@@ -57,7 +57,7 @@ Three on-chain programs:
 
 ### Create a token
 ```typescript
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 
 const ix = await PUMP_SDK.createV2Instruction({
   mint, name, symbol, uri, creator, user,
@@ -67,7 +67,7 @@ const ix = await PUMP_SDK.createV2Instruction({
 
 ### Buy tokens (needs on-chain state)
 ```typescript
-import { PUMP_SDK, OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, OnlinePumpSdk } from "@nirholas/pump-sdk";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 const online = new OnlinePumpSdk(connection);
@@ -83,7 +83,7 @@ const ixs = await PUMP_SDK.buyInstructions({
 
 ### Bonding curve math
 ```typescript
-import { getBuyTokenAmountFromSolAmount, getSellSolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getBuyTokenAmountFromSolAmount, getSellSolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 
 const tokens = getBuyTokenAmountFromSolAmount({ global, feeConfig, mintSupply, bondingCurve, amount });
 const sol = getSellSolAmountFromTokenAmount({ global, feeConfig, mintSupply, bondingCurve, amount });
@@ -105,25 +105,25 @@ const ix = await PUMP_SDK.createFeeSharingConfig({
 
 ```typescript
 // Core SDK
-import { PUMP_SDK, PumpSdk, OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, PumpSdk, OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 // Constants
-import { PUMP_PROGRAM_ID, PUMP_AMM_PROGRAM_ID, PUMP_FEE_PROGRAM_ID } from "@pump-fun/pump-sdk";
+import { PUMP_PROGRAM_ID, PUMP_AMM_PROGRAM_ID, PUMP_FEE_PROGRAM_ID } from "@nirholas/pump-sdk";
 
 // Bonding curve math
-import { getBuyTokenAmountFromSolAmount, getSellSolAmountFromTokenAmount, newBondingCurve } from "@pump-fun/pump-sdk";
+import { getBuyTokenAmountFromSolAmount, getSellSolAmountFromTokenAmount, newBondingCurve } from "@nirholas/pump-sdk";
 
 // PDAs
-import { bondingCurvePda, globalPda, feeSharingConfigPda } from "@pump-fun/pump-sdk";
+import { bondingCurvePda, globalPda, feeSharingConfigPda } from "@nirholas/pump-sdk";
 
 // State types
-import type { BondingCurve, Global, FeeConfig, SharingConfig, Pool, Shareholder } from "@pump-fun/pump-sdk";
+import type { BondingCurve, Global, FeeConfig, SharingConfig, Pool, Shareholder } from "@nirholas/pump-sdk";
 
 // Fees
-import { getFee, computeFeesBps, calculateFeeTier } from "@pump-fun/pump-sdk";
+import { getFee, computeFeesBps, calculateFeeTier } from "@nirholas/pump-sdk";
 
 // Analytics
-import { calculateBuyPriceImpact, getGraduationProgress, getTokenPrice } from "@pump-fun/pump-sdk";
+import { calculateBuyPriceImpact, getGraduationProgress, getTokenPrice } from "@nirholas/pump-sdk";
 
 // Solana
 import { Connection, PublicKey, TransactionInstruction } from "@solana/web3.js";
@@ -172,7 +172,7 @@ interface Global {
 5. **Returning `Transaction` instead of `TransactionInstruction[]`** — SDK returns instructions, not transactions.
 6. **Calling `npx tsc --noEmit`** — FORBIDDEN. Use `npm run typecheck`.
 7. **Not extending accounts before migration** — `BONDING_CURVE_NEW_SIZE = 151`, accounts may need extension.
-8. **Importing from internal paths** — Import from `@pump-fun/pump-sdk`, not `@pump-fun/pump-sdk/dist/...`.
+8. **Importing from internal paths** — Import from `@nirholas/pump-sdk`, not `@nirholas/pump-sdk/dist/...`.
 
 ## Project Layout
 

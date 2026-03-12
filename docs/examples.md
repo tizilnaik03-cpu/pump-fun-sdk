@@ -44,7 +44,7 @@ import {
   OnlinePumpSdk,
   PUMP_SDK,
   getBuyTokenAmountFromSolAmount,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const sdk = new OnlinePumpSdk(connection);
@@ -123,7 +123,7 @@ await sendAndConfirmTransaction(connection, tx, [wallet]);
 ## Sell Tokens
 
 ```typescript
-import { getSellSolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getSellSolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 const sellAmount = new BN(1_000_000); // tokens to sell
@@ -170,7 +170,7 @@ import {
   getBuySolAmountFromTokenAmount,
   getSellSolAmountFromTokenAmount,
   bondingCurveMarketCap,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 const sdk = new OnlinePumpSdk(connection);
 const global = await sdk.fetchGlobal();
@@ -238,7 +238,7 @@ import {
   PUMP_SDK,
   isCreatorUsingSharingConfig,
   feeSharingConfigPda,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 // 1. Create config
 const createIx = await PUMP_SDK.createFeeSharingConfig({
@@ -316,7 +316,7 @@ if (bondingCurve.complete) {
 After a token graduates to the AMM, trade using pool-based instructions:
 
 ```typescript
-import { PUMP_SDK, canonicalPumpPoolPda } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, canonicalPumpPoolPda } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const mint = new PublicKey("graduated-token-mint");
@@ -476,7 +476,7 @@ await sendAndConfirmTransaction(connection, tx, [wallet]);
 Use the offline SDK to decode raw account data:
 
 ```typescript
-import { PUMP_SDK, bondingCurvePda, GLOBAL_PDA } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, bondingCurvePda, GLOBAL_PDA } from "@nirholas/pump-sdk";
 
 // Fetch and decode a bonding curve
 const bcAddress = bondingCurvePda(mint);
@@ -499,7 +499,7 @@ if (globalInfo) {
 Calculate how much a trade will move the price:
 
 ```typescript
-import { calculateBuyPriceImpact, calculateSellPriceImpact } from "@pump-fun/pump-sdk";
+import { calculateBuyPriceImpact, calculateSellPriceImpact } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 // Buy impact
@@ -534,7 +534,7 @@ console.log(`SOL received: ${sellImpact.outputAmount.toString()} lamports`);
 Check how close a token is to graduating:
 
 ```typescript
-import { getGraduationProgress } from "@pump-fun/pump-sdk";
+import { getGraduationProgress } from "@nirholas/pump-sdk";
 
 const progress = getGraduationProgress(global, bondingCurve);
 
@@ -549,7 +549,7 @@ console.log(`SOL accumulated: ${progress.solAccumulated.toString()} lamports`);
 Get a comprehensive snapshot in one call:
 
 ```typescript
-import { getBondingCurveSummary } from "@pump-fun/pump-sdk";
+import { getBondingCurveSummary } from "@nirholas/pump-sdk";
 
 const summary = getBondingCurveSummary({ global, feeConfig, mintSupply: bondingCurve.tokenTotalSupply, bondingCurve });
 

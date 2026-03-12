@@ -4,7 +4,7 @@
 
 ## Core SDK
 
-**Directory:** `src/` · **Language:** TypeScript · **Package:** `@pump-fun/pump-sdk`
+**Directory:** `src/` · **Language:** TypeScript · **Package:** `@nirholas/pump-sdk`
 
 The foundation of the project. Builds `TransactionInstruction[]` for every operation on the Pump protocol — token creation, buying, selling, migration, fee sharing, token incentives, and analytics.
 
@@ -323,7 +323,7 @@ Progressive tutorials from "create your first token" to building monitoring syst
 ### Install the SDK
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
+npm install @nirholas/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
 ```
 
 ### Run Each Component

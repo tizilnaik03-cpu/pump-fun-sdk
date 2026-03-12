@@ -1,9 +1,9 @@
 import { Connection, Keypair, TransactionInstruction, TransactionMessage, VersionedTransaction, PublicKey, SendTransactionError } from '@solana/web3.js';
 import BN from 'bn.js';
-import { PUMP_SDK } from '@pump-fun/pump-sdk';
-import { OnlinePumpSdk } from '@pump-fun/pump-sdk';
-import { getBuyTokenAmountFromSolAmount, getSellSolAmountFromTokenAmount } from '@pump-fun/pump-sdk';
-import { getGraduationProgress } from '@pump-fun/pump-sdk';
+import { PUMP_SDK } from '@nirholas/pump-sdk';
+import { OnlinePumpSdk } from '@nirholas/pump-sdk';
+import { getBuyTokenAmountFromSolAmount, getSellSolAmountFromTokenAmount } from '@nirholas/pump-sdk';
+import { getGraduationProgress } from '@nirholas/pump-sdk';
 import { logger } from '../logger.js';
 
 export interface ExecuteResult {

@@ -5,11 +5,11 @@
 ## Prerequisites
 
 - Node.js 18+
-- `@pump-fun/pump-sdk` installed
+- `@nirholas/pump-sdk` installed
 - Understanding of [Tutorial 05](./05-bonding-curve-math.md) (bonding curve basics)
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js bn.js
+npm install @nirholas/pump-sdk @solana/web3.js bn.js
 ```
 
 ## The Quote Function Family
@@ -34,7 +34,7 @@ All analytics functions need on-chain state. Fetch it once and reuse:
 
 ```typescript
 import { Connection, PublicKey } from "@solana/web3.js";
-import { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
@@ -55,7 +55,7 @@ const mintSupply = bondingCurve.tokenTotalSupply;
 ## Step 2: Buy Quotes (SOL → Tokens)
 
 ```typescript
-import { getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk";
+import { getBuyTokenAmountFromSolAmount } from "@nirholas/pump-sdk";
 
 // "I want to spend 0.1 SOL — how many tokens will I get?"
 const solToSpend = new BN(100_000_000); // 0.1 SOL in lamports
@@ -74,7 +74,7 @@ console.log(`Spending 0.1 SOL → ${tokensOut.toString()} tokens`);
 ## Step 3: Reverse Buy Quote (Tokens → SOL Cost)
 
 ```typescript
-import { getBuySolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getBuySolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 
 // "I want exactly 1,000,000 tokens — how much SOL will that cost (including fees)?"
 const tokensWanted = new BN("1000000");
@@ -93,7 +93,7 @@ console.log(`Buying 1,000,000 tokens costs ${solCost.toNumber() / 1e9} SOL`);
 ## Step 4: Sell Quotes (Tokens → SOL)
 
 ```typescript
-import { getSellSolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getSellSolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 
 // "If I sell 500,000 tokens, how much SOL do I get (after fees)?"
 const tokensToSell = new BN("500000");
@@ -117,7 +117,7 @@ Understand how much your trade moves the market:
 import {
   calculateBuyPriceImpact,
   calculateSellPriceImpact,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 // Buy impact for 1 SOL
 const buyImpact = calculateBuyPriceImpact({
@@ -155,7 +155,7 @@ console.log(`SOL out:      ${sellImpact.outputAmount.toString()}`);
 Get the current buy and sell price in a single call:
 
 ```typescript
-import { getTokenPrice } from "@pump-fun/pump-sdk";
+import { getTokenPrice } from "@nirholas/pump-sdk";
 
 const priceInfo = getTokenPrice({
   global,
@@ -175,7 +175,7 @@ console.log(`Graduated:  ${priceInfo.isGraduated}`);
 ## Step 7: Graduation Progress
 
 ```typescript
-import { getGraduationProgress } from "@pump-fun/pump-sdk";
+import { getGraduationProgress } from "@nirholas/pump-sdk";
 
 const progress = getGraduationProgress(global, bondingCurve);
 
@@ -190,7 +190,7 @@ console.log(`SOL accumulated: ${progress.solAccumulated.toNumber() / 1e9} SOL`);
 ## Step 8: Full Summary (Everything at Once)
 
 ```typescript
-import { getBondingCurveSummary } from "@pump-fun/pump-sdk";
+import { getBondingCurveSummary } from "@nirholas/pump-sdk";
 
 const summary = getBondingCurveSummary({
   global,

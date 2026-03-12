@@ -5,11 +5,11 @@
 ## Prerequisites
 
 - Node.js 18+
-- `@pump-fun/pump-sdk` installed
+- `@nirholas/pump-sdk` installed
 - Familiarity with Solana transaction structure
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
+npm install @nirholas/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
 ```
 
 ## Event Taxonomy
@@ -92,7 +92,7 @@ Anchor programs emit events as base64-encoded data in log messages:
 import { BorshCoder, EventParser } from "@coral-xyz/anchor";
 
 // You'll need the IDL for each program — exported from the SDK
-import { PumpIdl, PumpAmmIdl, PumpFeesIdl } from "@pump-fun/pump-sdk";
+import { PumpIdl, PumpAmmIdl, PumpFeesIdl } from "@nirholas/pump-sdk";
 
 const pumpCoder = new BorshCoder(PumpIdl);
 const ammCoder = new BorshCoder(PumpAmmIdl);

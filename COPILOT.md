@@ -42,7 +42,7 @@
 
 ### Instruction Building
 ```typescript
-import { PUMP_SDK, OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 // Offline (no connection needed)
 const ix = await PUMP_SDK.createV2Instruction({ mint, name, symbol, uri, creator, user, mayhemMode: false });
@@ -59,7 +59,7 @@ const ixs = await PUMP_SDK.buyInstructions({
 
 ### Bonding Curve Math
 ```typescript
-import { getBuyTokenAmountFromSolAmount, getSellSolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getBuyTokenAmountFromSolAmount, getSellSolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 
 const tokens = getBuyTokenAmountFromSolAmount({ global, feeConfig, mintSupply, bondingCurve, amount });
 const sol = getSellSolAmountFromTokenAmount({ global, feeConfig, mintSupply, bondingCurve, amount });

@@ -2870,7 +2870,7 @@
       "th": "#8b5cf6",
       "size": "14KB",
       "qt": "SDK documentation",
-      "ldesc": "Complete interactive API reference for @pump-fun/pump-sdk. Browse all methods (PumpSdk, OnlinePumpSdk), math utilities, PDAs, and types with parameters, return types, and code examples."
+      "ldesc": "Complete interactive API reference for @nirholas/pump-sdk. Browse all methods (PumpSdk, OnlinePumpSdk), math utilities, PDAs, and types with parameters, return types, and code examples."
     }
   ],
   "categories": [

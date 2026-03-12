@@ -25,7 +25,7 @@ Before executing trades or making portfolio decisions, agents need accurate mark
 ### How much token do I get for X SOL?
 
 ```typescript
-import { getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk";
+import { getBuyTokenAmountFromSolAmount } from "@nirholas/pump-sdk";
 
 const tokensOut = getBuyTokenAmountFromSolAmount({
   global,        // Global state
@@ -39,7 +39,7 @@ const tokensOut = getBuyTokenAmountFromSolAmount({
 ### How much SOL does it cost to buy X tokens?
 
 ```typescript
-import { getBuySolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getBuySolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 
 const solCost = getBuySolAmountFromTokenAmount({
   global,
@@ -53,7 +53,7 @@ const solCost = getBuySolAmountFromTokenAmount({
 ### How much SOL do I receive for selling X tokens?
 
 ```typescript
-import { getSellSolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getSellSolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 
 const solOut = getSellSolAmountFromTokenAmount({
   global,
@@ -67,7 +67,7 @@ const solOut = getSellSolAmountFromTokenAmount({
 ## Market Cap Calculation
 
 ```typescript
-import { bondingCurveMarketCap } from "@pump-fun/pump-sdk";
+import { bondingCurveMarketCap } from "@nirholas/pump-sdk";
 
 const marketCap = bondingCurveMarketCap({
   mintSupply,           // Total token supply
@@ -85,7 +85,7 @@ Formula: $\text{marketCap} = \frac{\text{virtualSolReserves} \times \text{mintSu
 Understand the fee breakdown for any trade:
 
 ```typescript
-import { computeFeesBps } from "@pump-fun/pump-sdk";
+import { computeFeesBps } from "@nirholas/pump-sdk";
 
 const { protocolFeeBps, creatorFeeBps } = computeFeesBps({
   global,

@@ -5,11 +5,11 @@
 ## Prerequisites
 
 - Node.js 18+
-- `@pump-fun/pump-sdk` installed
+- `@nirholas/pump-sdk` installed
 - A graduated token (bonding curve complete)
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js bn.js
+npm install @nirholas/pump-sdk @solana/web3.js bn.js
 ```
 
 ## Architecture
@@ -30,7 +30,7 @@ When a token's bonding curve reaches its SOL cap, it "graduates" to PumpAMM — 
 ## Step 1: Fetch Pool State
 
 ```typescript
-import { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk } from "@nirholas/pump-sdk";
 import { Connection, PublicKey, Keypair } from "@solana/web3.js";
 import BN from "bn.js";
 

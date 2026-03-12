@@ -118,7 +118,7 @@ import {
   getTokenPrice,
   getGraduationProgress,
   getBuyTokenAmountFromSolAmount,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const connection = new Connection(

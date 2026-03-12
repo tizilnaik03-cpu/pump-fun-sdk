@@ -246,7 +246,7 @@ test(analytics): add price impact edge cases
 ### Bug Reports
 
 Include:
-- SDK version (`npm list @pump-fun/pump-sdk`)
+- SDK version (`npm list @nirholas/pump-sdk`)
 - Node.js version
 - Minimal reproduction code
 - Expected vs. actual behavior

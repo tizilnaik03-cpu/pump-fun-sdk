@@ -8,7 +8,7 @@
 - A funded Solana wallet
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js bn.js
+npm install @nirholas/pump-sdk @solana/web3.js bn.js
 ```
 
 ## How Buying Works
@@ -27,7 +27,7 @@ Before buying, you need the current bonding curve state:
 
 ```typescript
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import { OnlinePumpSdk, PUMP_SDK, getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, PUMP_SDK, getBuyTokenAmountFromSolAmount } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
@@ -110,7 +110,7 @@ console.log("Buy successful! Tx:", signature);
 
 ```typescript
 import { Connection, Keypair, PublicKey, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
-import { OnlinePumpSdk, getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, getBuyTokenAmountFromSolAmount } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 async function buyTokens() {

@@ -34,7 +34,7 @@ The SDK selects fees in this order:
 
 ```typescript
 // Internal logic — you don't need to call this directly
-import { calculateFeeTier, computeFeesBps } from "@pump-fun/pump-sdk";
+import { calculateFeeTier, computeFeesBps } from "@nirholas/pump-sdk";
 
 // computeFeesBps selects the right tier automatically
 const { protocolFeeBps, creatorFeeBps } = computeFeesBps({
@@ -117,7 +117,7 @@ The market cap used for tier selection is computed from bonding curve reserves:
 $$marketCap = \frac{virtualSolReserves \times mintSupply}{virtualTokenReserves}$$
 
 ```typescript
-import { bondingCurveMarketCap } from "@pump-fun/pump-sdk";
+import { bondingCurveMarketCap } from "@nirholas/pump-sdk";
 
 const mcap = bondingCurveMarketCap({
   mintSupply: bondingCurve.tokenTotalSupply,
@@ -165,7 +165,7 @@ const creatorFee = isNewBondingCurve || !PublicKey.default.equals(bondingCurve.c
 Protocol fees are sent to a randomly selected fee recipient from the global config:
 
 ```typescript
-import { getStaticRandomFeeRecipient } from "@pump-fun/pump-sdk";
+import { getStaticRandomFeeRecipient } from "@nirholas/pump-sdk";
 
 // Selects from a hardcoded list of protocol fee recipients
 const recipient = getStaticRandomFeeRecipient();

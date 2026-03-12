@@ -35,7 +35,7 @@ if (bondingCurve.complete) {
 Buy a specific amount of tokens, with a maximum SOL you're willing to spend.
 
 ```typescript
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const ix = await PUMP_SDK.ammBuyInstruction({
@@ -227,7 +227,7 @@ const createPoolEvent = PUMP_SDK.decodeCreatePoolEvent(eventData);
 Use the `OnlinePumpSdk` to look up pool addresses:
 
 ```typescript
-import { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 const onlineSdk = new OnlinePumpSdk(connection);
 const pool = await onlineSdk.fetchPool(mint);
@@ -236,7 +236,7 @@ const pool = await onlineSdk.fetchPool(mint);
 Or derive the pool PDA:
 
 ```typescript
-import { poolPda } from "@pump-fun/pump-sdk";
+import { poolPda } from "@nirholas/pump-sdk";
 
 const [poolAddress] = poolPda(mint);
 ```

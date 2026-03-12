@@ -63,7 +63,7 @@ Commit format: `type(scope): description`
 
 ```bash
 npm publish --access public
-# Package: @pump-fun/pump-sdk
+# Package: @nirholas/pump-sdk
 ```
 
 ## Vercel Website Deployment

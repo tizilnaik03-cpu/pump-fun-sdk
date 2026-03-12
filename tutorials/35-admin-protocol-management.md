@@ -5,11 +5,11 @@
 ## Prerequisites
 
 - Node.js 18+
-- `@pump-fun/pump-sdk` installed
+- `@nirholas/pump-sdk` installed
 - Admin/authority keypair for the operations you need
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js bn.js
+npm install @nirholas/pump-sdk @solana/web3.js bn.js
 ```
 
 ## Who Needs This
@@ -38,7 +38,7 @@ Most admin operations require the **global authority** keypair. These are for:
 Toggle global protocol features on/off:
 
 ```typescript
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 import { Keypair, PublicKey } from "@solana/web3.js";
 
 const authority = Keypair.generate(); // Must be current global authority

@@ -9,12 +9,12 @@ Manage the project's build, release, and deployment pipeline across four ecosyst
 
 ## Context
 
-The project ships multiple artifacts: an npm package (`@pump-fun/pump-sdk`), a Rust binary (`solana-vanity`), a TypeScript CLI (`solana-vanity-ts`), an MCP server (`solana-wallet-toolkit`), and a static website (PumpOS). Each has its own build system, dependency management, and release process, unified by a root Makefile and semantic-release.
+The project ships multiple artifacts: an npm package (`@nirholas/pump-sdk`), a Rust binary (`solana-vanity`), a TypeScript CLI (`solana-vanity-ts`), an MCP server (`solana-wallet-toolkit`), and a static website (PumpOS). Each has its own build system, dependency management, and release process, unified by a root Makefile and semantic-release.
 
 ## Key Files
 
 ### Root Package (SDK)
-- `package.json` — `@pump-fun/pump-sdk` npm package config
+- `package.json` — `@nirholas/pump-sdk` npm package config
 - `tsconfig.json` — TypeScript compilation config (if present)
 - `Makefile` — GNU Make build orchestration
 
@@ -134,7 +134,7 @@ feat!: breaking API change               → major version bump
 }
 ```
 
-Published scoped package: `@pump-fun/pump-sdk`
+Published scoped package: `@nirholas/pump-sdk`
 
 ### Linting & Formatting
 

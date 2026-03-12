@@ -6,17 +6,17 @@
 
 - Node.js 18+
 - A funded Solana wallet (devnet or mainnet)
-- `@pump-fun/pump-sdk` installed
+- `@nirholas/pump-sdk` installed
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js bn.js
+npm install @nirholas/pump-sdk @solana/web3.js bn.js
 ```
 
 ## Step 1: Set Up the Connection
 
 ```typescript
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import { PUMP_SDK, OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 // Connect to Solana devnet (use mainnet-beta for production)
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
@@ -114,7 +114,7 @@ console.log("Creator:", bondingCurve.creator.toBase58());
 
 ```typescript
 import { Connection, Keypair, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
-import { PUMP_SDK, OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 async function createToken() {
   const connection = new Connection("https://api.devnet.solana.com", "confirmed");

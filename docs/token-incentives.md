@@ -28,7 +28,7 @@ flowchart TD
 Before a user can earn incentives, they need a volume accumulator account:
 
 ```typescript
-import { PUMP_SDK, OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const sdk = new OnlinePumpSdk(connection);
@@ -91,7 +91,7 @@ For offline reward calculations without network calls:
 import {
   totalUnclaimedTokens,
   currentDayTokens,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 // Calculate unclaimed tokens from raw accumulator data
 const unclaimed = totalUnclaimedTokens(

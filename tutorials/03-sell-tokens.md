@@ -8,7 +8,7 @@
 - A funded Solana wallet
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js bn.js
+npm install @nirholas/pump-sdk @solana/web3.js bn.js
 ```
 
 ## How Selling Works
@@ -19,7 +19,7 @@ Selling is the reverse of buying. You send tokens back to the bonding curve, and
 
 ```typescript
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import { OnlinePumpSdk, PUMP_SDK, getSellSolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, PUMP_SDK, getSellSolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
@@ -93,7 +93,7 @@ console.log("Sold tokens! Tx:", signature);
 
 ```typescript
 import { Connection, Keypair, PublicKey, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
-import { OnlinePumpSdk, getSellSolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, getSellSolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 async function sellTokens() {

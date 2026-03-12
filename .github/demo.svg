@@ -41,7 +41,7 @@
       <tspan fill="#f9e2af">OnlinePumpSdk</tspan>
       <tspan fill="#cdd6f4"> } </tspan>
       <tspan fill="#cba6f7">from</tspan>
-      <tspan fill="#a6e3a1"> "@pump-fun/pump-sdk"</tspan>
+      <tspan fill="#a6e3a1"> "@nirholas/pump-sdk"</tspan>
     </text>
 
     <!-- Line 3: blank -->

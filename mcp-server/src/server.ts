@@ -1,6 +1,6 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { createFallbackConnection, parseEndpoints } from "@pump-fun/pump-sdk";
+import { createFallbackConnection, parseEndpoints } from "@nirholas/pump-sdk";
 import { MCP_VERSION, type ServerState } from "./types.js";
 import { registerToolHandlers } from "./handlers/tools.js";
 import { registerResourceHandlers } from "./handlers/resources.js";

@@ -17,7 +17,7 @@ body:
     id: sdk-version
     attributes:
       label: SDK Version
-      description: Which version of @pump-fun/pump-sdk are you using?
+      description: Which version of @nirholas/pump-sdk are you using?
       placeholder: "1.28.0"
   - type: textarea
     id: context

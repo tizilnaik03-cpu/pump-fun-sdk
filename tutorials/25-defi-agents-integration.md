@@ -80,7 +80,7 @@ for (const q of pumpExpert.config.openingQuestions) {
   "schemaVersion": 1,
   "meta": {
     "title": "Pump Fun SDK Expert",
-    "description": "Specialized assistant for @pump-fun/pump-sdk",
+    "description": "Specialized assistant for @nirholas/pump-sdk",
     "avatar": "🚀",
     "tags": ["pump-fun", "solana", "sdk", "bonding-curve", "token-creation"],
     "category": "defi"

@@ -23,7 +23,7 @@ When a token is created with `mayhemMode: true`, the on-chain program derives a 
 Set `mayhemMode: true` when creating a token:
 
 ```typescript
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 
 const instruction = await PUMP_SDK.createV2Instruction({
   mint: mint.publicKey,
@@ -51,7 +51,7 @@ In mayhem mode, fee recipients are drawn from:
 - `global.reservedFeeRecipients` (array)
 
 ```typescript
-import { getFeeRecipient } from "@pump-fun/pump-sdk";
+import { getFeeRecipient } from "@nirholas/pump-sdk";
 
 // Normal mode — picks from standard fee recipients
 const recipient = getFeeRecipient(global, false);
@@ -85,7 +85,7 @@ import {
   getSolVaultPda,
   getTokenVaultPda,
   MAYHEM_PROGRAM_ID,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 // Mayhem global configuration (shared across all mayhem tokens)
 const globalParams = getGlobalParamsPda();
@@ -199,7 +199,7 @@ This means mayhem mode tokens may fall into different [fee tiers](./fee-tiers.md
 | `MAYHEM_PROGRAM_ID` | `MAyhSmzXzV1pTf7LsNkrNwkWKTo4ougAJ1PPg47MD4e` |
 
 ```typescript
-import { MAYHEM_PROGRAM_ID } from "@pump-fun/pump-sdk";
+import { MAYHEM_PROGRAM_ID } from "@nirholas/pump-sdk";
 ```
 
 ## Related

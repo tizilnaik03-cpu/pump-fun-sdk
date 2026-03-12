@@ -17,7 +17,7 @@ Pump's token incentive system distributes PUMP tokens to traders based on their 
 
 ```typescript
 import { Connection, PublicKey } from "@solana/web3.js";
-import { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const onlineSdk = new OnlinePumpSdk(connection);
@@ -94,7 +94,7 @@ const syncBothIxs = await onlineSdk.syncUserVolumeAccumulatorBothPrograms(
 The SDK provides two utility functions for incentive calculations:
 
 ```typescript
-import { totalUnclaimedTokens, currentDayTokens } from "@pump-fun/pump-sdk";
+import { totalUnclaimedTokens, currentDayTokens } from "@nirholas/pump-sdk";
 
 // Fetch the accumulators
 const globalVol = await onlineSdk.fetchGlobalVolumeAccumulator();
@@ -126,7 +126,7 @@ Day 2: totalTokenSupply[1] = 900,000 PUMP
 Before you can earn rewards, your user volume accumulator account must exist on-chain. If it doesn't, the claim will fail:
 
 ```typescript
-import { PUMP_SDK, userVolumeAccumulatorPda } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, userVolumeAccumulatorPda } from "@nirholas/pump-sdk";
 
 // Check if accumulator already exists
 const accPda = userVolumeAccumulatorPda(userKeypair.publicKey);

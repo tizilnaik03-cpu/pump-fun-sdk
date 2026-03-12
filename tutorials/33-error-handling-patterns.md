@@ -5,10 +5,10 @@
 ## Prerequisites
 
 - Node.js 18+
-- `@pump-fun/pump-sdk` installed
+- `@nirholas/pump-sdk` installed
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js bn.js
+npm install @nirholas/pump-sdk @solana/web3.js bn.js
 ```
 
 ## SDK Error Types
@@ -31,7 +31,7 @@ The Pump SDK throws typed errors for validation failures:
 Fee sharing has the strictest validation — catch errors before they hit the chain:
 
 ```typescript
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 import {
   NoShareholdersError,
   TooManyShareholdersError,
@@ -39,7 +39,7 @@ import {
   InvalidShareTotalError,
   DuplicateShareholderError,
   PoolRequiredForGraduatedError,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 import { Keypair, PublicKey } from "@solana/web3.js";
 
 const creator = Keypair.generate();
@@ -310,7 +310,7 @@ async function safeFetchBondingCurve(mint: PublicKey) {
 ## Step 6: Vanity Generator Errors
 
 ```typescript
-import { VanityError, VanityErrorType } from "@pump-fun/pump-sdk";
+import { VanityError, VanityErrorType } from "@nirholas/pump-sdk";
 
 try {
   // Invalid prefix containing '0' (not in Base58)

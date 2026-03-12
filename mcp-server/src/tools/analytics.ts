@@ -4,8 +4,8 @@ import BN from "bn.js";
 import {
   PUMP_SDK,
   bondingCurveMarketCap,
-} from "@pump-fun/pump-sdk";
-import type { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
+import type { OnlinePumpSdk } from "@nirholas/pump-sdk";
 import { publicKeySchema } from "../utils/validation.js";
 import { lamportsToSol, rawToTokens, formatBN } from "../utils/formatting.js";
 import { success, error, getErrorMessage } from "../types.js";

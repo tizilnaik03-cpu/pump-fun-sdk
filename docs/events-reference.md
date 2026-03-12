@@ -9,7 +9,7 @@ Complete catalog of all events emitted by the Pump, PumpAMM, and PumpFees progra
 All events are decoded from transaction log buffers:
 
 ```typescript
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 
 // Parse transaction logs to extract event data buffers, then:
 const tradeEvent = PUMP_SDK.decodeTradeEvent(data);

@@ -1,4 +1,4 @@
-import { OnlinePumpSdk, createFallbackConnection, parseEndpoints } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, createFallbackConnection, parseEndpoints } from "@nirholas/pump-sdk";
 import type { ToolResult, ServerState } from "../types.js";
 import { error } from "../types.js";
 

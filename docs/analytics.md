@@ -20,7 +20,7 @@ Calculate how much a trade will move the price:
 import {
   calculateBuyPriceImpact,
   calculateSellPriceImpact,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 // Buy impact for 1 SOL
@@ -55,7 +55,7 @@ console.log(`SOL received: ${sellImpact.outputAmount.toString()} lamports`);
 Check how close a token is to graduating from the bonding curve to an AMM pool:
 
 ```typescript
-import { getGraduationProgress } from "@pump-fun/pump-sdk";
+import { getGraduationProgress } from "@nirholas/pump-sdk";
 
 const progress = getGraduationProgress(global, bondingCurve);
 
@@ -72,7 +72,7 @@ Graduation progress is measured in basis points (0–10,000 bps = 0–100%). Whe
 Get the current buy and sell price per whole token:
 
 ```typescript
-import { getTokenPrice } from "@pump-fun/pump-sdk";
+import { getTokenPrice } from "@nirholas/pump-sdk";
 
 const price = getTokenPrice({
   global,
@@ -93,7 +93,7 @@ A "whole token" is 10^6 raw units (the standard Pump token decimals).
 Get a comprehensive snapshot of a bonding curve in a single call:
 
 ```typescript
-import { getBondingCurveSummary } from "@pump-fun/pump-sdk";
+import { getBondingCurveSummary } from "@nirholas/pump-sdk";
 
 const summary = getBondingCurveSummary({ global, feeConfig, mintSupply: bondingCurve.tokenTotalSupply, bondingCurve });
 
@@ -111,7 +111,7 @@ console.log(`Real token reserves: ${summary.realTokenReserves.toString()}`);
 The `OnlinePumpSdk` wraps each analytics function with state fetching, so you can go from mint address to result in one call:
 
 ```typescript
-import { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const sdk = new OnlinePumpSdk(connection);

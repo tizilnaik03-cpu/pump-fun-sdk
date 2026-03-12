@@ -1,6 +1,6 @@
 # Migration Guide
 
-> How to upgrade between versions of `@pump-fun/pump-sdk`. Each section covers breaking changes, new features, and the steps to migrate.
+> How to upgrade between versions of `@nirholas/pump-sdk`. Each section covers breaking changes, new features, and the steps to migrate.
 
 ---
 
@@ -15,7 +15,7 @@
 The on-chain Pump program was upgraded to require `bonding_curve_v2` and `pool_v2` accounts on all buy and sell instructions. The SDK handles this automatically — just upgrade and rebuild.
 
 ```bash
-npm install @pump-fun/pump-sdk@latest
+npm install @nirholas/pump-sdk@latest
 ```
 
 If you're building instructions manually (not using the SDK), you must now include:
@@ -41,7 +41,7 @@ For cashback coins on PumpAMM, `user_volume_accumulator_wsol_ata` is also prepen
 
 1. Update the package:
    ```bash
-   npm install @pump-fun/pump-sdk@latest
+   npm install @nirholas/pump-sdk@latest
    ```
 2. Rebuild your project — no code changes needed if you use the SDK's instruction builders
 3. If you construct instruction accounts manually, add the V2 PDA accounts listed above
@@ -60,7 +60,7 @@ This was a massive feature release. No breaking changes to the core SDK API, but
 **Safe to upgrade:**
 
 ```bash
-npm install @pump-fun/pump-sdk@1.28.0
+npm install @nirholas/pump-sdk@1.28.0
 ```
 
 ### New SDK Exports
@@ -170,7 +170,7 @@ The same change applies to `getSellSolAmountFromTokenAmount` and `getBuySolAmoun
 1. **Read the [CHANGELOG](../CHANGELOG.md)** for the full list of changes
 2. **Update the package:**
    ```bash
-   npm install @pump-fun/pump-sdk@<version>
+   npm install @nirholas/pump-sdk@<version>
    ```
 3. **Run TypeScript compilation** to catch type errors:
    ```bash

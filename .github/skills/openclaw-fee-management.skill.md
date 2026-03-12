@@ -115,7 +115,7 @@ const ix = await onlineSdk.getMinimumDistributableFee({
 Check if a creator has upgraded to fee sharing:
 
 ```typescript
-import { isCreatorUsingSharingConfig } from "@pump-fun/pump-sdk";
+import { isCreatorUsingSharingConfig } from "@nirholas/pump-sdk";
 
 const upgraded = isCreatorUsingSharingConfig({
   mint: mintPublicKey,

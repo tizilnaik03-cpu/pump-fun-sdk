@@ -16,7 +16,7 @@ NO third-party cryptographic code is used. All key generation uses Ed25519 from 
 ### SDK Usage
 ```typescript
 import { Connection, PublicKey } from "@solana/web3.js";
-import { OnlinePumpSdk, PUMP_SDK, getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, PUMP_SDK, getBuyTokenAmountFromSolAmount } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 // Offline SDK singleton (instruction builder only)
@@ -149,7 +149,7 @@ Difficulty estimates:
 ## Links
 
 - Repository: https://github.com/nirholas/pump-fun-sdk
-- npm: https://www.npmjs.com/package/@pump-fun/pump-sdk
+- npm: https://www.npmjs.com/package/@nirholas/pump-sdk
 - Author: https://github.com/nirholas
 - Full documentation: https://raw.githubusercontent.com/nirholas/pump-fun-sdk/main/llms-full.txt
 

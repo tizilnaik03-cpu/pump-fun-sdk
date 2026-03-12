@@ -5,11 +5,11 @@
 ## Prerequisites
 
 - Node.js 18+
-- `@pump-fun/pump-sdk` installed
+- `@nirholas/pump-sdk` installed
 - Understanding of [Tutorial 01](./01-create-token.md) and [Tutorial 09](./09-fee-system.md)
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js bn.js
+npm install @nirholas/pump-sdk @solana/web3.js bn.js
 ```
 
 ## Part 1: Cashback System
@@ -36,7 +36,7 @@ cashbackFeeBasisPoints applied
 
 ```typescript
 import { Connection, Keypair } from "@solana/web3.js";
-import { PUMP_SDK, OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const onlineSdk = new OnlinePumpSdk(connection);
@@ -61,7 +61,7 @@ const createIx = await PUMP_SDK.createV2Instruction({
 To receive cashback, traders need a volume accumulator account:
 
 ```typescript
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 
 const trader = Keypair.generate();
 
@@ -187,7 +187,7 @@ User with matching identity claims fees
 ### Step 7: Derive a Social Fee PDA
 
 ```typescript
-import { socialFeePda, Platform, SUPPORTED_SOCIAL_PLATFORMS } from "@pump-fun/pump-sdk";
+import { socialFeePda, Platform, SUPPORTED_SOCIAL_PLATFORMS } from "@nirholas/pump-sdk";
 
 // Platform enum (from src/state.ts):
 // Platform.Pump   = 0
@@ -255,7 +255,7 @@ Combine social fee tracking with a simple monitoring interface:
 
 ```typescript
 import { Connection, PublicKey } from "@solana/web3.js";
-import { OnlinePumpSdk, socialFeePda } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, socialFeePda } from "@nirholas/pump-sdk";
 
 interface SocialFeeTracker {
   userId: string;
@@ -321,7 +321,7 @@ console.table(tracked);
 To create a social fee PDA on-chain and claim accumulated fees:
 
 ```typescript
-import { PUMP_SDK, Platform } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, Platform } from "@nirholas/pump-sdk";
 
 // Create the PDA (anyone can pay)
 const createPdaIx = await PUMP_SDK.createSocialFeePdaInstruction({

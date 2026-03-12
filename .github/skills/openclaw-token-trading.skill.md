@@ -103,7 +103,7 @@ minSolReceived = solAmount - (solAmount × slippage × 10 / 1000)
 ### Buy: SOL → Tokens
 
 ```typescript
-import { getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk";
+import { getBuyTokenAmountFromSolAmount } from "@nirholas/pump-sdk";
 
 const tokensReceived = getBuyTokenAmountFromSolAmount({
   global,
@@ -117,7 +117,7 @@ const tokensReceived = getBuyTokenAmountFromSolAmount({
 ### Buy: Tokens → SOL cost
 
 ```typescript
-import { getBuySolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getBuySolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 
 const solCost = getBuySolAmountFromTokenAmount({
   global,
@@ -131,7 +131,7 @@ const solCost = getBuySolAmountFromTokenAmount({
 ### Sell: Tokens → SOL received
 
 ```typescript
-import { getSellSolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getSellSolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 
 const solReceived = getSellSolAmountFromTokenAmount({
   global,

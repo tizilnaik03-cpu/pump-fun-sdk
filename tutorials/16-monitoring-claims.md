@@ -30,7 +30,7 @@ import {
   feeSharingConfigPda,
   creatorVaultPda,
   GLOBAL_VOLUME_ACCUMULATOR_PDA,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");

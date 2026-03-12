@@ -34,7 +34,7 @@ A web dashboard that:
 ```bash
 npx create-next-app@latest pump-monitor --typescript --tailwind --app --src-dir
 cd pump-monitor
-npm install @pump-fun/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
+npm install @nirholas/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
 ```
 
 ---
@@ -56,7 +56,7 @@ import {
   GLOBAL_VOLUME_ACCUMULATOR_PDA,
   totalUnclaimedTokens,
   currentDayTokens,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const connection = new Connection(
@@ -341,7 +341,7 @@ export default function Dashboard() {
     <main className="min-h-screen bg-black text-white p-6">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl font-bold mb-2">Pump Token Monitor</h1>
-        <p className="text-gray-400 mb-6">Real-time bonding curve monitoring powered by @pump-fun/pump-sdk</p>
+        <p className="text-gray-400 mb-6">Real-time bonding curve monitoring powered by @nirholas/pump-sdk</p>
 
         {/* Search */}
         <div className="flex gap-2 mb-8">

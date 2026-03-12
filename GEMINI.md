@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-The Pump SDK (`@pump-fun/pump-sdk`) is a TypeScript SDK for the Pump protocol on Solana. It provides:
+The Pump SDK (`@nirholas/pump-sdk`) is a TypeScript SDK for the Pump protocol on Solana. It provides:
 - **Offline SDK (`PumpSdk`)** — Builds `TransactionInstruction[]` without a connection (singleton: `PUMP_SDK`)
 - **Online SDK (`OnlinePumpSdk`)** — Extends offline SDK with RPC fetchers
 - **Rust vanity generator** — 100K+ keys/sec multi-threaded generator

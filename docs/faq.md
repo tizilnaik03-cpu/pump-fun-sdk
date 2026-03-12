@@ -12,7 +12,7 @@ The official community PumpFun SDK for the [Pump](https://pump.fun) protocol on 
 
 ### Is this the official PumpFun SDK?
 
-This is the official community PumpFun SDK. It is published as `@pump-fun/pump-sdk` on npm. It was reverse-engineered from the on-chain PumpFun programs and provides the same functionality as the protocol interface. The IDLs (Interface Definition Languages) were extracted directly from the deployed Solana programs.
+This is the official community PumpFun SDK. It is published as `@nirholas/pump-sdk` on npm. It was reverse-engineered from the on-chain PumpFun programs and provides the same functionality as the protocol interface. The IDLs (Interface Definition Languages) were extracted directly from the deployed Solana programs.
 
 ### Is it free to use?
 
@@ -31,7 +31,7 @@ Yes. pump-fun-sdk is open-source under the [MIT License](LICENSE). Use it for pe
 ### How do I install it?
 
 ```bash
-npm install @pump-fun/pump-sdk
+npm install @nirholas/pump-sdk
 ```
 
 You'll also need peer dependencies:
@@ -45,9 +45,9 @@ npm install @solana/web3.js @coral-xyz/anchor @solana/spl-token bn.js
 Yes. Any Node.js package manager works:
 
 ```bash
-yarn add @pump-fun/pump-sdk
-pnpm add @pump-fun/pump-sdk
-bun add @pump-fun/pump-sdk
+yarn add @nirholas/pump-sdk
+pnpm add @nirholas/pump-sdk
+bun add @nirholas/pump-sdk
 ```
 
 ### What Node.js version do I need?
@@ -76,7 +76,7 @@ Use `PumpSdk` (via `PUMP_SDK`) when you already have the on-chain data. Use `Onl
 ### How do I calculate buy/sell amounts?
 
 ```typescript
-import { getBuyTokenAmountFromSolAmount, getSellSolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getBuyTokenAmountFromSolAmount, getSellSolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 
 // How many tokens for 0.1 SOL?
 const tokensOut = getBuyTokenAmountFromSolAmount({ global, feeConfig, mintSupply, bondingCurve, amount: solAmount });

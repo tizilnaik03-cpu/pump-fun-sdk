@@ -83,7 +83,7 @@ import {
   ZeroShareError,
   InvalidShareTotalError,
   DuplicateShareholderError,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 try {
   const ixs = await sdk.createFeeSharingConfigInstruction({

@@ -292,7 +292,7 @@ console.log("market cap SOL:", marketCap.div(new BN(1e9)).toString(), "SOL");
 
 | Issue | Cause | Fix |
 |-------|-------|-----|
-| `Cannot find module '@pump-fun/pump-sdk'` | Package not built | Run `npm run build` |
+| `Cannot find module '@nirholas/pump-sdk'` | Package not built | Run `npm run build` |
 | `TypeError: Cannot read properties of null` | Account not found on-chain | Verify the mint address exists; check RPC endpoint |
 | `BN is not a constructor` | Missing bn.js import | `import BN from "bn.js"` (default import) |
 | `Invalid account discriminator` | Wrong account type for decoder | Verify you're passing the right account (bonding curve vs pool) |

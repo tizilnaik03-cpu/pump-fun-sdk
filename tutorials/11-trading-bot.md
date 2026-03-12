@@ -40,7 +40,7 @@ import {
   getBuyTokenAmountFromSolAmount,
   getSellSolAmountFromTokenAmount,
   bondingCurveMarketCap,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
@@ -235,7 +235,7 @@ async function executeSell(mint: PublicKey, tokenAmount: BN): Promise<string | n
 When a token graduates, route sells through the AMM:
 
 ```typescript
-import { canonicalPumpPoolPda } from "@pump-fun/pump-sdk";
+import { canonicalPumpPoolPda } from "@nirholas/pump-sdk";
 
 async function executeAmmSell(mint: PublicKey, tokenAmount: BN): Promise<string | null> {
   const pool = canonicalPumpPoolPda(mint);
@@ -347,7 +347,7 @@ runBot([
 
 ```bash
 # Install dependencies
-npm install @pump-fun/pump-sdk @solana/web3.js bn.js
+npm install @nirholas/pump-sdk @solana/web3.js bn.js
 
 # Run with ts-node or tsx
 npx tsx bot.ts

@@ -37,7 +37,7 @@ Platform enum:
 ### PDA Derivation
 
 ```typescript
-import { socialFeePda } from "@pump-fun/pump-sdk";
+import { socialFeePda } from "@nirholas/pump-sdk";
 
 // userId must be the numeric GitHub user ID from:
 // https://api.github.com/users/<username>  →  response.id
@@ -55,7 +55,7 @@ Seeds: `["social-fee-pda", userId, [platform]]` under the PumpFees program.
 Initializes the on-chain account for a social identity. Must be called before fees can be routed there.
 
 ```typescript
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 
 const ix = await PUMP_SDK.createSocialFeePdaInstruction({
   payer: walletPublicKey,        // Pays for account creation
@@ -129,7 +129,7 @@ interface SocialFeePda {
 ### Fetching Account State
 
 ```typescript
-import { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 const sdk = new OnlinePumpSdk(connection);
 const account = await sdk.fetchSocialFeePda("12345", Platform.GitHub);

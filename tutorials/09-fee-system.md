@@ -19,8 +19,8 @@ Fees vary based on the bonding curve's **market cap**. Higher market cap = diffe
 
 ```typescript
 import { Connection, PublicKey } from "@solana/web3.js";
-import { OnlinePumpSdk, bondingCurveMarketCap } from "@pump-fun/pump-sdk";
-import { computeFeesBps } from "@pump-fun/pump-sdk/fees";
+import { OnlinePumpSdk, bondingCurveMarketCap } from "@nirholas/pump-sdk";
+import { computeFeesBps } from "@nirholas/pump-sdk/fees";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const onlineSdk = new OnlinePumpSdk(connection);
@@ -34,7 +34,7 @@ const bondingCurve = await onlineSdk.fetchBondingCurve(mint);
 ## Calculating Fees for a Trade
 
 ```typescript
-import { computeFeesBps } from "@pump-fun/pump-sdk";
+import { computeFeesBps } from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 // Get the current fee tier
@@ -87,7 +87,7 @@ interface Fees {
 The SDK's `calculateFeeTier` function selects the appropriate tier:
 
 ```typescript
-import { calculateFeeTier } from "@pump-fun/pump-sdk";
+import { calculateFeeTier } from "@nirholas/pump-sdk";
 
 // Calculate current market cap
 const marketCap = bondingCurveMarketCap({
@@ -117,7 +117,7 @@ The algorithm:
 Creator fees go to different places depending on configuration:
 
 ```typescript
-import { isCreatorUsingSharingConfig } from "@pump-fun/pump-sdk";
+import { isCreatorUsingSharingConfig } from "@nirholas/pump-sdk";
 
 const bc = await onlineSdk.fetchBondingCurve(mint);
 

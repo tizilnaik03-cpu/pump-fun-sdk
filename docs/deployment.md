@@ -11,7 +11,7 @@ Production deployment guide for every component in the Pump SDK ecosystem.
 The SDK itself is a library — there's nothing to deploy. Install it in your project:
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
+npm install @nirholas/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
 ```
 
 ---

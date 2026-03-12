@@ -4,7 +4,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { Connection } from "@solana/web3.js";
-import { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk } from "@nirholas/pump-sdk";
 import type { ServerState } from "../types.js";
 import { ALL_TOOLS } from "../tools/index.js";
 

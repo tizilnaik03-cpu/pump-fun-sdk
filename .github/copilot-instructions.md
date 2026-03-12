@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-The Pump SDK (`@pump-fun/pump-sdk`) is a TypeScript SDK for the Pump protocol on Solana. Key components:
+The Pump SDK (`@nirholas/pump-sdk`) is a TypeScript SDK for the Pump protocol on Solana. Key components:
 - **Core SDK** (`src/`) — Offline-first instruction builders returning `TransactionInstruction[]`
 - **Rust vanity generator** (`rust/`) — 100K+ keys/sec with rayon + solana-sdk
 - **TypeScript vanity generator** (`typescript/`) — Educational @solana/web3.js implementation

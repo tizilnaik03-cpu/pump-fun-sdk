@@ -33,11 +33,11 @@ solana airdrop 2
 ## Installation
 
 ```bash
-npm install @pump-fun/pump-sdk
+npm install @nirholas/pump-sdk
 # or
-yarn add @pump-fun/pump-sdk
+yarn add @nirholas/pump-sdk
 # or
-pnpm add @pump-fun/pump-sdk
+pnpm add @nirholas/pump-sdk
 ```
 
 ### Peer Dependencies
@@ -75,7 +75,7 @@ The SDK offers two modes of operation:
 
 ```typescript
 import { Connection } from "@solana/web3.js";
-import { PumpSdk, OnlinePumpSdk, PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PumpSdk, OnlinePumpSdk, PUMP_SDK } from "@nirholas/pump-sdk";
 
 // Option A: Use the pre-built singleton (offline only)
 // Best for: building instructions when you already have the on-chain state
@@ -112,7 +112,7 @@ const instruction = await PUMP_SDK.createV2Instruction({
 
 ```typescript
 import BN from "bn.js";
-import { getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk";
+import { getBuyTokenAmountFromSolAmount } from "@nirholas/pump-sdk";
 
 const mint = new PublicKey("...");
 const user = wallet.publicKey;
@@ -148,7 +148,7 @@ const instructions = await PUMP_SDK.buyInstructions({
 ### 4. Sell Tokens
 
 ```typescript
-import { getSellSolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getSellSolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 const { bondingCurveAccountInfo, bondingCurve } = await sdk.fetchSellState(

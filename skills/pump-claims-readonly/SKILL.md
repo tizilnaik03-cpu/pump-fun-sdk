@@ -28,7 +28,7 @@ Both domains span **two on-chain programs** — Pump (bonding curve) and PumpAMM
 
 ```typescript
 import { Connection, PublicKey } from "@solana/web3.js";
-import { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 const connection = new Connection(process.env.SOLANA_RPC_URL!);
 const sdk = new OnlinePumpSdk(connection);
@@ -129,7 +129,7 @@ interface UserVolumeAccumulator {
 If you already hold the account data, compute rewards offline without RPC:
 
 ```typescript
-import { totalUnclaimedTokens, currentDayTokens } from "@pump-fun/pump-sdk";
+import { totalUnclaimedTokens, currentDayTokens } from "@nirholas/pump-sdk";
 
 const unclaimed: BN = totalUnclaimedTokens(globalAcc, userAcc);
 const today: BN = currentDayTokens(globalAcc, userAcc);
@@ -191,7 +191,7 @@ import {
   creatorVaultPda,
   feeSharingConfigPda,
   GLOBAL_VOLUME_ACCUMULATOR_PDA,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 const userVolumePda = userVolumeAccumulatorPda(user);
 const vaultPda = creatorVaultPda(creator);

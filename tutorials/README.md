@@ -1,11 +1,11 @@
 # Pump SDK Tutorials
 
-> 43 hands-on tutorials for building on the Pump protocol with `@pump-fun/pump-sdk`.
+> 43 hands-on tutorials for building on the Pump protocol with `@nirholas/pump-sdk`.
 
 ## Getting Started
 
 ```bash
-npm install @pump-fun/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
+npm install @nirholas/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js
 ```
 
 ## Learning Path

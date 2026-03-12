@@ -30,7 +30,7 @@ Bot: 📊 Token ABC123...
 ```bash
 mkdir pump-telegram-bot && cd pump-telegram-bot
 npm init -y
-npm install telegraf @pump-fun/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js dotenv
+npm install telegraf @nirholas/pump-sdk @solana/web3.js @coral-xyz/anchor bn.js dotenv
 npm install -D typescript @types/node ts-node
 npx tsc --init
 ```
@@ -59,7 +59,7 @@ import {
   PUMP_SDK,
   bondingCurveMarketCap,
   bondingCurvePda,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 import BN from "bn.js";
 
 const connection = new Connection(

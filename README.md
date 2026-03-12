@@ -6,9 +6,9 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@pump-fun/pump-sdk"><img src="https://img.shields.io/npm/v/@pump-fun/pump-sdk.svg?style=flat-square&color=blue" alt="npm version" /></a>
-  <a href="https://github.com/nirholas/pump-fun-sdk/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@pump-fun/pump-sdk.svg?style=flat-square" alt="license" /></a>
-  <a href="https://www.npmjs.com/package/@pump-fun/pump-sdk"><img src="https://img.shields.io/npm/dm/@pump-fun/pump-sdk.svg?style=flat-square" alt="downloads" /></a>
+  <a href="https://www.npmjs.com/package/@nirholas/pump-sdk"><img src="https://img.shields.io/npm/v/@nirholas/pump-sdk.svg?style=flat-square&color=blue" alt="npm version" /></a>
+  <a href="https://github.com/nirholas/pump-fun-sdk/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@nirholas/pump-sdk.svg?style=flat-square" alt="license" /></a>
+  <a href="https://www.npmjs.com/package/@nirholas/pump-sdk"><img src="https://img.shields.io/npm/dm/@nirholas/pump-sdk.svg?style=flat-square" alt="downloads" /></a>
   <img src="https://img.shields.io/badge/TypeScript-5.0+-blue?style=flat-square&logo=typescript" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Solana-1.98+-purple?style=flat-square&logo=solana" alt="Solana" />
 </p>
@@ -51,13 +51,13 @@ The SDK never sends transactions itself. It returns `TransactionInstruction[]` t
 
 ```bash
 # npm
-npm install @pump-fun/pump-sdk
+npm install @nirholas/pump-sdk
 
 # yarn
-yarn add @pump-fun/pump-sdk
+yarn add @nirholas/pump-sdk
 
 # pnpm
-pnpm add @pump-fun/pump-sdk
+pnpm add @nirholas/pump-sdk
 ```
 
 ### Peer Dependencies
@@ -72,7 +72,7 @@ npm install @solana/web3.js @solana/spl-token @coral-xyz/anchor bn.js
 
 ```typescript
 import { Connection, PublicKey } from "@solana/web3.js";
-import { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 // 1. Create an online SDK instance
 const connection = new Connection("https://api.mainnet-beta.solana.com");
@@ -95,7 +95,7 @@ console.log("Progress:", summary.progressBps / 100, "%");
 
 ```typescript
 import { Keypair } from "@solana/web3.js";
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 
 const mintKeypair = Keypair.generate();
 const creator = wallet.publicKey;
@@ -120,7 +120,7 @@ const createIx = await PUMP_SDK.createV2Instruction({
 ```typescript
 import { Connection, PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { getBuyTokenAmountFromSolAmount, OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { getBuyTokenAmountFromSolAmount, OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 const connection = new Connection("https://api.mainnet-beta.solana.com");
 const sdk = new OnlinePumpSdk(connection);
@@ -165,7 +165,7 @@ const buyIxs = await sdk.buyInstructions({
 
 ```typescript
 import BN from "bn.js";
-import { getSellSolAmountFromTokenAmount, OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { getSellSolAmountFromTokenAmount, OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 const sdk = new OnlinePumpSdk(connection);
 
@@ -202,7 +202,7 @@ const sellIxs = await sdk.sellInstructions({
 ### Check Graduation Progress
 
 ```typescript
-import { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 const sdk = new OnlinePumpSdk(connection);
 const progress = await sdk.fetchGraduationProgress(mint);
@@ -217,7 +217,7 @@ console.log(`SOL accumulated: ${progress.solAccumulated.toString()}`);
 
 ```typescript
 import { PublicKey } from "@solana/web3.js";
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 
 // Create a fee sharing config (creator only, before or after graduation)
 const createConfigIx = await PUMP_SDK.createFeeSharingConfig({

@@ -16,7 +16,7 @@
 The offline SDK builds instructions **without any network calls**. It's a singleton — use `PUMP_SDK`:
 
 ```typescript
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 
 // No connection needed!
 const createIx = await PUMP_SDK.createV2Instruction({
@@ -73,7 +73,7 @@ The online SDK wraps the offline SDK and adds RPC fetchers:
 
 ```typescript
 import { Connection } from "@solana/web3.js";
-import { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk } from "@nirholas/pump-sdk";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const onlineSdk = new OnlinePumpSdk(connection);

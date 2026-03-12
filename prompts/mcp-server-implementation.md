@@ -6,7 +6,7 @@ Create the `mcp-server/` directory with a fully functional Model Context Protoco
 
 ## Context
 
-The Pump SDK (`@pump-fun/pump-sdk`) is a TypeScript SDK for the Pump protocol on Solana. It provides offline-first instruction builders for token creation, buying, selling, migration, and fee management.
+The Pump SDK (`@nirholas/pump-sdk`) is a TypeScript SDK for the Pump protocol on Solana. It provides offline-first instruction builders for token creation, buying, selling, migration, and fee management.
 
 **Existing MCP prompts to reference** (these contain architectural plans — read them first):
 - `prompts/mcp-server/MCP_MASTER_PLAN.md` — Master architecture plan

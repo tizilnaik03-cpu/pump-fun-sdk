@@ -112,7 +112,7 @@ The `.well-known/` directory provides machine-readable entry points:
   "name_for_human": "Pump SDK",
   "name_for_model": "pump_sdk",
   "description_for_human": "Official community PumpFun SDK...",
-  "description_for_model": "Pump SDK (@pump-fun/pump-sdk) — TypeScript SDK for..."
+  "description_for_model": "Pump SDK (@nirholas/pump-sdk) — TypeScript SDK for..."
 }
 
 // .well-known/skills.json — Skill registry

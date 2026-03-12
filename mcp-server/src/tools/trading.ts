@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { PublicKey, Keypair } from "@solana/web3.js";
 import BN from "bn.js";
-import { PUMP_SDK, canonicalPumpPoolPda } from "@pump-fun/pump-sdk";
-import type { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, canonicalPumpPoolPda } from "@nirholas/pump-sdk";
+import type { OnlinePumpSdk } from "@nirholas/pump-sdk";
 import { publicKeySchema, bnStringSchema, slippageSchema } from "../utils/validation.js";
 import { instructionsToJson } from "../utils/formatting.js";
 import { success, error, getErrorMessage } from "../types.js";
@@ -33,7 +33,7 @@ export async function buildBuyInstructions(
     const { bondingCurveAccountInfo, bondingCurve, associatedUserAccountInfo } =
       await sdk.fetchBuyState(mint, user);
 
-    const { getBuyTokenAmountFromSolAmount } = await import("@pump-fun/pump-sdk");
+    const { getBuyTokenAmountFromSolAmount } = await import("@nirholas/pump-sdk");
     const amount = getBuyTokenAmountFromSolAmount({
       global,
       feeConfig,
@@ -86,7 +86,7 @@ export async function buildSellInstructions(
     const { bondingCurveAccountInfo, bondingCurve } =
       await sdk.fetchSellState(mint, user);
 
-    const { getSellSolAmountFromTokenAmount } = await import("@pump-fun/pump-sdk");
+    const { getSellSolAmountFromTokenAmount } = await import("@nirholas/pump-sdk");
     const solAmount = getSellSolAmountFromTokenAmount({
       global,
       feeConfig,
@@ -175,7 +175,7 @@ export async function buildCreateAndBuy(
 
     const global = await sdk.fetchGlobal();
     const feeConfig = await sdk.fetchFeeConfig();
-    const { newBondingCurve, getBuyTokenAmountFromSolAmount } = await import("@pump-fun/pump-sdk");
+    const { newBondingCurve, getBuyTokenAmountFromSolAmount } = await import("@nirholas/pump-sdk");
     const freshCurve = newBondingCurve(global);
 
     const amount = getBuyTokenAmountFromSolAmount({

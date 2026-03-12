@@ -83,7 +83,7 @@ pump-fun-sdk is not a single library. It is a layered architecture spanning thre
 
 ### Layer 1: Core TypeScript SDK (`src/`)
 
-The core SDK at version 1.28.0 is published as `@pump-fun/pump-sdk`. It provides:
+The core SDK at version 1.28.0 is published as `@nirholas/pump-sdk`. It provides:
 
 - **`PumpSdk`** — The offline SDK class that builds transaction instructions without requiring a network connection. It can construct `create`, `buy`, `sell`, `createAndBuy`, `collectCoinCreatorFee`, `distributeCreatorFees`, and `claimTokenIncentives` instructions.
 - **`OnlinePumpSdk`** — The online SDK that wraps `PumpSdk` with network fetching capabilities. It can fetch global state, bonding curves, fee configs, volume accumulators, and build complete transaction instruction sets with all necessary account lookups.
@@ -207,7 +207,7 @@ The integration follows the OpenClaw/Claude format, making it plug-and-play for 
 ### Creating a Token
 
 ```typescript
-import { OnlinePumpSdk, PUMP_SDK, getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, PUMP_SDK, getBuyTokenAmountFromSolAmount } from "@nirholas/pump-sdk";
 import { Connection, Keypair } from "@solana/web3.js";
 import BN from "bn.js";
 
@@ -249,7 +249,7 @@ const instructions = await PUMP_SDK.createV2AndBuyInstructions({
 ### Buying on the Bonding Curve
 
 ```typescript
-import { PUMP_SDK, OnlinePumpSdk, getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk";
+import { PUMP_SDK, OnlinePumpSdk, getBuyTokenAmountFromSolAmount } from "@nirholas/pump-sdk";
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 
@@ -310,7 +310,7 @@ const claimInstructions = await sdk.collectCoinCreatorFeeInstructions(creator);
 One of the most powerful features in pump-fun-sdk is fee sharing. Token creators can set up automatic fee distribution to multiple shareholders:
 
 ```typescript
-import { OnlinePumpSdk, isCreatorUsingSharingConfig } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, isCreatorUsingSharingConfig } from "@nirholas/pump-sdk";
 
 const onlineSdk = new OnlinePumpSdk(connection);
 const mint = new PublicKey("...");

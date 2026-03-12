@@ -19,7 +19,7 @@ import {
   GLOBAL_PDA,
   PUMP_FEE_CONFIG_PDA,
   GLOBAL_VOLUME_ACCUMULATOR_PDA,
-} from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 ```

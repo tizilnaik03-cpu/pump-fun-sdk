@@ -7,8 +7,8 @@ import {
   computeFeesBps,
   calculateFeeTier,
   bondingCurveMarketCap,
-} from "@pump-fun/pump-sdk";
-import type { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+} from "@nirholas/pump-sdk";
+import type { OnlinePumpSdk } from "@nirholas/pump-sdk";
 import { publicKeySchema, bnStringSchema, shareholderSchema } from "../utils/validation.js";
 import { lamportsToSol, formatBN, formatBps } from "../utils/formatting.js";
 import { instructionsToJson } from "../utils/formatting.js";

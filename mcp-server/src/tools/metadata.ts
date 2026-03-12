@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { PublicKey } from "@solana/web3.js";
-import { bondingCurveMarketCap } from "@pump-fun/pump-sdk";
-import type { OnlinePumpSdk } from "@pump-fun/pump-sdk";
+import { bondingCurveMarketCap } from "@nirholas/pump-sdk";
+import type { OnlinePumpSdk } from "@nirholas/pump-sdk";
 import { publicKeySchema } from "../utils/validation.js";
 import { lamportsToSol, formatBN } from "../utils/formatting.js";
 import { success, error, getErrorMessage } from "../types.js";

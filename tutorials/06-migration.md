@@ -15,7 +15,7 @@ After migration:
 
 ```typescript
 import { Connection, PublicKey } from "@solana/web3.js";
-import { OnlinePumpSdk, getGraduationProgress } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, getGraduationProgress } from "@nirholas/pump-sdk";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const onlineSdk = new OnlinePumpSdk(connection);
@@ -71,7 +71,7 @@ console.log(renderProgressBar(progress.progressBps));
 Migration is triggered by a permissioned authority. The SDK provides `migrateInstruction`:
 
 ```typescript
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 // Only the withdraw authority can call this
@@ -93,7 +93,7 @@ const migrateIx = await PUMP_SDK.migrateInstruction({
 ## PDA Addresses for Graduated Tokens
 
 ```typescript
-import { canonicalPumpPoolPda, pumpPoolAuthorityPda, bondingCurvePda } from "@pump-fun/pump-sdk";
+import { canonicalPumpPoolPda, pumpPoolAuthorityPda, bondingCurvePda } from "@nirholas/pump-sdk";
 
 const mint = new PublicKey("YOUR_MINT");
 
@@ -116,7 +116,7 @@ console.log("Pool authority:", poolAuth.toBase58());
 After migration, use the PumpAMM instructions for trading. The SDK provides AMM instruction builders:
 
 ```typescript
-import { PUMP_SDK } from "@pump-fun/pump-sdk";
+import { PUMP_SDK } from "@nirholas/pump-sdk";
 
 // Buy on AMM pool (post-graduation)
 const ammBuyIx = await PUMP_SDK.ammBuyInstruction({
@@ -147,7 +147,7 @@ const claimIxs = await onlineSdk.claimTokenIncentivesBothPrograms(user);
 ## Building a Token State Checker
 
 ```typescript
-import { OnlinePumpSdk, bondingCurvePda } from "@pump-fun/pump-sdk";
+import { OnlinePumpSdk, bondingCurvePda } from "@nirholas/pump-sdk";
 import { Connection, PublicKey } from "@solana/web3.js";
 
 async function getTokenState(mint: PublicKey) {

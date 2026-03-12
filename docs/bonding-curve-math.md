@@ -26,7 +26,7 @@ The "virtual" reserves are larger than the "real" reserves. This virtual liquidi
 When a new token is created, its bonding curve is initialized from the `Global` config:
 
 ```typescript
-import { newBondingCurve } from "@pump-fun/pump-sdk";
+import { newBondingCurve } from "@nirholas/pump-sdk";
 
 const curve = newBondingCurve(global);
 // {
@@ -59,7 +59,7 @@ This product $k$ stays approximately constant across trades. When a user buys to
 The SDK provides `getBuyTokenAmountFromSolAmount`:
 
 ```typescript
-import { getBuyTokenAmountFromSolAmount } from "@pump-fun/pump-sdk";
+import { getBuyTokenAmountFromSolAmount } from "@nirholas/pump-sdk";
 
 const tokensOut = getBuyTokenAmountFromSolAmount({
   global,
@@ -89,7 +89,7 @@ $$result = \min(tokensOut, realTokenReserves)$$
 The inverse: `getBuySolAmountFromTokenAmount`:
 
 ```typescript
-import { getBuySolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getBuySolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 
 const solNeeded = getBuySolAmountFromTokenAmount({
   global,
@@ -115,7 +115,7 @@ $$totalCost = solCost + fees(solCost)$$
 The SDK provides `getSellSolAmountFromTokenAmount`:
 
 ```typescript
-import { getSellSolAmountFromTokenAmount } from "@pump-fun/pump-sdk";
+import { getSellSolAmountFromTokenAmount } from "@nirholas/pump-sdk";
 
 const solOut = getSellSolAmountFromTokenAmount({
   global,
@@ -141,7 +141,7 @@ The bonding curve market cap is computed as:
 $$marketCap = \frac{virtualSolReserves \times mintSupply}{virtualTokenReserves}$$
 
 ```typescript
-import { bondingCurveMarketCap } from "@pump-fun/pump-sdk";
+import { bondingCurveMarketCap } from "@nirholas/pump-sdk";
 
 const mcap = bondingCurveMarketCap({
   mintSupply: bondingCurve.tokenTotalSupply,
