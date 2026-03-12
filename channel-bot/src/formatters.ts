@@ -78,7 +78,7 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         L.push(`🚨🚨🚨 <b>FIRST CREATOR FEE CLAIM</b>`);
     } else if (ctx.claimNumber && ctx.claimNumber > 1) {
         L.push(`🔄 <b>REPEAT CLAIM #${ctx.claimNumber}</b>`);
-    } else if (isOnChainRepeat) {
+    } else if (ctx.claimNumber === -1 || isOnChainRepeat) {
         L.push(`🔄 <b>REPEAT CLAIM</b>`);
     } else {
         L.push(`💸 <b>CREATOR FEE CLAIM</b>`);
@@ -153,6 +153,8 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         L.push(`Claim #${ctx.claimNumber}`);
     } else if (ctx.isFirstClaim) {
         L.push(`Claim #1`);
+    } else if (ctx.claimNumber === -1) {
+        L.push(`Claim (repeat)`);
     }
     const claimSol = event.amountSol.toFixed(4);
     const claimUsd = solUsdPrice > 0 ? ` ($${(event.amountSol * solUsdPrice).toFixed(2)})` : '';
@@ -325,6 +327,28 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
 
     // ━━ TRUST SIGNALS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     {
+        const signals: string[] = [];
+
+        // ── Claim verification: does the token's GitHub URL match the claiming user? ──
+        if (githubUser && tokenInfo) {
+            const claimerLogin = githubUser.login.toLowerCase();
+            const ghUrls = tokenInfo.githubUrls ?? [];
+            if (ghUrls.length > 0) {
+                // Extract owner from first GitHub URL (github.com/OWNER or github.com/OWNER/REPO)
+                const ownerMatch = ghUrls[0]!
+                    .replace(/^https?:\/\/github\.com\//, '')
+                    .replace(/\/+$/, '')
+                    .split('/')[0]?.toLowerCase();
+                if (ownerMatch === claimerLogin) {
+                    signals.push(`✅ Verified — token GitHub matches claimer`);
+                } else if (ownerMatch) {
+                    signals.push(`🚩 Mismatch — token GitHub is <b>${esc(ownerMatch)}</b>, claimer is <b>${esc(githubUser.login)}</b>`);
+                }
+            } else {
+                signals.push(`⚠️ Unverified — token has no GitHub link`);
+            }
+        }
+
         const warnings: string[] = [];
         if (githubUser?.createdAt) {
             const accountAgeDays = (Date.now() - new Date(githubUser.createdAt).getTime()) / 86_400_000;
@@ -354,9 +378,11 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         if (tokenInfo?.isBanned) warnings.push('🚫 BANNED');
         if (tokenInfo?.isCashbackEnabled) warnings.push('💸 Cashback enabled');
         if (tokenInfo?.isHackathon) warnings.push('🏗 Hackathon token');
-        if (warnings.length > 0) {
+
+        const all = [...signals, ...warnings];
+        if (all.length > 0) {
             L.push(`⚡ <b>Signals</b>`);
-            for (const w of warnings) L.push(w);
+            for (const s of all) L.push(s);
             L.push('');
         }
     }
