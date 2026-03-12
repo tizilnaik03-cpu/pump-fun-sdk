@@ -6,8 +6,7 @@
  */
 
 import type { GitHubRepoInfo, GitHubUserInfo } from './github-client.js';
-import type { CreatorProfile, TokenInfo, TokenHolderInfo, TokenTradeInfo, TopHolder, HolderDetails, DevWalletInfo, PoolLiquidityInfo, BundleInfo } from './pump-client.js';
-import { formatCompact as fmtCompact } from './pump-client.js';
+import type { CreatorProfile, TokenInfo, TokenTradeInfo, HolderDetails, DevWalletInfo, PoolLiquidityInfo, BundleInfo } from './pump-client.js';
 import type {
     FeeClaimEvent,
     FeeDistributionEvent,
