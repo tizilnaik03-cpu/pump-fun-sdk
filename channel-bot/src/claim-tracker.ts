@@ -312,3 +312,15 @@ export function getGithubClaimCount(githubUserId: string, mint?: string): number
     return githubUserClaimCounts.get(key) ?? 0;
 }
 
+/** Return all mints that a GitHub user has previously claimed fees from. */
+export function getGithubUserClaimedMints(githubUserId: string): string[] {
+    const prefix = `${githubUserId}:`;
+    const mints: string[] = [];
+    for (const key of githubUserFirstClaim) {
+        if (key.startsWith(prefix)) {
+            mints.push(key.slice(prefix.length));
+        }
+    }
+    return mints;
+}
+

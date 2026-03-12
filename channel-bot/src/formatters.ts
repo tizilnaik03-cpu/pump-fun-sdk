@@ -54,6 +54,8 @@ export interface ClaimFeedContext {
     sameNameTokens?: SameNameToken[] | null;
     /** All tokens this user earns social fees from (resolved from PDA → multiple SharingConfigs). */
     allLinkedTokens?: TokenInfo[] | null;
+    /** Mints of all coins this GitHub user has previously claimed fees from. */
+    claimedMints?: string[];
 }
 
 /**
@@ -120,9 +122,6 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         }
         if (ctx.liquidity) {
             L.push(`💦 Liquidity: $${formatCompact(ctx.liquidity.liquidityUsd)}`);
-            if (ctx.liquidity.liquidityMultiplier > 0) {
-                L.push(`  ↳ MC/Liq: ${ctx.liquidity.liquidityMultiplier}x`);
-            }
         }
         if (tokenInfo.replyCount > 0) {
             L.push(`💬 Replies: ${tokenInfo.replyCount}`);
@@ -162,6 +161,24 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
     }
     L.push(`Type: ${esc(event.claimLabel)}`);
     L.push('');
+
+    // ━━ COINS CLAIMED ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (ctx.claimedMints && ctx.claimedMints.length > 0) {
+        // Exclude the current mint from the "previously claimed" list
+        const previousMints = ctx.claimedMints.filter((m) => m !== mint);
+        const total = previousMints.length + 1; // +1 for current claim
+        L.push(`🪙 <b>Coins Claimed: ${total}</b>`);
+        if (mint) {
+            L.push(`<a href="https://pump.fun/coin/${mint}">${mint.slice(0, 6)}…</a> ◂ current`);
+        }
+        for (const m of previousMints.slice(0, 10)) {
+            L.push(`<a href="https://pump.fun/coin/${m}">${m.slice(0, 6)}…</a>`);
+        }
+        if (previousMints.length > 10) {
+            L.push(`… and ${previousMints.length - 10} more`);
+        }
+        L.push('');
+    }
 
     // ━━ CLAIMED BY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     L.push(`👛 <b>Claimed By</b>`);
@@ -312,15 +329,7 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         L.push('');
     }
 
-    // ━━ DEV WALLET ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    if (ctx.devWallet && ctx.devWallet.solBalance > 0) {
-        const dw = ctx.devWallet;
-        const solStr = dw.solBalance >= 1 ? dw.solBalance.toFixed(2) : dw.solBalance.toFixed(4);
-        const usdStr = solUsdPrice > 0 ? ` ($${(dw.solBalance * solUsdPrice).toFixed(0)})` : '';
-        L.push(`💼 <b>Dev Wallet</b>`);
-        L.push(`${solStr} SOL${usdStr}`);
-        L.push('');
-    }
+
 
     // ━━ TRUST SIGNALS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     {

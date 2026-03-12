@@ -15,7 +15,7 @@ import { Bot, type BotError } from 'grammy';
 import { loadConfig } from './config.js';
 import { ClaimMonitor } from './claim-monitor.js';
 import { EventMonitor } from './event-monitor.js';
-import { hasGithubUserClaimed, markGithubUserClaimed, incrementGithubClaimCount, loadPersistedClaims } from './claim-tracker.js';
+import { hasGithubUserClaimed, markGithubUserClaimed, incrementGithubClaimCount, getGithubUserClaimedMints, loadPersistedClaims } from './claim-tracker.js';
 import { fetchTokenInfo, fetchTopHolders, fetchTokenTrades, fetchDevWalletInfo, fetchSolUsdPrice, fetchPoolLiquidity, fetchBundleInfo, fetchCreatorProfile, fetchSameNameTokens } from './pump-client.js';
 import { fetchGitHubUserById, fetchRepoFromUrls } from './github-client.js';
 import { fetchXProfile } from './x-client.js';
@@ -193,6 +193,7 @@ async function main(): Promise<void> {
                 : null;
 
             const claimNumber = incrementGithubClaimCount(event.githubUserId, mint);
+            const claimedMints = getGithubUserClaimedMints(event.githubUserId);
             log.info('🚨 GitHub social fee FIRST claim by %s (%s) — %s SOL',
                 event.githubUserId, githubUser?.login ?? '?', event.amountSol.toFixed(4));
 
@@ -217,6 +218,7 @@ async function main(): Promise<void> {
                 bundle,
                 sameNameTokens,
                 allLinkedTokens: allLinkedTokens.length > 0 ? allLinkedTokens : undefined,
+                claimedMints: claimedMints.length > 0 ? claimedMints : undefined,
             };
 
             const { imageUrl, caption } = formatGitHubClaimFeed(ctx);
