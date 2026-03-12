@@ -41,8 +41,8 @@ export interface ClaimFeedContext {
 }
 
 /**
- * GitHub Social Fee Claim card — shows a GitHub developer claiming their
- * first fee share from the PumpFun social fee PDA.
+ * GitHub Social Fee Claim card — rich Telegram HTML card with every
+ * data point on its own line, grouped into clear sections.
  */
 export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string | null; caption: string } {
     const { event, solUsdPrice, githubUser, xProfile, tokenInfo } = ctx;
@@ -52,142 +52,179 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
 
     // ━━ HEADER: CLAIM TYPE BADGE ━━━━━━━━━━━━━━━━━━━━━━━━━
     if (ctx.isFake) {
-        L.push(`⚠️⚠️⚠️ <b>FAKE CLAIM</b> ⚠️⚠️⚠️`);
+        L.push(`⚠️ <b>FAKE CLAIM</b>`);
         L.push(`<i>Instruction called but no fees were paid out</i>`);
-        L.push('');
     } else if (ctx.isFirstClaim) {
-        L.push(`🚨🚨🚨 <b>FIRST TIME CLAIM</b> 🚨🚨🚨`);
-        L.push('');
+        L.push(`🚨 <b>FIRST CREATOR FEE CLAIM</b>`);
     } else if (ctx.claimNumber && ctx.claimNumber > 1) {
         L.push(`🔄 <b>REPEAT CLAIM #${ctx.claimNumber}</b>`);
+    } else {
+        L.push(`💸 <b>CREATOR FEE CLAIM</b>`);
+    }
+    L.push('');
+
+    // ━━ TOKEN IDENTITY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (mint) {
+        L.push(`<code>${mint}</code>`);
+    }
+    L.push('');
+    if (tokenInfo) {
+        const ticker = tokenInfo.symbol ? `<b>$${esc(tokenInfo.symbol)}</b>` : '';
+        const name = tokenInfo.name ? esc(tokenInfo.name) : '';
+        L.push(`🐙 ${ticker}${ticker && name ? ' — ' : ''}${name}`);
+        if (tokenInfo.usdMarketCap > 0) {
+            L.push(`💰 MC: $${formatCompact(tokenInfo.usdMarketCap)}`);
+        } else if (tokenInfo.marketCapSol > 0) {
+            L.push(`💰 MC: ${tokenInfo.marketCapSol.toFixed(1)} SOL`);
+        }
+        if (tokenInfo.priceSol > 0) {
+            const priceUsd = solUsdPrice > 0 ? ` ($${formatPriceUsd(tokenInfo.priceSol * solUsdPrice)})` : '';
+            L.push(`💲 Price: ${formatPriceSol(tokenInfo.priceSol)} SOL${priceUsd}`);
+        }
+        if (tokenInfo.createdTimestamp > 0) {
+            L.push(`⏱ Created: ${timeAgo(tokenInfo.createdTimestamp)}`);
+        }
+        if (tokenInfo.complete) {
+            L.push('🎓 Status: Graduated (AMM)');
+            if (tokenInfo.pumpSwapPool) {
+                L.push(`🏊 Pool: <code>${tokenInfo.pumpSwapPool}</code>`);
+            }
+        } else if (tokenInfo.curveProgress > 0) {
+            L.push(`📈 Status: Bonding curve (${Math.round(tokenInfo.curveProgress)}%)`);
+        } else {
+            L.push('📈 Status: Bonding curve');
+        }
+        if (tokenInfo.athMarketCap > 0) {
+            L.push(`🏆 ATH: $${formatCompact(tokenInfo.athMarketCap)}`);
+        }
+        if (tokenInfo.replyCount > 0) {
+            L.push(`💬 Replies: ${tokenInfo.replyCount}`);
+        }
+    }
+    L.push('');
+
+    // ━━ CLAIM DETAILS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push(`💸 <b>Claim Details</b>`);
+    if (ctx.claimNumber && ctx.claimNumber > 0) {
+        L.push(`Claim #${ctx.claimNumber}`);
+    }
+    const claimSol = event.amountSol.toFixed(4);
+    const claimUsd = solUsdPrice > 0 ? ` ($${(event.amountSol * solUsdPrice).toFixed(2)})` : '';
+    L.push(`${claimSol} SOL${claimUsd}`);
+    if (ctx.lifetimeClaimedSol != null && ctx.lifetimeClaimedSol > 0) {
+        const ltUsd = solUsdPrice > 0 ? ` ($${(ctx.lifetimeClaimedSol * solUsdPrice).toFixed(2)})` : '';
+        L.push(`Lifetime claims: ${ctx.lifetimeClaimedSol.toFixed(4)} SOL${ltUsd}`);
+    }
+    L.push(`Type: ${esc(event.claimLabel)}`);
+    L.push('');
+
+    // ━━ CLAIMED BY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push(`👛 <b>Claimed By</b>`);
+    const recipient = event.recipientWallet ?? event.claimerWallet;
+    if (recipient) {
+        L.push(`<code>${shortAddr(recipient)}</code>`);
+        L.push(`🔗 <a href="https://pump.fun/profile/${recipient}">pump.fun/profile/${shortAddr(recipient)}</a>`);
+    }
+    L.push('');
+
+    // ━━ TRANSACTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (event.txSignature) {
+        L.push(`🔎 <b>Transaction</b>`);
+        L.push(`<a href="https://solscan.io/tx/${event.txSignature}">solscan.io/tx/${event.txSignature.slice(0, 20)}…</a>`);
         L.push('');
     }
-    if (tokenInfo) {
-        const pfLink = `<a href="https://pump.fun/coin/${mint}">${esc(tokenInfo.name || mint.slice(0, 8))}</a>`;
-        const ticker = tokenInfo.symbol ? `<b>$${esc(tokenInfo.symbol)}</b>` : '';
-        L.push(`🐙 ${ticker ? ticker + ' — ' : ''}${pfLink}`);
-        if (tokenInfo.usdMarketCap > 0) {
-            L.push(`💹 $${formatCompact(tokenInfo.usdMarketCap)} mcap`);
-        } else if (tokenInfo.marketCapSol > 0) {
-            L.push(`💹 ${tokenInfo.marketCapSol.toFixed(1)} SOL mcap`);
+
+    // ━━ LINKED DEV (GITHUB) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push(`👨‍💻 <b>Linked Dev</b>`);
+    if (githubUser) {
+        const nameTag = githubUser.name ? ` (${esc(githubUser.name)})` : '';
+        L.push(`<a href="${esc(githubUser.htmlUrl)}">${esc(githubUser.login)}</a>${nameTag}`);
+        L.push(`📦 Repos: ${githubUser.publicRepos}`);
+        if (githubUser.followers > 0) L.push(`👁 Followers: ${githubUser.followers}`);
+        if (githubUser.following > 0) L.push(`👥 Following: ${githubUser.following}`);
+        if (githubUser.createdAt) L.push(`📅 Account age: ${timeAgo(new Date(githubUser.createdAt).getTime() / 1000)}`);
+        if (githubUser.company) L.push(`🏢 Company: ${esc(githubUser.company)}`);
+        if (githubUser.location) L.push(`📍 Location: ${esc(githubUser.location)}`);
+        if (githubUser.hireable) L.push(`💼 Hireable: Yes`);
+        if (githubUser.bio) {
+            const bio = githubUser.bio.length > 100 ? githubUser.bio.slice(0, 97) + '...' : githubUser.bio;
+            L.push(`<i>${esc(bio)}</i>`);
         }
-        L.push(`↳ GitHub dev claimed PumpFun social fees`);
-        // Show which GitHub repo was claimed for
-        if (tokenInfo.githubUrls.length > 0) {
-            const repoUrl = tokenInfo.githubUrls[0]!;
-            const repoName = repoUrl.replace(/^https?:\/\/github\.com\//, '').replace(/\/+$/, '');
-            L.push(`🐙 <a href="${esc(repoUrl)}">${esc(repoName)}</a>`);
+        if (githubUser.blog) {
+            const blogDisplay = githubUser.blog.replace(/^https?:\/\//, '').slice(0, 40);
+            L.push(`🌐 <a href="${esc(githubUser.blog)}">${esc(blogDisplay)}</a>`);
+        }
+        if (githubUser.twitterUsername) {
+            const handle = cleanXHandle(githubUser.twitterUsername);
+            if (handle) {
+                L.push(`𝕏 <a href="https://x.com/${esc(handle)}">${esc(handle)}</a>`);
+                if (xProfile && xProfile.followers > 0) {
+                    L.push(`𝕏 Followers: ${formatFollowerCount(xProfile.followers)}`);
+                }
+            }
         }
     } else {
-        L.push(`🐙 <b>GitHub dev claimed PumpFun social fees</b>`);
+        const ghId = event.githubUserId ?? 'unknown';
+        L.push(`GitHub ID: ${esc(ghId)}`);
     }
 
-    // ━━ INFLUENCER BADGE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Influencer badge
     const tier = getInfluencerTier(
         githubUser?.followers ?? 0,
         xProfile?.followers ?? null,
     );
     if (tier) L.push(influencerLabel(tier));
-
-    // ━━ CLAIM STATS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    if (ctx.claimNumber && ctx.claimNumber > 0) {
-        L.push(`📊 Claim #${ctx.claimNumber}`);
-    }
-    if (ctx.lifetimeClaimedSol != null && ctx.lifetimeClaimedSol > 0) {
-        const ltUsd = solUsdPrice > 0 ? ` ($${(ctx.lifetimeClaimedSol * solUsdPrice).toFixed(2)})` : '';
-        L.push(`💰 ${ctx.lifetimeClaimedSol.toFixed(4)} SOL lifetime${ltUsd}`);
-    }
-
-    // ━━ AMOUNT + RECIPIENT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     L.push('');
-    const claimSol = event.amountSol.toFixed(4);
-    const claimUsd = solUsdPrice > 0 ? ` ($${(event.amountSol * solUsdPrice).toFixed(2)})` : '';
-    L.push(`🏦 <b>${claimSol} SOL</b>${claimUsd}`);
-    const recipient = event.recipientWallet ?? event.claimerWallet;
-    if (recipient) {
-        const recipientLink = `<a href="https://pump.fun/profile/${recipient}">${shortAddr(recipient)}</a>`;
-        L.push(`↳ ${recipientLink}`);
-    }
 
-    // ━━ GITHUB PROFILE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    L.push('');
-    if (githubUser) {
-        const userLink = `<a href="${esc(githubUser.htmlUrl)}">${esc(githubUser.login)}</a>`;
-        const nameTag = githubUser.name ? ` (${esc(githubUser.name)})` : '';
-        L.push(`👤 ${userLink}${nameTag}`);
-
-        if (githubUser.publicRepos > 0) L.push(`📦 ${githubUser.publicRepos} repos`);
-        if (githubUser.followers > 0) L.push(`👁 ${githubUser.followers} followers`);
-        if (githubUser.createdAt) L.push(`📅 ${timeAgo(new Date(githubUser.createdAt).getTime() / 1000)}`);
-
-        if (githubUser.bio) {
-            const bio = githubUser.bio.length > 80 ? githubUser.bio.slice(0, 77) + '...' : githubUser.bio;
-            L.push(`<i>${esc(bio)}</i>`);
+    // ━━ REPO CLAIMED ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (ctx.repoInfo) {
+        L.push(`📂 <b>Repo Claimed</b>`);
+        L.push(`<a href="${esc(ctx.repoInfo.htmlUrl)}">${esc(ctx.repoInfo.fullName)}</a>`);
+        if (ctx.repoInfo.description) {
+            const desc = ctx.repoInfo.description.length > 100 ? ctx.repoInfo.description.slice(0, 97) + '...' : ctx.repoInfo.description;
+            L.push(`<i>${esc(desc)}</i>`);
         }
-        if (githubUser.twitterUsername) {
-            const handle = cleanXHandle(githubUser.twitterUsername);
-            if (handle) {
-                const xLink = `<a href="https://x.com/${esc(handle)}">${esc(handle)}</a>`;
-                L.push(`𝕏 ${xLink}`);
-                if (xProfile && xProfile.followers > 0) L.push(`𝕏 ${formatFollowerCount(xProfile.followers)} followers`);
-            }
-        }
-        if (githubUser.location) L.push(`📍 ${esc(githubUser.location)}`);
-        if (githubUser.blog) L.push(`🌐 <a href="${esc(githubUser.blog)}">${esc(githubUser.blog.replace(/^https?:\/\//, '').slice(0, 40))}</a>`);
-    } else {
-        const ghIdLink = event.githubUserId
-            ? `GitHub ID ${esc(event.githubUserId)}`
-            : 'unknown';
-        L.push(`👤 ${ghIdLink}`);
-    }
-
-    // ━━ TOKEN INTEL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    if (tokenInfo) {
+        if (ctx.repoInfo.language) L.push(`🔤 Language: ${esc(ctx.repoInfo.language)}`);
+        if (ctx.repoInfo.stars > 0) L.push(`⭐ Stars: ${ctx.repoInfo.stars}`);
+        if (ctx.repoInfo.forks > 0) L.push(`🍴 Forks: ${ctx.repoInfo.forks}`);
+        if (ctx.repoInfo.openIssues > 0) L.push(`📋 Open issues: ${ctx.repoInfo.openIssues}`);
+        if (ctx.repoInfo.commitCount != null && ctx.repoInfo.commitCount > 0) L.push(`📝 Commits: ${ctx.repoInfo.commitCount}`);
+        if (ctx.repoInfo.lastPushAgo) L.push(`🕐 Last push: ${ctx.repoInfo.lastPushAgo}`);
+        if (ctx.repoInfo.createdAt) L.push(`📅 Repo created: ${timeAgo(new Date(ctx.repoInfo.createdAt).getTime() / 1000)}`);
+        if (ctx.repoInfo.defaultBranch && ctx.repoInfo.defaultBranch !== 'main') L.push(`🌿 Branch: ${esc(ctx.repoInfo.defaultBranch)}`);
+        if (ctx.repoInfo.topics.length > 0) L.push(`🏷 Topics: ${ctx.repoInfo.topics.map(t => esc(t)).join(', ')}`);
+        if (ctx.repoInfo.isFork) L.push('⚠️ This is a fork');
         L.push('');
-        if (tokenInfo.complete) {
-            L.push('🎓 Graduated (AMM)');
-        } else if (tokenInfo.curveProgress > 0) {
-            L.push(`📈 Bonding curve (${Math.round(tokenInfo.curveProgress)}%)`);
-        } else {
-            L.push('📈 Bonding curve');
-        }
-        if (tokenInfo.createdTimestamp > 0) {
-            L.push(`⏱ Created ${timeAgo(tokenInfo.createdTimestamp)}`);
-        }
-        if (tokenInfo.replyCount > 0) {
-            L.push(`💬 ${tokenInfo.replyCount} replies`);
-        }
+    } else if (tokenInfo?.githubUrls?.length) {
+        L.push(`📂 <b>Repo Claimed</b>`);
+        const repoUrl = tokenInfo.githubUrls[0]!;
+        const repoName = repoUrl.replace(/^https?:\/\/github\.com\//, '').replace(/\/+$/, '');
+        L.push(`<a href="${esc(repoUrl)}">${esc(repoName)}</a>`);
+        L.push('');
+    }
 
+    // ━━ TOKEN CHART ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (tokenInfo) {
+        L.push(`📊 <b>Token</b>`);
+        L.push(`<a href="https://pump.fun/coin/${mint}">pump.fun/coin/${mint.slice(0, 12)}…</a>`);
+        // Token socials
         if (tokenInfo.twitter) {
             const handle = cleanXHandle(tokenInfo.twitter);
-            L.push(`<a href="${esc(tokenInfo.twitter)}">𝕏 ${esc(handle || 'Twitter')}</a>`);
+            L.push(`𝕏 <a href="${esc(tokenInfo.twitter)}">${esc(handle || 'Twitter')}</a>`);
         }
         if (tokenInfo.telegram) {
-            L.push(`<a href="${esc(tokenInfo.telegram)}">💬 Telegram</a>`);
+            L.push(`💬 <a href="${esc(tokenInfo.telegram)}">Telegram</a>`);
         }
         if (tokenInfo.website) {
             const host = tokenInfo.website.replace(/^https?:\/\//, '').replace(/\/+$/, '').slice(0, 30);
-            L.push(`<a href="${esc(tokenInfo.website)}">🌐 ${esc(host)}</a>`);
+            L.push(`🌐 <a href="${esc(tokenInfo.website)}">${esc(host)}</a>`);
         }
-
+        // Flags
         if (tokenInfo.isNsfw) L.push('🔞 NSFW');
         if (tokenInfo.isBanned) L.push('🚫 BANNED');
         if (tokenInfo.isCashbackEnabled) L.push('💸 Cashback');
-    }
-
-    // ━━ GITHUB REPO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    if (ctx.repoInfo) {
+        if (tokenInfo.isHackathon) L.push('🏗 Hackathon');
         L.push('');
-        const repoLink = `<a href="${esc(ctx.repoInfo.htmlUrl)}">${esc(ctx.repoInfo.fullName)}</a>`;
-        L.push(`📂 ${repoLink}`);
-        if (ctx.repoInfo.description) {
-            const desc = ctx.repoInfo.description.length > 80 ? ctx.repoInfo.description.slice(0, 77) + '...' : ctx.repoInfo.description;
-            L.push(`<i>${esc(desc)}</i>`);
-        }
-        if (ctx.repoInfo.language) L.push(`🔤 ${esc(ctx.repoInfo.language)}`);
-        if (ctx.repoInfo.stars > 0) L.push(`⭐ ${ctx.repoInfo.stars} stars`);
-        if (ctx.repoInfo.forks > 0) L.push(`🍴 ${ctx.repoInfo.forks} forks`);
-        if (ctx.repoInfo.isFork) L.push('⚠️ Fork');
     }
 
     // ━━ TRUST SIGNALS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -196,39 +233,41 @@ export function formatGitHubClaimFeed(ctx: ClaimFeedContext): { imageUrl: string
         if (githubUser?.createdAt) {
             const accountAgeDays = (Date.now() - new Date(githubUser.createdAt).getTime()) / 86_400_000;
             if (accountAgeDays < 30) {
-                warnings.push(`⚠️ GitHub account created ${Math.floor(accountAgeDays)}d ago`);
+                warnings.push(`⚠️ New GitHub account (${Math.floor(accountAgeDays)}d old)`);
             }
         }
-        // Zero repos
         if (githubUser && githubUser.publicRepos === 0) {
             warnings.push('⚠️ 0 public repos');
         }
-        // Fake claim
         if (ctx.isFake) {
             warnings.push('🚩 Fake claim — no fees paid out');
         }
+        if (ctx.repoInfo?.isFork) {
+            warnings.push('⚠️ Claimed repo is a fork');
+        }
         if (warnings.length > 0) {
-            L.push('');
             for (const w of warnings) L.push(w);
+            L.push('');
         }
     }
 
-    // ━━ CA + LINKS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ━━ SEPARATOR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    L.push('━━━━━━━━━━━━━━━━');
     L.push('');
+
+    // ━━ TRADE LINKS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     if (mint) {
-        L.push(`<code>${mint}</code>`);
         const pfUrl = `https://pump.fun/coin/${mint}`;
         const axiomUrl = `https://axiom.trade/t/${mint}?ref=${encodeURIComponent(aff?.axiom ?? 'nich')}`;
         const gmgnUrl  = `https://gmgn.ai/sol/token/${mint}?ref=${encodeURIComponent(aff?.gmgn ?? 'nichxbt')}`;
         const padreUrl = `https://t.me/padre_trading_bot?start=token_${mint}_ref_${encodeURIComponent(aff?.padre ?? 'nichxbt')}`;
-        const links: string[] = [`<a href="${pfUrl}">PumpFun</a>`];
-        if (event.txSignature) links.push(`<a href="https://solscan.io/tx/${event.txSignature}">TX</a>`);
+        const links: string[] = [];
+        links.push(`<a href="${pfUrl}">PumpFun</a>`);
+        if (event.txSignature) links.push(`<a href="https://solscan.io/tx/${event.txSignature}">🔍 TX</a>`);
         links.push(`<a href="${axiomUrl}">Axiom</a>`);
         links.push(`<a href="${gmgnUrl}">GMGN</a>`);
         links.push(`<a href="${padreUrl}">Padre</a>`);
-        L.push(`🔗 ${links.join(' | ')}`);
-    } else {
-        L.push(`<i>CA resolving…</i>`);
+        L.push(`💹 ${links.join(' | ')}`);
     }
 
     // Token image takes priority; fall back to GitHub avatar
