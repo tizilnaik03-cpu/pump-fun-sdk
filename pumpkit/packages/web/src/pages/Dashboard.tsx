@@ -174,7 +174,11 @@ export function Dashboard() {
           </div>
 
           {filtered.length === 0 ? (
-            <p className="text-zinc-500 text-sm text-center py-8">No events for this filter yet.</p>
+            <div className="text-center py-12">
+              <p className="text-4xl mb-3">🔍</p>
+              <p className="text-zinc-400 text-sm">No events for this filter yet.</p>
+              <p className="text-zinc-500 text-xs mt-1">Events will appear here as they come in</p>
+            </div>
           ) : (
             filtered.map((event) => <EventCard key={event.id} event={event} />)
           )}
