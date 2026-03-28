@@ -1,8 +1,9 @@
 
-
 ```javascript
 var TelegramBot = require('node-telegram-bot-api');
-var solanaWeb3 = require('@solana/web3.js');
+var web3 = require('@solana/web3.js');
+var Connection = web3.Connection;
+var PublicKey = web3.PublicKey;
 
 var BOT_TOKEN = '8732323530:AAHW-EBvR5PrB6Ma1e71_8fW9aAX_H9ujDo';
 var HELIUS_KEY = 'f783be12-4da4-4170-b5e9-c7a1fd1c03bb';
@@ -10,7 +11,7 @@ var RPC = 'https://mainnet.helius-rpc.com/?api-key=' + HELIUS_KEY;
 var MAX = 10;
 
 var bot = new TelegramBot(BOT_TOKEN, {polling: true});
-var connection = new solanaWeb3.Connection(RPC, 'confirmed');
+var connection = new Connection(RPC, 'confirmed');
 var users = {};
 var subs = {};
 
@@ -72,7 +73,7 @@ bot.onText(/\/track (.+)/, function(msg, match) {
 function subscribeToken(mint, ticker) {
   if (subs[mint]) return;
   try {
-    var pubkey = new solanaWeb3.PublicKey(mint);
+    var pubkey = new PublicKey(mint);
     subs[mint] = connection.onLogs(pubkey, function(logs) {
       if (logs.err) return;
       var isClaim = logs.logs.some(function(log) {
@@ -101,4 +102,3 @@ function sendAlerts(mint, ticker, sig) {
 
 console.log('Bot started');
 ```
-
