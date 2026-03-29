@@ -4,14 +4,33 @@ var web3 = require('@solana/web3.js');
 var BOT_TOKEN = '8732323530:AAHW-EBvR5PrB6Ma1e71_8fW9aAX_H9ujDo';
 var HELIUS_KEY = 'f783be12-4da4-4170-b5e9-c7a1fd1c03bb';
 var MAX = 10;
+var CACHE_TTL = 5 * 60 * 1000;
+var ALERT_COOLDOWN = 60000;
 
 var bot = new TelegramBot(BOT_TOKEN, {polling: true});
 var users = {};
+var watchingMints = {};
+var tokenCache = {};
+var recentAlerts = {};
+var messageQueue = [];
+var isProcessing = false;
+var globalConn = new web3.Connection('https://mainnet.helius-rpc.com/?api-key=' + HELIUS_KEY, 'confirmed');
 
 function clean(str) {
   if (!str) return '';
   return str.replace(/[<>&"]/g, function(c) {
     return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];
+  });
+}
+
+function getCachedTokenData(ca) {
+  if (tokenCache[ca] && Date.now() - tokenCache[ca].timestamp < CACHE_TTL) {
+    console.log('Cache hit for ' + ca);
+    return Promise.resolve(tokenCache[ca].data);
+  }
+  return getTokenData(ca).then(function(data) {
+    if (data) tokenCache[ca] = {data: data, timestamp: Date.now()};
+    return data;
   });
 }
 
@@ -29,6 +48,11 @@ function getTokenData(ca) {
     var pump = results[1];
     var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
 
+    if (pair) {
+      console.log('BOOSTS:', JSON.stringify(pair.boosts));
+      console.log('PROFILE:', JSON.stringify(pair.profile));
+    }
+
     var ticker = clean((pump && pump.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN');
     var name = clean((pump && pump.name) || (pair && pair.baseToken && pair.baseToken.name) || ticker);
 
@@ -41,6 +65,7 @@ function getTokenData(ca) {
 
     var dexPaid = false;
     if (pair && pair.boosts && pair.boosts.active && pair.boosts.active > 0) dexPaid = true;
+    else if (pair && pair.profile && pair.profile.header) dexPaid = true;
 
     var twitter = (pump && pump.twitter) || null;
     var website = (pump && pump.website) || null;
@@ -67,19 +92,6 @@ function formatNum(num) {
   return '$' + num.toFixed(0);
 }
 
-function buildLinks(ca, sig) {
-  var row1 = '<a href="https://gmgn.ai/sol/token/' + ca + '">GM</a>' +
-    ' | <a href="https://axiom.trade/t/' + ca + '">AXI</a>' +
-    ' | <a href="https://t.me/solana_trojanbot?start=' + ca + '">TRO</a>' +
-    ' | <a href="https://t.me/BloomSolana_bot?start=' + ca + '">BLO</a>';
-  var row2 = '<a href="https://www.okx.com/web3/dex-swap#inputChain=501&inputCurrency=SOL&outputChain=501&outputCurrency=' + ca + '">OKX</a>' +
-    ' | <a href="https://bullx.io/terminal?chainId=1399811149&address=' + ca + '">NEO</a>' +
-    ' | <a href="https://photon-sol.tinyastro.io/en/lp/' + ca + '">PHO</a>' +
-    ' | <a href="https://padre.trade/token/' + ca + '">TRM</a>';
-  if (sig) return row1 + '\n' + row2 + '\n<a href="https://solscan.io/tx/' + sig + '">Solscan</a>';
-  return row1 + '\n' + row2;
-}
-
 function buildSocials(data) {
   var parts = [];
   if (data.twitter) parts.push('<a href="' + data.twitter + '">X</a>');
@@ -88,12 +100,9 @@ function buildSocials(data) {
   return parts.length > 0 ? parts.join(' | ') : 'None';
 }
 
-function buildText(ca, data, isAlert, sig) {
+function buildText(ca, data, header) {
   var dex = data.dexPaid ? '🟢' : '🔴';
   var socials = buildSocials(data);
-  var links = buildLinks(ca, sig);
-  var header = isAlert ? '🚨 <b>FEE CLAIM ALERT</b>\n\n' : '✅ <b>Now Tracking</b>\n\n';
-
   return header +
     '<b>' + data.name + '</b> ($' + data.ticker + ')\n' +
     '<code>' + ca + '</code>\n\n' +
@@ -102,58 +111,68 @@ function buildText(ca, data, isAlert, sig) {
     '├ Vol: ' + data.vol + '\n' +
     '└ Dex: ' + dex + '\n\n' +
     '🔗 <b>Socials</b>\n' +
-    '└ ' + socials + '\n\n' +
-    links;
+    '└ ' + socials;
 }
 
-function buildRefreshText(ca, data) {
-  var dex = data.dexPaid ? '🟢' : '🔴';
-  var socials = buildSocials(data);
-  var links = buildLinks(ca, null);
-
-  return '🔄 <b>Refreshed</b>\n\n' +
-    '<b>' + data.name + '</b> ($' + data.ticker + ')\n' +
-    '<code>' + ca + '</code>\n\n' +
-    '📊 <b>Stats</b>\n' +
-    '├ MC: ' + data.mc + '\n' +
-    '├ Vol: ' + data.vol + '\n' +
-    '└ Dex: ' + dex + '\n\n' +
-    '🔗 <b>Socials</b>\n' +
-    '└ ' + socials + '\n\n' +
-    links;
+function buildKeyboard(ca, sig) {
+  var keyboard = [
+    [
+      {text: 'GM', url: 'https://gmgn.ai/sol/token/' + ca},
+      {text: 'AXI', url: 'https://axiom.trade/t/' + ca},
+      {text: 'TRO', url: 'https://t.me/solana_trojanbot?start=' + ca},
+      {text: 'BLO', url: 'https://t.me/BloomSolana_bot?start=' + ca}
+    ],
+    [
+      {text: 'OKX', url: 'https://www.okx.com/web3/dex-swap#inputChain=501&inputCurrency=SOL&outputChain=501&outputCurrency=' + ca},
+      {text: 'NEO', url: 'https://bullx.io/terminal?chainId=1399811149&address=' + ca},
+      {text: 'PHO', url: 'https://photon-sol.tinyastro.io/en/lp/' + ca},
+      {text: 'TRM', url: 'https://padre.trade/token/' + ca}
+    ],
+    [{text: '🔄 Refresh', callback_data: 'refresh:' + ca}]
+  ];
+  if (sig) keyboard[1].push({text: 'Solscan', url: 'https://solscan.io/tx/' + sig});
+  return {inline_keyboard: keyboard};
 }
 
-function getRefreshMarkup(ca) {
-  return {inline_keyboard: [[{text: '🔄', callback_data: 'refresh:' + ca}]]};
-}
-
-function sendCard(chatId, ca, data, isAlert, sig) {
-  var text = buildText(ca, data, isAlert, sig);
-  var markup = getRefreshMarkup(ca);
-
-  if (data.pfp) {
-    bot.sendPhoto(chatId, data.pfp, {disable_notification: true})
-      .then(function() {
-        bot.sendMessage(chatId, text, {
-          parse_mode: 'HTML',
-          reply_markup: markup,
-          disable_web_page_preview: true
-        });
-      })
-      .catch(function() {
-        bot.sendMessage(chatId, text, {
-          parse_mode: 'HTML',
-          reply_markup: markup,
-          disable_web_page_preview: true
-        });
-      });
-  } else {
-    bot.sendMessage(chatId, text, {
+function processQueue() {
+  if (isProcessing || messageQueue.length === 0) return;
+  isProcessing = true;
+  var item = messageQueue.shift();
+  var promise;
+  if (item.type === 'photo') {
+    promise = bot.sendPhoto(item.chatId, item.pfp, {
+      caption: item.text,
       parse_mode: 'HTML',
-      reply_markup: markup,
+      reply_markup: item.markup
+    }).catch(function() {
+      return bot.sendMessage(item.chatId, item.text, {
+        parse_mode: 'HTML',
+        reply_markup: item.markup,
+        disable_web_page_preview: true
+      });
+    });
+  } else {
+    promise = bot.sendMessage(item.chatId, item.text, {
+      parse_mode: 'HTML',
+      reply_markup: item.markup,
       disable_web_page_preview: true
     });
   }
+  promise.catch(function(e) { console.log('Queue send error: ' + e.message); })
+    .then(function() {
+      isProcessing = false;
+      setTimeout(processQueue, 100);
+    });
+}
+
+function queueCard(chatId, ca, data, text, sig) {
+  var markup = buildKeyboard(ca, sig);
+  if (data.pfp) {
+    messageQueue.push({type: 'photo', chatId: chatId, pfp: data.pfp, text: text, markup: markup});
+  } else {
+    messageQueue.push({type: 'text', chatId: chatId, text: text, markup: markup});
+  }
+  processQueue();
 }
 
 bot.onText(/\/start/, function(msg) {
@@ -181,9 +200,7 @@ bot.on('callback_query', function(query) {
 
   if (data.startsWith('remove:')) {
     var ca = data.replace('remove:', '');
-    if (users[uid]) {
-      users[uid] = users[uid].filter(function(t) { return t.mint !== ca; });
-    }
+    if (users[uid]) users[uid] = users[uid].filter(function(t) { return t.mint !== ca; });
     bot.answerCallbackQuery(query.id, {text: 'Removed!'});
     bot.editMessageReplyMarkup({inline_keyboard: []}, {
       chat_id: query.message.chat.id,
@@ -194,14 +211,11 @@ bot.on('callback_query', function(query) {
   if (data.startsWith('refresh:')) {
     var ca = data.replace('refresh:', '');
     bot.answerCallbackQuery(query.id, {text: 'Refreshing...'});
-    getTokenData(ca).then(function(tokenData) {
+    tokenCache[ca] = null;
+    getCachedTokenData(ca).then(function(tokenData) {
       if (!tokenData) return;
-      var newText = buildRefreshText(ca, tokenData);
-      bot.sendMessage(query.message.chat.id, newText, {
-        parse_mode: 'HTML',
-        reply_markup: getRefreshMarkup(ca),
-        disable_web_page_preview: true
-      });
+      var text = buildText(ca, tokenData, '🔄 <b>Refreshed</b>\n\n');
+      queueCard(query.message.chat.id, ca, tokenData, text, null);
     }).catch(function(e) { console.log('Refresh error: ' + e.message); });
   }
 });
@@ -210,14 +224,13 @@ function trackToken(uid, ca, chatId) {
   if (!users[uid]) users[uid] = [];
   if (users[uid].length >= MAX) return bot.sendMessage(chatId, 'Hit 10 token limit. Remove one first.');
   if (users[uid].find(function(t) { return t.mint === ca; })) return bot.sendMessage(chatId, 'Already tracking.');
-
   bot.sendMessage(chatId, 'Looking up token...');
-
-  getTokenData(ca).then(function(data) {
+  getCachedTokenData(ca).then(function(data) {
     if (!data) return bot.sendMessage(chatId, 'Could not find token. Check CA and try again.');
     users[uid].push({mint: ca, ticker: data.ticker});
     startWatching(ca, data.ticker);
-    sendCard(chatId, ca, data, false, null);
+    var text = buildText(ca, data, '✅ <b>Now Tracking</b>\n\n');
+    queueCard(chatId, ca, data, text, null);
   }).catch(function(e) {
     console.log('Track error: ' + e.message);
     bot.sendMessage(chatId, 'Could not find token. Check CA and try again.');
@@ -238,26 +251,37 @@ bot.on('message', function(msg) {
 });
 
 function startWatching(mint, ticker) {
+  if (watchingMints[mint]) return;
+  watchingMints[mint] = true;
   try {
     var pub = new web3.PublicKey(mint);
-    var conn = new web3.Connection('https://mainnet.helius-rpc.com/?api-key=' + HELIUS_KEY, 'confirmed');
-    conn.onLogs(pub, function(logs) {
+    globalConn.onLogs(pub, function(logs) {
       if (logs.err) return;
+      console.log('Logs for ' + mint + ':', logs.logs);
       var isRealClaim = logs.logs.some(function(l) {
-        return l === 'Program log: Instruction: CollectCreatorFee' ||
-               l === 'Program log: Instruction: CollectCreatorFeeV2';
+        return l && l.includes('CollectCreatorFee');
       });
-      if (isRealClaim) fireAlert(mint, ticker, logs.signature);
+      if (isRealClaim) {
+        console.log('REAL CLAIM for ' + mint + ' sig: ' + logs.signature);
+        fireAlert(mint, ticker, logs.signature);
+      }
     }, 'confirmed');
   } catch(e) { console.log('Watch error: ' + e.message); }
 }
 
 function fireAlert(mint, ticker, sig) {
-  getTokenData(mint).then(function(data) {
+  if (recentAlerts[mint] && Date.now() - recentAlerts[mint] < ALERT_COOLDOWN) {
+    console.log('Alert cooldown active for ' + mint);
+    return;
+  }
+  recentAlerts[mint] = Date.now();
+  tokenCache[mint] = null;
+  getCachedTokenData(mint).then(function(data) {
     if (!data) return;
+    var text = buildText(mint, data, '🚨 <b>FEE CLAIM ALERT</b>\n\n');
     Object.keys(users).forEach(function(uid) {
       if (users[uid].find(function(t) { return t.mint === mint; })) {
-        sendCard(uid, mint, data, true, sig);
+        queueCard(uid, mint, data, text, sig);
       }
     });
   });
