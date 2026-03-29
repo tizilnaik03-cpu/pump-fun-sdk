@@ -16,31 +16,38 @@ function clean(str) {
 }
 
 function getTokenData(ca) {
-  var pumpData = fetch('https://frontend-api.pump.fun/coins/' + ca)
+  return fetch('https://api.dexscreener.com/latest/dex/tokens/' + ca)
     .then(function(r) { return r.json(); })
-    .catch(function() { return null; });
+    .then(function(dex) {
+      var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
+      if (!pair) return null;
 
-  var dexData = fetch('https://api.dexscreener.com/latest/dex/tokens/' + ca)
-    .then(function(r) { return r.json(); })
-    .catch(function() { return null; });
+      var ticker = clean(pair.baseToken.symbol || 'UNKNOWN');
+      var name = clean(pair.baseToken.name || ticker);
+      var pfp = (pair.info && pair.info.imageUrl) ? pair.info.imageUrl : null;
+      var mc = formatNum(pair.fdv);
+      var vol = formatNum(pair.volume && pair.volume.h24);
+      var dexPaid = pair.boosts && pair.boosts.active ? true : false;
+      var website = null;
+      var twitter = null;
+      var telegram = null;
 
-  return Promise.all([pumpData, dexData]).then(function(results) {
-    var pump = results[0];
-    var dex = results[1];
-    var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
+      if (pair.info && pair.info.socials) {
+        pair.info.socials.forEach(function(s) {
+          if (s.type === 'twitter') twitter = s.url;
+          if (s.type === 'telegram') telegram = s.url;
+        });
+      }
+      if (pair.info && pair.info.websites && pair.info.websites[0]) {
+        website = pair.info.websites[0].url;
+      }
 
-    var ticker = clean((pump && pump.symbol) ? pump.symbol : (pair ? pair.baseToken.symbol : 'UNKNOWN'));
-    var name = clean((pump && pump.name) ? pump.name : ticker);
-    var pfp = (pump && pump.image_uri) ? pump.image_uri : null;
-    var mc = pair ? formatNum(pair.fdv) : 'N/A';
-    var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
-    var dexPaid = pair && pair.boosts && pair.boosts.active ? true : false;
-    var website = (pump && pump.website) ? pump.website : null;
-    var twitter = (pump && pump.twitter) ? pump.twitter : null;
-    var telegram = (pump && pump.telegram) ? pump.telegram : null;
-
-    return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram };
-  });
+      return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram };
+    })
+    .catch(function(e) {
+      console.log('DexScreener error: ' + e.message);
+      return null;
+    });
 }
 
 function formatNum(num) {
@@ -158,6 +165,7 @@ bot.on('callback_query', function(query) {
     var ca = data.replace('refresh:', '');
     bot.answerCallbackQuery(query.id, {text: 'Refreshing...'});
     getTokenData(ca).then(function(tokenData) {
+      if (!tokenData) return;
       var dex = tokenData.dexPaid ? '🟢' : '🔴';
       var oldText = query.message.caption || query.message.text || '';
       var newText = oldText
@@ -193,6 +201,9 @@ function trackToken(uid, ca, chatId) {
   bot.sendMessage(chatId, 'Looking up token...');
 
   getTokenData(ca).then(function(data) {
+    if (!data) {
+      return bot.sendMessage(chatId, 'Could not find token. Check CA and try again.');
+    }
     users[uid].push({mint: ca, ticker: data.ticker});
     startWatching(ca, data.ticker);
     sendCard(chatId, ca, data, false, null);
@@ -231,6 +242,7 @@ function startWatching(mint, ticker) {
 
 function fireAlert(mint, ticker, sig) {
   getTokenData(mint).then(function(data) {
+    if (!data) return;
     Object.keys(users).forEach(function(uid) {
       if (users[uid].find(function(t) { return t.mint === mint; })) {
         sendCard(uid, mint, data, true, sig);
