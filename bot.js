@@ -49,8 +49,12 @@ function getTokenData(ca) {
     var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
 
     if (pair) {
-      console.log('BOOSTS:', JSON.stringify(pair.boosts));
-      console.log('PROFILE:', JSON.stringify(pair.profile));
+      console.log('FULL PAIR:', JSON.stringify({
+        boosts: pair.boosts,
+        profile: pair.profile,
+        labels: pair.labels,
+        info: pair.info ? {imageUrl: pair.info.imageUrl} : null
+      }));
     }
 
     var ticker = clean((pump && pump.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN');
@@ -64,8 +68,12 @@ function getTokenData(ca) {
     var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
 
     var dexPaid = false;
-    if (pair && pair.boosts && pair.boosts.active && pair.boosts.active > 0) dexPaid = true;
-    else if (pair && pair.profile && pair.profile.header) dexPaid = true;
+    if (pair) {
+      if (pair.boosts && pair.boosts.active && pair.boosts.active > 0) { dexPaid = true; console.log('DEX PAID via boosts'); }
+      else if (pair.profile && pair.profile.header) { dexPaid = true; console.log('DEX PAID via profile'); }
+      else if (pair.labels && pair.labels.length > 0) { dexPaid = true; console.log('DEX PAID via labels:', pair.labels); }
+    }
+    console.log('dexPaid result:', dexPaid);
 
     var twitter = (pump && pump.twitter) || null;
     var website = (pump && pump.website) || null;
@@ -158,7 +166,7 @@ function processQueue() {
       disable_web_page_preview: true
     });
   }
-  promise.catch(function(e) { console.log('Queue send error: ' + e.message); })
+  promise.catch(function(e) { console.log('Queue error: ' + e.message); })
     .then(function() {
       isProcessing = false;
       setTimeout(processQueue, 100);
@@ -186,7 +194,8 @@ bot.onText(/\/help/, function(msg) {
 bot.onText(/\/list/, function(msg) {
   var uid = String(msg.chat.id);
   var tokens = users[uid] || [];
-  if (tokens.length === 0) return bot.sendMessage(msg.chat.id, 'No tokens tracked. Paste a CA to start.');
+  console.log('LIST - uid: ' + uid + ' tokens: ' + JSON.stringify(tokens));
+  if (tokens.length === 0) return bot.sendMessage(msg.chat.id, 'No tokens tracked. Paste a CA to start.\n\n(Note: tracked tokens reset on bot restart. Re-add your tokens.)');
   tokens.forEach(function(t) {
     var text = '<b>$' + t.ticker + '</b>\n<code>' + t.mint + '</code>';
     var btns = {inline_keyboard: [[{text: '❌ Remove', callback_data: 'remove:' + t.mint}]]};
@@ -215,7 +224,27 @@ bot.on('callback_query', function(query) {
     getCachedTokenData(ca).then(function(tokenData) {
       if (!tokenData) return;
       var text = buildText(ca, tokenData, '🔄 <b>Refreshed</b>\n\n');
-      queueCard(query.message.chat.id, ca, tokenData, text, null);
+      var markup = buildKeyboard(ca, null);
+      if (query.message.photo) {
+        bot.editMessageCaption(text, {
+          chat_id: query.message.chat.id,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: markup
+        }).catch(function() {
+          queueCard(query.message.chat.id, ca, tokenData, text, null);
+        });
+      } else {
+        bot.editMessageText(text, {
+          chat_id: query.message.chat.id,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: markup,
+          disable_web_page_preview: true
+        }).catch(function() {
+          queueCard(query.message.chat.id, ca, tokenData, text, null);
+        });
+      }
     }).catch(function(e) { console.log('Refresh error: ' + e.message); });
   }
 });
@@ -228,6 +257,7 @@ function trackToken(uid, ca, chatId) {
   getCachedTokenData(ca).then(function(data) {
     if (!data) return bot.sendMessage(chatId, 'Could not find token. Check CA and try again.');
     users[uid].push({mint: ca, ticker: data.ticker});
+    console.log('Tracking added - uid: ' + uid + ' total: ' + users[uid].length);
     startWatching(ca, data.ticker);
     var text = buildText(ca, data, '✅ <b>Now Tracking</b>\n\n');
     queueCard(chatId, ca, data, text, null);
@@ -257,7 +287,6 @@ function startWatching(mint, ticker) {
     var pub = new web3.PublicKey(mint);
     globalConn.onLogs(pub, function(logs) {
       if (logs.err) return;
-      console.log('Logs for ' + mint + ':', logs.logs);
       var isRealClaim = logs.logs.some(function(l) {
         return l && l.includes('CollectCreatorFee');
       });
@@ -271,7 +300,7 @@ function startWatching(mint, ticker) {
 
 function fireAlert(mint, ticker, sig) {
   if (recentAlerts[mint] && Date.now() - recentAlerts[mint] < ALERT_COOLDOWN) {
-    console.log('Alert cooldown active for ' + mint);
+    console.log('Alert cooldown for ' + mint);
     return;
   }
   recentAlerts[mint] = Date.now();
