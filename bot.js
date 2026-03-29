@@ -49,14 +49,8 @@ function formatNum(num) {
 }
 
 function buildLinks(ca, sig) {
-  var row1 = '[GM](https://gmgn.ai/sol/token/' + ca + ')' +
-    ' | [AXI](https://axiom.trade/t/' + ca + ')' +
-    ' | [TRO](https://t.me/solana_trojanbot?start=' + ca + ')' +
-    ' | [BLO](https://t.me/BloomSolana_bot?start=' + ca + ')';
-  var row2 = '[OKX](https://www.okx.com/web3/dex-swap#inputChain=501&inputCurrency=SOL&outputChain=501&outputCurrency=' + ca + ')' +
-    ' | [NEO](https://bullx.io/terminal?chainId=1399811149&address=' + ca + ')' +
-    ' | [PHO](https://photon-sol.tinyastro.io/en/lp/' + ca + ')' +
-    ' | [TRM](https://padre.trade/token/' + ca + ')';
+  var row1 = '[GM](https://gmgn.ai/sol/token/' + ca + ') \\| [AXI](https://axiom.trade/t/' + ca + ') \\| [TRO](https://t.me/solana_trojanbot?start=' + ca + ') \\| [BLO](https://t.me/BloomSolana_bot?start=' + ca + ')';
+  var row2 = '[OKX](https://www.okx.com/web3/dex-swap#inputChain=501&inputCurrency=SOL&outputChain=501&outputCurrency=' + ca + ') \\| [NEO](https://bullx.io/terminal?chainId=1399811149&address=' + ca + ') \\| [PHO](https://photon-sol.tinyastro.io/en/lp/' + ca + ') \\| [TRM](https://padre.trade/token/' + ca + ')';
   if (sig) return row1 + '\n' + row2 + '\n[Solscan](https://solscan.io/tx/' + sig + ')';
   return row1 + '\n' + row2;
 }
@@ -66,7 +60,7 @@ function buildSocials(data) {
   if (data.twitter) parts.push('[X](' + data.twitter + ')');
   if (data.website) parts.push('[Web](' + data.website + ')');
   if (data.telegram) parts.push('[TG](' + data.telegram + ')');
-  return parts.length > 0 ? parts.join(' | ') : 'None';
+  return parts.length > 0 ? parts.join(' \\| ') : 'None';
 }
 
 function buildCaption(ca, data, isAlert, sig) {
@@ -76,7 +70,7 @@ function buildCaption(ca, data, isAlert, sig) {
   var header = isAlert ? '🚨 *FEE CLAIM ALERT*\n\n' : '✅ *Now Tracking*\n\n';
 
   return header +
-    '*' + data.name + '* ($' + data.ticker + ')\n' +
+    '*' + data.name + '* \\($' + data.ticker + '\\)\n' +
     '`' + ca + '`\n\n' +
     '📊 *Stats*\n' +
     '├ MC: ' + data.mc + '\n' +
@@ -98,18 +92,19 @@ function sendCard(chatId, ca, data, isAlert, sig) {
   if (data.pfp) {
     bot.sendPhoto(chatId, data.pfp, {
       caption: caption,
-      parse_mode: 'Markdown',
+      parse_mode: 'MarkdownV2',
       reply_markup: markup
-    }).catch(function() {
+    }).catch(function(err) {
+      console.log('Photo error: ' + err.message);
       bot.sendMessage(chatId, caption, {
-        parse_mode: 'Markdown',
+        parse_mode: 'MarkdownV2',
         reply_markup: markup,
         disable_web_page_preview: true
       });
     });
   } else {
     bot.sendMessage(chatId, caption, {
-      parse_mode: 'Markdown',
+      parse_mode: 'MarkdownV2',
       reply_markup: markup,
       disable_web_page_preview: true
     });
@@ -117,7 +112,7 @@ function sendCard(chatId, ca, data, isAlert, sig) {
 }
 
 bot.onText(/\/start/, function(msg) {
-  bot.sendMessage(msg.chat.id, '*PumpFee Bot is live!*\n\nPaste any Pump.fun CA to track it.\n\nCommands:\n/track CA\n/list\n/help', {parse_mode: 'Markdown'});
+  bot.sendMessage(msg.chat.id, '*PumpFee Bot is live\\!*\n\nPaste any Pump\\.fun CA to track it\\.\n\nCommands:\n/track CA\n/list\n/help', {parse_mode: 'MarkdownV2'});
 });
 
 bot.onText(/\/help/, function(msg) {
@@ -131,7 +126,7 @@ bot.onText(/\/list/, function(msg) {
   tokens.forEach(function(t) {
     var text = '*$' + t.ticker + '*\n`' + t.mint + '`';
     var btns = {inline_keyboard: [[{text: '❌ Remove', callback_data: 'remove:' + t.mint}]]};
-    bot.sendMessage(msg.chat.id, text, {parse_mode: 'Markdown', reply_markup: btns});
+    bot.sendMessage(msg.chat.id, text, {parse_mode: 'MarkdownV2', reply_markup: btns});
   });
 });
 
@@ -166,14 +161,14 @@ bot.on('callback_query', function(query) {
         bot.editMessageCaption(newText, {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
-          parse_mode: 'Markdown',
+          parse_mode: 'MarkdownV2',
           reply_markup: getRefreshMarkup(ca)
         }).catch(function(e) { console.log('Refresh error: ' + e.message); });
       } else {
         bot.editMessageText(newText, {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
-          parse_mode: 'Markdown',
+          parse_mode: 'MarkdownV2',
           reply_markup: getRefreshMarkup(ca),
           disable_web_page_preview: true
         }).catch(function(e) { console.log('Refresh error: ' + e.message); });
