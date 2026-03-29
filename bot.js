@@ -10,7 +10,9 @@ var users = {};
 
 function clean(str) {
   if (!str) return '';
-  return str.replace(/[*_`\[\]()]/g, '');
+  return str.replace(/[<>&"]/g, function(c) {
+    return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];
+  });
 }
 
 function getTokenData(ca) {
@@ -49,34 +51,40 @@ function formatNum(num) {
 }
 
 function buildLinks(ca, sig) {
-  var row1 = '[GM](https://gmgn.ai/sol/token/' + ca + ') \\| [AXI](https://axiom.trade/t/' + ca + ') \\| [TRO](https://t.me/solana_trojanbot?start=' + ca + ') \\| [BLO](https://t.me/BloomSolana_bot?start=' + ca + ')';
-  var row2 = '[OKX](https://www.okx.com/web3/dex-swap#inputChain=501&inputCurrency=SOL&outputChain=501&outputCurrency=' + ca + ') \\| [NEO](https://bullx.io/terminal?chainId=1399811149&address=' + ca + ') \\| [PHO](https://photon-sol.tinyastro.io/en/lp/' + ca + ') \\| [TRM](https://padre.trade/token/' + ca + ')';
-  if (sig) return row1 + '\n' + row2 + '\n[Solscan](https://solscan.io/tx/' + sig + ')';
+  var row1 = '<a href="https://gmgn.ai/sol/token/' + ca + '">GM</a>' +
+    ' | <a href="https://axiom.trade/t/' + ca + '">AXI</a>' +
+    ' | <a href="https://t.me/solana_trojanbot?start=' + ca + '">TRO</a>' +
+    ' | <a href="https://t.me/BloomSolana_bot?start=' + ca + '">BLO</a>';
+  var row2 = '<a href="https://www.okx.com/web3/dex-swap#inputChain=501&inputCurrency=SOL&outputChain=501&outputCurrency=' + ca + '">OKX</a>' +
+    ' | <a href="https://bullx.io/terminal?chainId=1399811149&address=' + ca + '">NEO</a>' +
+    ' | <a href="https://photon-sol.tinyastro.io/en/lp/' + ca + '">PHO</a>' +
+    ' | <a href="https://padre.trade/token/' + ca + '">TRM</a>';
+  if (sig) return row1 + '\n' + row2 + '\n<a href="https://solscan.io/tx/' + sig + '">Solscan</a>';
   return row1 + '\n' + row2;
 }
 
 function buildSocials(data) {
   var parts = [];
-  if (data.twitter) parts.push('[X](' + data.twitter + ')');
-  if (data.website) parts.push('[Web](' + data.website + ')');
-  if (data.telegram) parts.push('[TG](' + data.telegram + ')');
-  return parts.length > 0 ? parts.join(' \\| ') : 'None';
+  if (data.twitter) parts.push('<a href="' + data.twitter + '">X</a>');
+  if (data.website) parts.push('<a href="' + data.website + '">Web</a>');
+  if (data.telegram) parts.push('<a href="' + data.telegram + '">TG</a>');
+  return parts.length > 0 ? parts.join(' | ') : 'None';
 }
 
 function buildCaption(ca, data, isAlert, sig) {
   var dex = data.dexPaid ? '🟢' : '🔴';
   var socials = buildSocials(data);
   var links = buildLinks(ca, sig);
-  var header = isAlert ? '🚨 *FEE CLAIM ALERT*\n\n' : '✅ *Now Tracking*\n\n';
+  var header = isAlert ? '🚨 <b>FEE CLAIM ALERT</b>\n\n' : '✅ <b>Now Tracking</b>\n\n';
 
   return header +
-    '*' + data.name + '* \\($' + data.ticker + '\\)\n' +
-    '`' + ca + '`\n\n' +
-    '📊 *Stats*\n' +
+    '<b>' + data.name + '</b> ($' + data.ticker + ')\n' +
+    '<code>' + ca + '</code>\n\n' +
+    '📊 <b>Stats</b>\n' +
     '├ MC: ' + data.mc + '\n' +
     '├ Vol: ' + data.vol + '\n' +
     '└ Dex: ' + dex + '\n\n' +
-    '🔗 *Socials*\n' +
+    '🔗 <b>Socials</b>\n' +
     '└ ' + socials + '\n\n' +
     links;
 }
@@ -92,19 +100,19 @@ function sendCard(chatId, ca, data, isAlert, sig) {
   if (data.pfp) {
     bot.sendPhoto(chatId, data.pfp, {
       caption: caption,
-      parse_mode: 'MarkdownV2',
+      parse_mode: 'HTML',
       reply_markup: markup
     }).catch(function(err) {
       console.log('Photo error: ' + err.message);
       bot.sendMessage(chatId, caption, {
-        parse_mode: 'MarkdownV2',
+        parse_mode: 'HTML',
         reply_markup: markup,
         disable_web_page_preview: true
       });
     });
   } else {
     bot.sendMessage(chatId, caption, {
-      parse_mode: 'MarkdownV2',
+      parse_mode: 'HTML',
       reply_markup: markup,
       disable_web_page_preview: true
     });
@@ -112,7 +120,7 @@ function sendCard(chatId, ca, data, isAlert, sig) {
 }
 
 bot.onText(/\/start/, function(msg) {
-  bot.sendMessage(msg.chat.id, '*PumpFee Bot is live\\!*\n\nPaste any Pump\\.fun CA to track it\\.\n\nCommands:\n/track CA\n/list\n/help', {parse_mode: 'MarkdownV2'});
+  bot.sendMessage(msg.chat.id, '<b>PumpFee Bot is live!</b>\n\nPaste any Pump.fun CA to track it.\n\nCommands:\n/track CA\n/list\n/help', {parse_mode: 'HTML'});
 });
 
 bot.onText(/\/help/, function(msg) {
@@ -124,9 +132,9 @@ bot.onText(/\/list/, function(msg) {
   var tokens = users[uid] || [];
   if (tokens.length === 0) return bot.sendMessage(msg.chat.id, 'No tokens tracked. Paste a CA to start.');
   tokens.forEach(function(t) {
-    var text = '*$' + t.ticker + '*\n`' + t.mint + '`';
+    var text = '<b>$' + t.ticker + '</b>\n<code>' + t.mint + '</code>';
     var btns = {inline_keyboard: [[{text: '❌ Remove', callback_data: 'remove:' + t.mint}]]};
-    bot.sendMessage(msg.chat.id, text, {parse_mode: 'MarkdownV2', reply_markup: btns});
+    bot.sendMessage(msg.chat.id, text, {parse_mode: 'HTML', reply_markup: btns});
   });
 });
 
@@ -161,14 +169,14 @@ bot.on('callback_query', function(query) {
         bot.editMessageCaption(newText, {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
-          parse_mode: 'MarkdownV2',
+          parse_mode: 'HTML',
           reply_markup: getRefreshMarkup(ca)
         }).catch(function(e) { console.log('Refresh error: ' + e.message); });
       } else {
         bot.editMessageText(newText, {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
-          parse_mode: 'MarkdownV2',
+          parse_mode: 'HTML',
           reply_markup: getRefreshMarkup(ca),
           disable_web_page_preview: true
         }).catch(function(e) { console.log('Refresh error: ' + e.message); });
