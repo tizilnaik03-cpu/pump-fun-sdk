@@ -23,15 +23,16 @@ function getTokenData(ca) {
     var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
 
     var ticker = (pump && pump.symbol) ? pump.symbol : (pair ? pair.baseToken.symbol : 'UNKNOWN');
+    var name = (pump && pump.name) ? pump.name : ticker;
     var pfp = (pump && pump.image_uri) ? pump.image_uri : null;
     var mc = pair ? formatNum(pair.fdv) : 'N/A';
     var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
-    var dexPaid = pair && pair.boosts ? true : false;
+    var dexPaid = pair && pair.boosts && pair.boosts.active ? true : false;
     var website = (pump && pump.website) ? pump.website : null;
     var twitter = (pump && pump.twitter) ? pump.twitter : null;
     var telegram = (pump && pump.telegram) ? pump.telegram : null;
 
-    return { ticker, pfp, mc, vol, dexPaid, website, twitter, telegram };
+    return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram };
   });
 }
 
@@ -51,8 +52,8 @@ function buildLinks(ca, sig) {
     ' • [NEO](https://bullx.io/terminal?chainId=1399811149&address=' + ca + ')' +
     ' • [PHO](https://photon-sol.tinyastro.io/en/lp/' + ca + ')' +
     ' • [TRM](https://padre.trade/token/' + ca + ')';
-  var row3 = '[Solscan](https://solscan.io/tx/' + (sig || '') + ')';
-  return row1 + '\n' + row2 + (sig ? '\n' + row3 : '');
+  if (sig) return row1 + '\n' + row2 + '\n[Solscan](https://solscan.io/tx/' + sig + ')';
+  return row1 + '\n' + row2;
 }
 
 function buildSocials(data) {
@@ -63,48 +64,60 @@ function buildSocials(data) {
   return parts.length > 0 ? parts.join(' • ') : 'None';
 }
 
-function buildText(ca, data, isAlert, sig) {
+function buildCaption(ca, data, isAlert, sig) {
   var dex = data.dexPaid ? '🟢' : '🔴';
   var socials = buildSocials(data);
   var links = buildLinks(ca, sig);
-  var header = isAlert ? '🚨 *FEE CLAIM ALERT*\n\n' : '✅ *Now tracking*\n\n';
+  var header = isAlert ? '🚨 *FEE CLAIM ALERT*\n\n' : '✅ *Now Tracking*\n\n';
 
   return header +
-    '[$' + data.ticker + '](https://pump.fun/' + ca + ')\n' +
-    '`' + ca + '`\n\n' +
-    '├ MC: ' + data.mc + '\n' +
-    '├ Vol: ' + data.vol + '\n' +
-    '├ Dex: ' + dex + '\n' +
-    '└ 🔗 ' + socials + '\n\n' +
+    '🖼 *' + data.name + '* ($' + data.ticker + ')\n' +
+    '├ `' + ca + '`\n' +
+    '└ [Pump\\.fun](https://pump.fun/' + ca + ')\n\n' +
+    '📊 *Stats*\n' +
+    '├ MC: *' + data.mc + '*\n' +
+    '├ Vol: *' + data.vol + '*\n' +
+    '└ Dex: ' + dex + '\n\n' +
+    '🔗 *Socials*\n' +
+    '└ ' + socials + '\n\n' +
     links;
 }
 
+function getRefreshMarkup(ca) {
+  return {inline_keyboard: [[{text: '🔄', callback_data: 'refresh:' + ca}]]};
+}
+
 function sendCard(chatId, ca, data, isAlert, sig) {
-  var text = buildText(ca, data, isAlert, sig);
-  var refreshBtn = {inline_keyboard: [[{text: '🔄 Refresh MC', callback_data: 'refresh:' + ca}]]};
+  var caption = buildCaption(ca, data, isAlert, sig);
+  var markup = getRefreshMarkup(ca);
 
   if (data.pfp) {
     bot.sendPhoto(chatId, data.pfp, {
-      caption: text,
-      parse_mode: 'Markdown',
-      reply_markup: refreshBtn,
-      disable_web_page_preview: true
+      caption: caption,
+      parse_mode: 'MarkdownV2',
+      reply_markup: markup
+    }).catch(function() {
+      bot.sendMessage(chatId, caption, {
+        parse_mode: 'MarkdownV2',
+        reply_markup: markup,
+        disable_web_page_preview: true
+      });
     });
   } else {
-    bot.sendMessage(chatId, text, {
-      parse_mode: 'Markdown',
-      reply_markup: refreshBtn,
+    bot.sendMessage(chatId, caption, {
+      parse_mode: 'MarkdownV2',
+      reply_markup: markup,
       disable_web_page_preview: true
     });
   }
 }
 
 bot.onText(/\/start/, function(msg) {
-  bot.sendMessage(msg.chat.id, 'PumpFee Bot is live!\n\nPaste any Pump.fun CA to track it.\n\nCommands:\n/track CA\n/list\n/help');
+  bot.sendMessage(msg.chat.id, 'PumpFee Bot is live\\!\n\nPaste any Pump\\.fun CA to track it\\.\n\nCommands:\n/track CA\n/list\n/help', {parse_mode: 'MarkdownV2'});
 });
 
 bot.onText(/\/help/, function(msg) {
-  bot.sendMessage(msg.chat.id, 'Paste any Pump.fun CA to track fee claims.\n\nMax 10 tokens per user.\n\n/list - see tracked tokens');
+  bot.sendMessage(msg.chat.id, 'Paste any Pump\\.fun CA to track fee claims\\.\n\nMax 10 tokens per user\\.', {parse_mode: 'MarkdownV2'});
 });
 
 bot.onText(/\/list/, function(msg) {
@@ -112,9 +125,9 @@ bot.onText(/\/list/, function(msg) {
   var tokens = users[uid] || [];
   if (tokens.length === 0) return bot.sendMessage(msg.chat.id, 'No tokens tracked. Paste a CA to start.');
   tokens.forEach(function(t) {
-    var text = '$' + t.ticker + '\n`' + t.mint + '`';
+    var text = '*$' + t.ticker + '*\n`' + t.mint + '`';
     var btns = {inline_keyboard: [[{text: 'Remove', callback_data: 'remove:' + t.mint}]]};
-    bot.sendMessage(msg.chat.id, text, {parse_mode: 'Markdown', reply_markup: btns});
+    bot.sendMessage(msg.chat.id, text, {parse_mode: 'MarkdownV2', reply_markup: btns});
   });
 });
 
@@ -138,20 +151,29 @@ bot.on('callback_query', function(query) {
     var ca = data.replace('refresh:', '');
     bot.answerCallbackQuery(query.id, {text: 'Refreshing...'});
     getTokenData(ca).then(function(tokenData) {
-      var text = '🔄 *Refreshed*\n\n' +
-        '[$' + tokenData.ticker + '](https://pump.fun/' + ca + ')\n' +
-        '`' + ca + '`\n\n' +
-        '├ MC: ' + tokenData.mc + '\n' +
-        '├ Vol: ' + tokenData.vol + '\n' +
-        '├ Dex: ' + (tokenData.dexPaid ? '🟢' : '🔴') + '\n' +
-        '└ 🔗 ' + buildSocials(tokenData) + '\n\n' +
-        buildLinks(ca, null);
-      var refreshBtn = {inline_keyboard: [[{text: '🔄 Refresh MC', callback_data: 'refresh:' + ca}]]};
-      bot.sendMessage(query.message.chat.id, text, {
-        parse_mode: 'Markdown',
-        reply_markup: refreshBtn,
-        disable_web_page_preview: true
-      });
+      var dex = tokenData.dexPaid ? '🟢' : '🔴';
+      var oldCaption = query.message.caption || query.message.text || '';
+      var newCaption = oldCaption
+        .replace(/MC: \*[^\*]+\*/, 'MC: *' + tokenData.mc + '*')
+        .replace(/Vol: \*[^\*]+\*/, 'Vol: *' + tokenData.vol + '*')
+        .replace(/Dex: [🟢🔴]/, 'Dex: ' + dex);
+
+      if (query.message.photo) {
+        bot.editMessageCaption(newCaption, {
+          chat_id: query.message.chat.id,
+          message_id: query.message.message_id,
+          parse_mode: 'MarkdownV2',
+          reply_markup: getRefreshMarkup(ca)
+        }).catch(function(e) { console.log('Edit error: ' + e.message); });
+      } else {
+        bot.editMessageText(newCaption, {
+          chat_id: query.message.chat.id,
+          message_id: query.message.message_id,
+          parse_mode: 'MarkdownV2',
+          reply_markup: getRefreshMarkup(ca),
+          disable_web_page_preview: true
+        }).catch(function(e) { console.log('Edit error: ' + e.message); });
+      }
     });
   }
 });
