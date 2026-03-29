@@ -29,33 +29,36 @@ function getTokenData(ca) {
     var pump = results[1];
     var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
 
-    var ticker = clean((pair ? pair.baseToken.symbol : null) || (pump && pump.symbol) || 'UNKNOWN');
-    var name = clean((pair ? pair.baseToken.name : null) || (pump && pump.name) || ticker);
+    var ticker = clean((pump && pump.symbol) || (pair && pair.baseToken.symbol) || 'UNKNOWN');
+    var name = clean((pump && pump.name) || (pair && pair.baseToken.name) || ticker);
 
+    // pump.fun is primary for PFP
     var pfp = null;
-    if (pair && pair.info && pair.info.imageUrl) pfp = pair.info.imageUrl;
-    else if (pump && pump.image_uri) pfp = pump.image_uri;
+    if (pump && pump.image_uri) {
+      pfp = pump.image_uri;
+    } else if (pair && pair.info && pair.info.imageUrl) {
+      pfp = pair.info.imageUrl;
+    }
 
     var mc = pair ? formatNum(pair.fdv) : 'N/A';
     var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
     var dexPaid = pair && pair.boosts && pair.boosts.active ? true : false;
 
-    var website = null;
-    var twitter = null;
-    var telegram = null;
+    // pump.fun is primary for socials
+    var twitter = (pump && pump.twitter) || null;
+    var website = (pump && pump.website) || null;
+    var telegram = (pump && pump.telegram) || null;
 
-    if (pair && pair.info && pair.info.socials) {
+    // DexScreener as fallback for socials
+    if (!twitter && pair && pair.info && pair.info.socials) {
       pair.info.socials.forEach(function(s) {
         if (s.type === 'twitter') twitter = s.url;
-        if (s.type === 'telegram') telegram = s.url;
+        if (s.type === 'telegram' && !telegram) telegram = s.url;
       });
     }
-    if (pair && pair.info && pair.info.websites && pair.info.websites[0]) {
+    if (!website && pair && pair.info && pair.info.websites && pair.info.websites[0]) {
       website = pair.info.websites[0].url;
     }
-    if (!twitter && pump && pump.twitter) twitter = pump.twitter;
-    if (!website && pump && pump.website) website = pump.website;
-    if (!telegram && pump && pump.telegram) telegram = pump.telegram;
 
     return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram };
   });
@@ -89,7 +92,7 @@ function buildSocials(data) {
   return parts.length > 0 ? parts.join(' | ') : 'None';
 }
 
-function buildCaption(ca, data, isAlert, sig) {
+function buildText(ca, data, isAlert, sig) {
   var dex = data.dexPaid ? '🟢' : '🔴';
   var socials = buildSocials(data);
   var links = buildLinks(ca, sig);
@@ -112,24 +115,28 @@ function getRefreshMarkup(ca) {
 }
 
 function sendCard(chatId, ca, data, isAlert, sig) {
-  var caption = buildCaption(ca, data, isAlert, sig);
+  var text = buildText(ca, data, isAlert, sig);
   var markup = getRefreshMarkup(ca);
 
   if (data.pfp) {
-    bot.sendPhoto(chatId, data.pfp, {
-      caption: caption,
-      parse_mode: 'HTML',
-      reply_markup: markup
-    }).catch(function(err) {
-      console.log('Photo error: ' + err.message);
-      bot.sendMessage(chatId, caption, {
-        parse_mode: 'HTML',
-        reply_markup: markup,
-        disable_web_page_preview: true
+    // Send image first, then text card below
+    bot.sendPhoto(chatId, data.pfp, {disable_notification: true})
+      .then(function() {
+        bot.sendMessage(chatId, text, {
+          parse_mode: 'HTML',
+          reply_markup: markup,
+          disable_web_page_preview: true
+        });
+      })
+      .catch(function() {
+        bot.sendMessage(chatId, text, {
+          parse_mode: 'HTML',
+          reply_markup: markup,
+          disable_web_page_preview: true
+        });
       });
-    });
   } else {
-    bot.sendMessage(chatId, caption, {
+    bot.sendMessage(chatId, text, {
       parse_mode: 'HTML',
       reply_markup: markup,
       disable_web_page_preview: true
@@ -178,28 +185,18 @@ bot.on('callback_query', function(query) {
     getTokenData(ca).then(function(tokenData) {
       if (!tokenData) return;
       var dex = tokenData.dexPaid ? '🟢' : '🔴';
-      var oldText = query.message.caption || query.message.text || '';
+      var oldText = query.message.text || '';
       var newText = oldText
         .replace(/MC: [^\n]+/, 'MC: ' + tokenData.mc)
         .replace(/Vol: [^\n]+/, 'Vol: ' + tokenData.vol)
         .replace(/Dex: [🟢🔴]/, 'Dex: ' + dex);
-
-      if (query.message.photo) {
-        bot.editMessageCaption(newText, {
-          chat_id: query.message.chat.id,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: getRefreshMarkup(ca)
-        }).catch(function(e) { console.log('Refresh error: ' + e.message); });
-      } else {
-        bot.editMessageText(newText, {
-          chat_id: query.message.chat.id,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: getRefreshMarkup(ca),
-          disable_web_page_preview: true
-        }).catch(function(e) { console.log('Refresh error: ' + e.message); });
-      }
+      bot.editMessageText(newText, {
+        chat_id: query.message.chat.id,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: getRefreshMarkup(ca),
+        disable_web_page_preview: true
+      }).catch(function(e) { console.log('Refresh error: ' + e.message); });
     });
   }
 });
@@ -212,9 +209,7 @@ function trackToken(uid, ca, chatId) {
   bot.sendMessage(chatId, 'Looking up token...');
 
   getTokenData(ca).then(function(data) {
-    if (!data) {
-      return bot.sendMessage(chatId, 'Could not find token. Check CA and try again.');
-    }
+    if (!data) return bot.sendMessage(chatId, 'Could not find token. Check CA and try again.');
     users[uid].push({mint: ca, ticker: data.ticker});
     startWatching(ca, data.ticker);
     sendCard(chatId, ca, data, false, null);
