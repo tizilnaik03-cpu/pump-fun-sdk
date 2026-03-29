@@ -8,6 +8,11 @@ var MAX = 10;
 var bot = new TelegramBot(BOT_TOKEN, {polling: true});
 var users = {};
 
+function clean(str) {
+  if (!str) return '';
+  return str.replace(/[*_`\[\]()]/g, '');
+}
+
 function getTokenData(ca) {
   var pumpData = fetch('https://frontend-api.pump.fun/coins/' + ca)
     .then(function(r) { return r.json(); })
@@ -22,8 +27,8 @@ function getTokenData(ca) {
     var dex = results[1];
     var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
 
-    var ticker = (pump && pump.symbol) ? pump.symbol : (pair ? pair.baseToken.symbol : 'UNKNOWN');
-    var name = (pump && pump.name) ? pump.name : ticker;
+    var ticker = clean((pump && pump.symbol) ? pump.symbol : (pair ? pair.baseToken.symbol : 'UNKNOWN'));
+    var name = clean((pump && pump.name) ? pump.name : ticker);
     var pfp = (pump && pump.image_uri) ? pump.image_uri : null;
     var mc = pair ? formatNum(pair.fdv) : 'N/A';
     var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
@@ -45,13 +50,13 @@ function formatNum(num) {
 
 function buildLinks(ca, sig) {
   var row1 = '[GM](https://gmgn.ai/sol/token/' + ca + ')' +
-    ' • [AXI](https://axiom.trade/t/' + ca + ')' +
-    ' • [TRO](https://t.me/solana_trojanbot?start=' + ca + ')' +
-    ' • [BLO](https://t.me/BloomSolana_bot?start=' + ca + ')';
+    ' | [AXI](https://axiom.trade/t/' + ca + ')' +
+    ' | [TRO](https://t.me/solana_trojanbot?start=' + ca + ')' +
+    ' | [BLO](https://t.me/BloomSolana_bot?start=' + ca + ')';
   var row2 = '[OKX](https://www.okx.com/web3/dex-swap#inputChain=501&inputCurrency=SOL&outputChain=501&outputCurrency=' + ca + ')' +
-    ' • [NEO](https://bullx.io/terminal?chainId=1399811149&address=' + ca + ')' +
-    ' • [PHO](https://photon-sol.tinyastro.io/en/lp/' + ca + ')' +
-    ' • [TRM](https://padre.trade/token/' + ca + ')';
+    ' | [NEO](https://bullx.io/terminal?chainId=1399811149&address=' + ca + ')' +
+    ' | [PHO](https://photon-sol.tinyastro.io/en/lp/' + ca + ')' +
+    ' | [TRM](https://padre.trade/token/' + ca + ')';
   if (sig) return row1 + '\n' + row2 + '\n[Solscan](https://solscan.io/tx/' + sig + ')';
   return row1 + '\n' + row2;
 }
@@ -61,7 +66,7 @@ function buildSocials(data) {
   if (data.twitter) parts.push('[X](' + data.twitter + ')');
   if (data.website) parts.push('[Web](' + data.website + ')');
   if (data.telegram) parts.push('[TG](' + data.telegram + ')');
-  return parts.length > 0 ? parts.join(' • ') : 'None';
+  return parts.length > 0 ? parts.join(' | ') : 'None';
 }
 
 function buildCaption(ca, data, isAlert, sig) {
@@ -71,12 +76,11 @@ function buildCaption(ca, data, isAlert, sig) {
   var header = isAlert ? '🚨 *FEE CLAIM ALERT*\n\n' : '✅ *Now Tracking*\n\n';
 
   return header +
-    '🖼 *' + data.name + '* ($' + data.ticker + ')\n' +
-    '├ `' + ca + '`\n' +
-    '└ [Pump\\.fun](https://pump.fun/' + ca + ')\n\n' +
+    '*' + data.name + '* ($' + data.ticker + ')\n' +
+    '`' + ca + '`\n\n' +
     '📊 *Stats*\n' +
-    '├ MC: *' + data.mc + '*\n' +
-    '├ Vol: *' + data.vol + '*\n' +
+    '├ MC: ' + data.mc + '\n' +
+    '├ Vol: ' + data.vol + '\n' +
     '└ Dex: ' + dex + '\n\n' +
     '🔗 *Socials*\n' +
     '└ ' + socials + '\n\n' +
@@ -94,18 +98,18 @@ function sendCard(chatId, ca, data, isAlert, sig) {
   if (data.pfp) {
     bot.sendPhoto(chatId, data.pfp, {
       caption: caption,
-      parse_mode: 'MarkdownV2',
+      parse_mode: 'Markdown',
       reply_markup: markup
     }).catch(function() {
       bot.sendMessage(chatId, caption, {
-        parse_mode: 'MarkdownV2',
+        parse_mode: 'Markdown',
         reply_markup: markup,
         disable_web_page_preview: true
       });
     });
   } else {
     bot.sendMessage(chatId, caption, {
-      parse_mode: 'MarkdownV2',
+      parse_mode: 'Markdown',
       reply_markup: markup,
       disable_web_page_preview: true
     });
@@ -113,11 +117,11 @@ function sendCard(chatId, ca, data, isAlert, sig) {
 }
 
 bot.onText(/\/start/, function(msg) {
-  bot.sendMessage(msg.chat.id, 'PumpFee Bot is live\\!\n\nPaste any Pump\\.fun CA to track it\\.\n\nCommands:\n/track CA\n/list\n/help', {parse_mode: 'MarkdownV2'});
+  bot.sendMessage(msg.chat.id, '*PumpFee Bot is live!*\n\nPaste any Pump.fun CA to track it.\n\nCommands:\n/track CA\n/list\n/help', {parse_mode: 'Markdown'});
 });
 
 bot.onText(/\/help/, function(msg) {
-  bot.sendMessage(msg.chat.id, 'Paste any Pump\\.fun CA to track fee claims\\.\n\nMax 10 tokens per user\\.', {parse_mode: 'MarkdownV2'});
+  bot.sendMessage(msg.chat.id, 'Paste any Pump.fun CA to track fee claims.\n\nMax 10 tokens per user.');
 });
 
 bot.onText(/\/list/, function(msg) {
@@ -126,8 +130,8 @@ bot.onText(/\/list/, function(msg) {
   if (tokens.length === 0) return bot.sendMessage(msg.chat.id, 'No tokens tracked. Paste a CA to start.');
   tokens.forEach(function(t) {
     var text = '*$' + t.ticker + '*\n`' + t.mint + '`';
-    var btns = {inline_keyboard: [[{text: 'Remove', callback_data: 'remove:' + t.mint}]]};
-    bot.sendMessage(msg.chat.id, text, {parse_mode: 'MarkdownV2', reply_markup: btns});
+    var btns = {inline_keyboard: [[{text: '❌ Remove', callback_data: 'remove:' + t.mint}]]};
+    bot.sendMessage(msg.chat.id, text, {parse_mode: 'Markdown', reply_markup: btns});
   });
 });
 
@@ -152,27 +156,27 @@ bot.on('callback_query', function(query) {
     bot.answerCallbackQuery(query.id, {text: 'Refreshing...'});
     getTokenData(ca).then(function(tokenData) {
       var dex = tokenData.dexPaid ? '🟢' : '🔴';
-      var oldCaption = query.message.caption || query.message.text || '';
-      var newCaption = oldCaption
-        .replace(/MC: \*[^\*]+\*/, 'MC: *' + tokenData.mc + '*')
-        .replace(/Vol: \*[^\*]+\*/, 'Vol: *' + tokenData.vol + '*')
+      var oldText = query.message.caption || query.message.text || '';
+      var newText = oldText
+        .replace(/MC: [^\n]+/, 'MC: ' + tokenData.mc)
+        .replace(/Vol: [^\n]+/, 'Vol: ' + tokenData.vol)
         .replace(/Dex: [🟢🔴]/, 'Dex: ' + dex);
 
       if (query.message.photo) {
-        bot.editMessageCaption(newCaption, {
+        bot.editMessageCaption(newText, {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
-          parse_mode: 'MarkdownV2',
+          parse_mode: 'Markdown',
           reply_markup: getRefreshMarkup(ca)
-        }).catch(function(e) { console.log('Edit error: ' + e.message); });
+        }).catch(function(e) { console.log('Refresh error: ' + e.message); });
       } else {
-        bot.editMessageText(newCaption, {
+        bot.editMessageText(newText, {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
-          parse_mode: 'MarkdownV2',
+          parse_mode: 'Markdown',
           reply_markup: getRefreshMarkup(ca),
           disable_web_page_preview: true
-        }).catch(function(e) { console.log('Edit error: ' + e.message); });
+        }).catch(function(e) { console.log('Refresh error: ' + e.message); });
       }
     });
   }
@@ -189,7 +193,8 @@ function trackToken(uid, ca, chatId) {
     users[uid].push({mint: ca, ticker: data.ticker});
     startWatching(ca, data.ticker);
     sendCard(chatId, ca, data, false, null);
-  }).catch(function() {
+  }).catch(function(e) {
+    console.log('Track error: ' + e.message);
     bot.sendMessage(chatId, 'Could not find token. Check CA and try again.');
   });
 }
