@@ -29,30 +29,30 @@ function getTokenData(ca) {
     var pump = results[1];
     var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
 
-    var ticker = clean((pump && pump.symbol) || (pair && pair.baseToken.symbol) || 'UNKNOWN');
-    var name = clean((pump && pump.name) || (pair && pair.baseToken.name) || ticker);
+    var ticker = clean((pump && pump.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN');
+    var name = clean((pump && pump.name) || (pair && pair.baseToken && pair.baseToken.name) || ticker);
 
-    // pump.fun is primary for PFP
     var pfp = null;
-    if (pump && pump.image_uri) {
-      pfp = pump.image_uri;
-    } else if (pair && pair.info && pair.info.imageUrl) {
-      pfp = pair.info.imageUrl;
-    }
+    if (pump && pump.image_uri) pfp = pump.image_uri;
+    else if (pair && pair.info && pair.info.imageUrl) pfp = pair.info.imageUrl;
 
     var mc = pair ? formatNum(pair.fdv) : 'N/A';
     var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
-    var dexPaid = pair && pair.boosts && pair.boosts.active ? true : false;
 
-    // pump.fun is primary for socials
+    var dexPaid = false;
+    if (pair) {
+      if (pair.boosts && pair.boosts.active > 0) dexPaid = true;
+      else if (pair.profile && pair.profile.header) dexPaid = true;
+      else if (pair.labels && pair.labels.indexOf('ads') > -1) dexPaid = true;
+    }
+
     var twitter = (pump && pump.twitter) || null;
     var website = (pump && pump.website) || null;
     var telegram = (pump && pump.telegram) || null;
 
-    // DexScreener as fallback for socials
-    if (!twitter && pair && pair.info && pair.info.socials) {
+    if (pair && pair.info && pair.info.socials) {
       pair.info.socials.forEach(function(s) {
-        if (s.type === 'twitter') twitter = s.url;
+        if (s.type === 'twitter' && !twitter) twitter = s.url;
         if (s.type === 'telegram' && !telegram) telegram = s.url;
       });
     }
@@ -119,7 +119,6 @@ function sendCard(chatId, ca, data, isAlert, sig) {
   var markup = getRefreshMarkup(ca);
 
   if (data.pfp) {
-    // Send image first, then text card below
     bot.sendPhoto(chatId, data.pfp, {disable_notification: true})
       .then(function() {
         bot.sendMessage(chatId, text, {
