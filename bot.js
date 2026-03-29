@@ -40,11 +40,7 @@ function getTokenData(ca) {
     var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
 
     var dexPaid = false;
-    if (pair) {
-      if (pair.boosts && pair.boosts.active > 0) dexPaid = true;
-      else if (pair.profile && pair.profile.header) dexPaid = true;
-      else if (pair.labels && pair.labels.indexOf('ads') > -1) dexPaid = true;
-    }
+    if (pair && pair.boosts && pair.boosts.active && pair.boosts.active > 0) dexPaid = true;
 
     var twitter = (pump && pump.twitter) || null;
     var website = (pump && pump.website) || null;
@@ -110,6 +106,23 @@ function buildText(ca, data, isAlert, sig) {
     links;
 }
 
+function buildRefreshText(ca, data) {
+  var dex = data.dexPaid ? '🟢' : '🔴';
+  var socials = buildSocials(data);
+  var links = buildLinks(ca, null);
+
+  return '🔄 <b>Refreshed</b>\n\n' +
+    '<b>' + data.name + '</b> ($' + data.ticker + ')\n' +
+    '<code>' + ca + '</code>\n\n' +
+    '📊 <b>Stats</b>\n' +
+    '├ MC: ' + data.mc + '\n' +
+    '├ Vol: ' + data.vol + '\n' +
+    '└ Dex: ' + dex + '\n\n' +
+    '🔗 <b>Socials</b>\n' +
+    '└ ' + socials + '\n\n' +
+    links;
+}
+
 function getRefreshMarkup(ca) {
   return {inline_keyboard: [[{text: '🔄', callback_data: 'refresh:' + ca}]]};
 }
@@ -144,11 +157,11 @@ function sendCard(chatId, ca, data, isAlert, sig) {
 }
 
 bot.onText(/\/start/, function(msg) {
-  bot.sendMessage(msg.chat.id, '<b>PumpFee Bot is live!</b>\n\nPaste any Pump.fun CA to track it.\n\nCommands:\n/track CA\n/list\n/help', {parse_mode: 'HTML'});
+  bot.sendMessage(msg.chat.id, '<b>PumpFee Alert Bot</b>\n\nPaste any Pump.fun CA to track fee claims.\n\nCommands:\n/track CA\n/list\n/help', {parse_mode: 'HTML'});
 });
 
 bot.onText(/\/help/, function(msg) {
-  bot.sendMessage(msg.chat.id, 'Paste any Pump.fun CA to track fee claims.\n\nMax 10 tokens per user.');
+  bot.sendMessage(msg.chat.id, 'Paste any Pump.fun CA to track fee claims.\n\nMax 10 tokens per user.\n\n/list - see tracked tokens');
 });
 
 bot.onText(/\/list/, function(msg) {
@@ -183,20 +196,13 @@ bot.on('callback_query', function(query) {
     bot.answerCallbackQuery(query.id, {text: 'Refreshing...'});
     getTokenData(ca).then(function(tokenData) {
       if (!tokenData) return;
-      var dex = tokenData.dexPaid ? '🟢' : '🔴';
-      var oldText = query.message.text || '';
-      var newText = oldText
-        .replace(/MC: [^\n]+/, 'MC: ' + tokenData.mc)
-        .replace(/Vol: [^\n]+/, 'Vol: ' + tokenData.vol)
-        .replace(/Dex: [🟢🔴]/, 'Dex: ' + dex);
-      bot.editMessageText(newText, {
-        chat_id: query.message.chat.id,
-        message_id: query.message.message_id,
+      var newText = buildRefreshText(ca, tokenData);
+      bot.sendMessage(query.message.chat.id, newText, {
         parse_mode: 'HTML',
         reply_markup: getRefreshMarkup(ca),
         disable_web_page_preview: true
-      }).catch(function(e) { console.log('Refresh error: ' + e.message); });
-    });
+      });
+    }).catch(function(e) { console.log('Refresh error: ' + e.message); });
   }
 });
 
@@ -237,10 +243,11 @@ function startWatching(mint, ticker) {
     var conn = new web3.Connection('https://mainnet.helius-rpc.com/?api-key=' + HELIUS_KEY, 'confirmed');
     conn.onLogs(pub, function(logs) {
       if (logs.err) return;
-      var claim = logs.logs.some(function(l) {
-        return l.includes('collectCreatorFee') || l.includes('claim');
+      var isRealClaim = logs.logs.some(function(l) {
+        return l === 'Program log: Instruction: CollectCreatorFee' ||
+               l === 'Program log: Instruction: CollectCreatorFeeV2';
       });
-      if (claim) fireAlert(mint, ticker, logs.signature);
+      if (isRealClaim) fireAlert(mint, ticker, logs.signature);
     }, 'confirmed');
   } catch(e) { console.log('Watch error: ' + e.message); }
 }
