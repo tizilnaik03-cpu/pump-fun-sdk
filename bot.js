@@ -16,38 +16,49 @@ function clean(str) {
 }
 
 function getTokenData(ca) {
-  return fetch('https://api.dexscreener.com/latest/dex/tokens/' + ca)
+  var dexReq = fetch('https://api.dexscreener.com/latest/dex/tokens/' + ca)
     .then(function(r) { return r.json(); })
-    .then(function(dex) {
-      var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
-      if (!pair) return null;
+    .catch(function() { return null; });
 
-      var ticker = clean(pair.baseToken.symbol || 'UNKNOWN');
-      var name = clean(pair.baseToken.name || ticker);
-      var pfp = (pair.info && pair.info.imageUrl) ? pair.info.imageUrl : null;
-      var mc = formatNum(pair.fdv);
-      var vol = formatNum(pair.volume && pair.volume.h24);
-      var dexPaid = pair.boosts && pair.boosts.active ? true : false;
-      var website = null;
-      var twitter = null;
-      var telegram = null;
+  var pumpReq = fetch('https://frontend-api.pump.fun/coins/' + ca)
+    .then(function(r) { return r.json(); })
+    .catch(function() { return null; });
 
-      if (pair.info && pair.info.socials) {
-        pair.info.socials.forEach(function(s) {
-          if (s.type === 'twitter') twitter = s.url;
-          if (s.type === 'telegram') telegram = s.url;
-        });
-      }
-      if (pair.info && pair.info.websites && pair.info.websites[0]) {
-        website = pair.info.websites[0].url;
-      }
+  return Promise.all([dexReq, pumpReq]).then(function(results) {
+    var dex = results[0];
+    var pump = results[1];
+    var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
 
-      return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram };
-    })
-    .catch(function(e) {
-      console.log('DexScreener error: ' + e.message);
-      return null;
-    });
+    var ticker = clean((pair ? pair.baseToken.symbol : null) || (pump && pump.symbol) || 'UNKNOWN');
+    var name = clean((pair ? pair.baseToken.name : null) || (pump && pump.name) || ticker);
+
+    var pfp = null;
+    if (pair && pair.info && pair.info.imageUrl) pfp = pair.info.imageUrl;
+    else if (pump && pump.image_uri) pfp = pump.image_uri;
+
+    var mc = pair ? formatNum(pair.fdv) : 'N/A';
+    var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
+    var dexPaid = pair && pair.boosts && pair.boosts.active ? true : false;
+
+    var website = null;
+    var twitter = null;
+    var telegram = null;
+
+    if (pair && pair.info && pair.info.socials) {
+      pair.info.socials.forEach(function(s) {
+        if (s.type === 'twitter') twitter = s.url;
+        if (s.type === 'telegram') telegram = s.url;
+      });
+    }
+    if (pair && pair.info && pair.info.websites && pair.info.websites[0]) {
+      website = pair.info.websites[0].url;
+    }
+    if (!twitter && pump && pump.twitter) twitter = pump.twitter;
+    if (!website && pump && pump.website) website = pump.website;
+    if (!telegram && pump && pump.telegram) telegram = pump.telegram;
+
+    return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram };
+  });
 }
 
 function formatNum(num) {
