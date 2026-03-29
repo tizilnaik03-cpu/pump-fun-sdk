@@ -19,7 +19,7 @@ function getTicker(ca) {
 }
 
 bot.onText(/\/start/, function(msg) {
-  bot.sendMessage(msg.chat.id, 'PumpFee Bot is live!\n\nCommands:\n/track CA - track a token\n/list - see tracked tokens\n/untrack CA - stop tracking\n/help - help');
+  bot.sendMessage(msg.chat.id, 'PumpFee Bot is live!\n\nCommands:\n/track CA - track a token\n/list - see tracked tokens\n/help - help');
 });
 
 bot.onText(/\/help/, function(msg) {
@@ -30,11 +30,11 @@ bot.onText(/\/list/, function(msg) {
   var uid = String(msg.chat.id);
   var tokens = users[uid] || [];
   if (tokens.length === 0) return bot.sendMessage(msg.chat.id, 'No tokens tracked. Use /track CA');
-  var text = 'Tracking ' + tokens.length + '/10 tokens:\n\n';
   tokens.forEach(function(t, i) {
-    text += (i+1) + '. $' + t.ticker + '\n' + t.mint + '\n\n';
+    var text = (i+1) + '. $' + t.ticker + '\n' + '`' + t.mint + '`';
+    var btns = {inline_keyboard: [[{text: 'Remove', callback_data: 'remove:' + t.mint}]]};
+    bot.sendMessage(msg.chat.id, text, {parse_mode: 'Markdown', reply_markup: btns});
   });
-  bot.sendMessage(msg.chat.id, text);
 });
 
 bot.onText(/\/untrack (.+)/, function(msg, match) {
@@ -51,16 +51,27 @@ bot.onText(/\/track (.+)/, function(msg, match) {
   var uid = String(msg.chat.id);
   var ca = match[1].trim();
   if (!users[uid]) users[uid] = [];
-  if (users[uid].length >= MAX) return bot.sendMessage(msg.chat.id, 'Hit 10 token limit. Use /untrack CA first.');
+  if (users[uid].length >= MAX) return bot.sendMessage(msg.chat.id, 'Hit 10 token limit. Remove one first.');
   if (users[uid].find(function(t) { return t.mint === ca; })) return bot.sendMessage(msg.chat.id, 'Already tracking.');
-
   bot.sendMessage(msg.chat.id, 'Looking up token...');
-
   getTicker(ca).then(function(ticker) {
     users[uid].push({mint: ca, ticker: ticker});
     startWatching(ca, ticker);
     bot.sendMessage(msg.chat.id, 'Now tracking $' + ticker + ' (' + users[uid].length + '/10)');
   });
+});
+
+bot.on('callback_query', function(query) {
+  var uid = String(query.message.chat.id);
+  var data = query.data;
+  if (data.startsWith('remove:')) {
+    var ca = data.replace('remove:', '');
+    if (users[uid]) {
+      users[uid] = users[uid].filter(function(t) { return t.mint !== ca; });
+    }
+    bot.answerCallbackQuery(query.id, {text: 'Removed!'});
+    bot.editMessageReplyMarkup({inline_keyboard: []}, {chat_id: query.message.chat.id, message_id: query.message.message_id});
+  }
 });
 
 bot.on('message', function(msg) {
@@ -70,7 +81,7 @@ bot.on('message', function(msg) {
   if (ca.length > 30 && !ca.includes(' ')) {
     var uid = String(msg.chat.id);
     if (!users[uid]) users[uid] = [];
-    if (users[uid].length >= MAX) return bot.sendMessage(msg.chat.id, 'Hit 10 token limit. Use /untrack CA first.');
+    if (users[uid].length >= MAX) return bot.sendMessage(msg.chat.id, 'Hit 10 token limit. Remove one first.');
     if (users[uid].find(function(t) { return t.mint === ca; })) return bot.sendMessage(msg.chat.id, 'Already tracking.');
     bot.sendMessage(msg.chat.id, 'Looking up token...');
     getTicker(ca).then(function(ticker) {
@@ -94,14 +105,15 @@ function startWatching(mint, ticker) {
 }
 
 function fireAlert(mint, ticker, sig) {
-  var msg = 'FEE CLAIM ALERT\n\n$' + ticker + ' fees just claimed!\n\n' + mint;
+  var msg = 'FEE CLAIM ALERT\n\n$' + ticker + ' fees just claimed!\n\n`' + mint + '`';
   var btns = {inline_keyboard: [
     [{text: 'BullX', url: 'https://bullx.io/terminal?chainId=1399811149&address=' + mint}, {text: 'GMGN', url: 'https://gmgn.ai/sol/token/' + mint}],
-    [{text: 'Axiom', url: 'https://axiom.trade/t/' + mint}, {text: 'DexScreener', url: 'https://dexscreener.com/solana/' + mint}],
-    [{text: 'Pump.fun', url: 'https://pump.fun/' + mint}, {text: 'Solscan', url: 'https://solscan.io/tx/' + sig}]
+    [{text: 'Axiom', url: 'https://axiom.trade/t/' + mint}, {text: 'Photon', url: 'https://photon-sol.tinyastro.io/en/lp/' + mint}],
+    [{text: 'DexScreener', url: 'https://dexscreener.com/solana/' + mint}, {text: 'Pump.fun', url: 'https://pump.fun/' + mint}],
+    [{text: 'Solscan', url: 'https://solscan.io/tx/' + sig}]
   ]};
   Object.keys(users).forEach(function(uid) {
-    if (users[uid].find(function(t) { return t.mint === mint; })) bot.sendMessage(uid, msg, {reply_markup: btns});
+    if (users[uid].find(function(t) { return t.mint === mint; })) bot.sendMessage(uid, msg, {parse_mode: 'Markdown', reply_markup: btns});
   });
 }
 
