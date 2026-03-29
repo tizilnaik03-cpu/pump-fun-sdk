@@ -8,12 +8,22 @@ var MAX = 10;
 var bot = new TelegramBot(BOT_TOKEN, {polling: true});
 var users = {};
 
+function getTicker(ca) {
+  return fetch('https://api.dexscreener.com/latest/dex/tokens/' + ca)
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d && d.pairs && d.pairs[0]) return d.pairs[0].baseToken.symbol;
+      return 'UNKNOWN';
+    })
+    .catch(function() { return 'UNKNOWN'; });
+}
+
 bot.onText(/\/start/, function(msg) {
-  bot.sendMessage(msg.chat.id, 'PumpFee Bot is live! Use /track CA to track a token.');
+  bot.sendMessage(msg.chat.id, 'PumpFee Bot is live!\n\nCommands:\n/track CA - track a token\n/list - see tracked tokens\n/untrack CA - stop tracking\n/help - help');
 });
 
 bot.onText(/\/help/, function(msg) {
-  bot.sendMessage(msg.chat.id, 'Type /track followed by a token CA to get fee claim alerts.');
+  bot.sendMessage(msg.chat.id, 'Type /track followed by a Pump.fun token CA to get fee claim alerts.\n\nMax 10 tokens per user.');
 });
 
 bot.onText(/\/list/, function(msg) {
@@ -46,18 +56,29 @@ bot.onText(/\/track (.+)/, function(msg, match) {
 
   bot.sendMessage(msg.chat.id, 'Looking up token...');
 
-  fetch('https://api.helius.xyz/v0/token-metadata?api-key=' + HELIUS_KEY, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({mintAccounts: [ca]})
-  }).then(function(r) { return r.json(); }).then(function(d) {
-    var ticker = (d && d[0] && d[0].onChainMetadata && d[0].onChainMetadata.metadata && d[0].onChainMetadata.metadata.data) ? d[0].onChainMetadata.metadata.data.symbol : 'UNKNOWN';
+  getTicker(ca).then(function(ticker) {
     users[uid].push({mint: ca, ticker: ticker});
     startWatching(ca, ticker);
     bot.sendMessage(msg.chat.id, 'Now tracking $' + ticker + ' (' + users[uid].length + '/10)');
-  }).catch(function() {
-    bot.sendMessage(msg.chat.id, 'Could not find token. Check CA and try again.');
   });
+});
+
+bot.on('message', function(msg) {
+  var text = msg.text || '';
+  if (text.startsWith('/')) return;
+  var ca = text.trim();
+  if (ca.length > 30 && !ca.includes(' ')) {
+    var uid = String(msg.chat.id);
+    if (!users[uid]) users[uid] = [];
+    if (users[uid].length >= MAX) return bot.sendMessage(msg.chat.id, 'Hit 10 token limit. Use /untrack CA first.');
+    if (users[uid].find(function(t) { return t.mint === ca; })) return bot.sendMessage(msg.chat.id, 'Already tracking.');
+    bot.sendMessage(msg.chat.id, 'Looking up token...');
+    getTicker(ca).then(function(ticker) {
+      users[uid].push({mint: ca, ticker: ticker});
+      startWatching(ca, ticker);
+      bot.sendMessage(msg.chat.id, 'Now tracking $' + ticker + ' (' + users[uid].length + '/10)');
+    });
+  }
 });
 
 function startWatching(mint, ticker) {
