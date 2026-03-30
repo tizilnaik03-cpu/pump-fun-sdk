@@ -53,41 +53,6 @@ function getClaimedAmount(sig) {
   .catch(function() { return null; });
 }
 
-function getGmgnData(ca) {
-  return fetch('https://gmgn.ai/defi/quotation/v1/tokens/sol/' + ca, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'application/json',
-      'Referer': 'https://gmgn.ai/',
-      'Origin': 'https://gmgn.ai'
-    }
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (!data || !data.data || !data.data.token) return null;
-    var token = data.data.token;
-
-    var bundlePct = 'N/A';
-    if (token.top_bundler_ratio !== undefined) {
-      bundlePct = (parseFloat(token.top_bundler_ratio) * 100).toFixed(1) + '%';
-    } else if (token.bundler_ratio !== undefined) {
-      bundlePct = (parseFloat(token.bundler_ratio) * 100).toFixed(1) + '%';
-    } else if (token.bundle_pct !== undefined) {
-      bundlePct = parseFloat(token.bundle_pct).toFixed(1) + '%';
-    } else if (token.bundler && token.bundler.ratio !== undefined) {
-      bundlePct = (parseFloat(token.bundler.ratio) * 100).toFixed(1) + '%';
-    }
-
-    var dexPaid = !!(token.dex_paid === true || token.is_dex_paid === true || token.dexPaid === true || token.is_show_alert === false);
-
-    return { dexPaid: dexPaid, bundlePct: bundlePct };
-  })
-  .catch(function(e) {
-    console.log('GMGN error:', e.message);
-    return null;
-  });
-}
-
 function getCachedTokenData(ca) {
   if (tokenCache[ca] && Date.now() - tokenCache[ca].timestamp < CACHE_TTL) {
     return Promise.resolve(tokenCache[ca].data);
@@ -107,12 +72,9 @@ function getTokenData(ca) {
     .then(function(r) { return r.json(); })
     .catch(function() { return null; });
 
-  var gmgnReq = getGmgnData(ca);
-
-  return Promise.all([dexReq, pumpReq, gmgnReq]).then(function(results) {
+  return Promise.all([dexReq, pumpReq]).then(function(results) {
     var dex = results[0];
     var pump = results[1];
-    var gmgn = results[2];
     var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
 
     var ticker = clean((pump && pump.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN');
@@ -126,16 +88,10 @@ function getTokenData(ca) {
     var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
 
     var dexPaid = false;
-    if (gmgn && gmgn.dexPaid) {
-      dexPaid = true;
-      console.log('DEX PAID via GMGN');
-    } else if (pair) {
-      if (pair.boosts && pair.boosts.active && pair.boosts.active > 0) { dexPaid = true; console.log('DEX PAID via boosts'); }
-      else if (pair.profile && pair.profile.header) { dexPaid = true; console.log('DEX PAID via profile'); }
-      else if (pair.labels && pair.labels.length > 0) { dexPaid = true; console.log('DEX PAID via labels'); }
+    if (pair) {
+      if (pair.boosts !== undefined && pair.boosts !== null) dexPaid = true;
+      else if (pair.profile !== undefined && pair.profile !== null) dexPaid = true;
     }
-
-    var bundlePct = (gmgn && gmgn.bundlePct) ? gmgn.bundlePct : 'N/A';
 
     var twitter = (pump && pump.twitter) || null;
     var website = (pump && pump.website) || null;
@@ -151,9 +107,7 @@ function getTokenData(ca) {
       website = pair.info.websites[0].url;
     }
 
-    console.log('Token:', ticker, '| dexPaid:', dexPaid, '| bundle:', bundlePct, '| pfp:', !!pfp);
-
-    return { ticker, name, pfp, mc, vol, dexPaid, bundlePct, website, twitter, telegram };
+    return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram };
   });
 }
 
@@ -181,7 +135,6 @@ function buildText(ca, data, header) {
     '📊 <b>Stats</b>\n' +
     '├ MC: ' + data.mc + '\n' +
     '├ Vol: ' + data.vol + '\n' +
-    '├ Bundle: ' + data.bundlePct + '\n' +
     '└ Dex: ' + dex + '\n\n' +
     '🔗 <b>Socials</b>\n' +
     '└ ' + socials;
@@ -198,7 +151,6 @@ function buildAlertText(ca, data, solAmount) {
     '📊 <b>Stats</b>\n' +
     '├ MC: ' + data.mc + '\n' +
     '├ Vol: ' + data.vol + '\n' +
-    '├ Bundle: ' + data.bundlePct + '\n' +
     '└ Dex: ' + dex + '\n\n' +
     '🔗 <b>Socials</b>\n' +
     '└ ' + socials;
@@ -404,10 +356,7 @@ function startWatching(mint, ticker) {
 }
 
 function fireAlert(mint, ticker, sig) {
-  if (recentAlerts[mint] && Date.now() - recentAlerts[mint] < ALERT_COOLDOWN) {
-    console.log('Cooldown active for ' + mint);
-    return;
-  }
+  if (recentAlerts[mint] && Date.now() - recentAlerts[mint] < ALERT_COOLDOWN) return;
   recentAlerts[mint] = Date.now();
   tokenCache[mint] = null;
   Promise.all([getCachedTokenData(mint), getClaimedAmount(sig)])
