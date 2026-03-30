@@ -42,22 +42,47 @@ function getClaimedAmount(sig) {
     var tx = data[0];
     var nativeTransfers = tx.nativeTransfers || [];
     var total = 0;
-    nativeTransfers.forEach(function(t) {
-      if (t.amount) total += t.amount;
-    });
+    nativeTransfers.forEach(function(t) { if (t.amount) total += t.amount; });
     if (total > 0) return (total / 1e9).toFixed(4);
-    var fee = tx.fee || 0;
-    var accountData = tx.accountData || [];
     var maxChange = 0;
-    accountData.forEach(function(a) {
-      if (a.nativeBalanceChange && a.nativeBalanceChange > maxChange) {
-        maxChange = a.nativeBalanceChange;
-      }
+    (tx.accountData || []).forEach(function(a) {
+      if (a.nativeBalanceChange && a.nativeBalanceChange > maxChange) maxChange = a.nativeBalanceChange;
     });
     if (maxChange > 0) return (maxChange / 1e9).toFixed(4);
     return null;
   })
   .catch(function() { return null; });
+}
+
+function getGmgnData(ca) {
+  return fetch('https://gmgn.ai/defi/quotation/v1/tokens/sol/' + ca, {
+    headers: {'User-Agent': 'Mozilla/5.0'}
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    console.log('GMGN response:', JSON.stringify(data && data.data && data.data.token ? {
+      dex_paid: data.data.token.dex_paid,
+      banner: data.data.token.banner,
+      bundle_pct: data.data.token.bundle_pct,
+      top_rat_trader_ratio: data.data.token.top_rat_trader_ratio
+    } : 'no token data'));
+
+    if (!data || !data.data || !data.data.token) return null;
+    var token = data.data.token;
+
+    var dexPaid = token.dex_paid === true || token.dex_paid === 1 || token.cto_flag === 1;
+    var bannerUpdated = token.banner && token.banner !== '' && token.banner !== null;
+    var bundlePct = token.bundle_pct !== undefined && token.bundle_pct !== null
+      ? parseFloat(token.bundle_pct).toFixed(1) + '%'
+      : null;
+    var bannerUrl = bannerUpdated ? token.banner : null;
+
+    return { dexPaid, bannerUpdated, bundlePct, bannerUrl };
+  })
+  .catch(function(e) {
+    console.log('GMGN error:', e.message);
+    return null;
+  });
 }
 
 function getCachedTokenData(ca) {
@@ -79,35 +104,45 @@ function getTokenData(ca) {
     .then(function(r) { return r.json(); })
     .catch(function() { return null; });
 
-  return Promise.all([dexReq, pumpReq]).then(function(results) {
+  var gmgnReq = getGmgnData(ca);
+
+  return Promise.all([dexReq, pumpReq, gmgnReq]).then(function(results) {
     var dex = results[0];
     var pump = results[1];
+    var gmgn = results[2];
     var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
-
-    if (pair) {
-      console.log('BOOSTS:', JSON.stringify(pair.boosts));
-      console.log('PROFILE:', JSON.stringify(pair.profile));
-      console.log('LABELS:', JSON.stringify(pair.labels));
-    }
 
     var ticker = clean((pump && pump.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN');
     var name = clean((pump && pump.name) || (pair && pair.baseToken && pair.baseToken.name) || ticker);
 
+    var dexPaid = false;
+    var bannerUpdated = false;
+    var bundlePct = 'N/A';
+
+    if (gmgn) {
+      dexPaid = gmgn.dexPaid;
+      bannerUpdated = gmgn.bannerUpdated;
+      bundlePct = gmgn.bundlePct || 'N/A';
+      console.log('GMGN dexPaid:', dexPaid, 'banner:', bannerUpdated, 'bundle:', bundlePct);
+    } else {
+      if (pair) {
+        if (pair.boosts && pair.boosts.active && pair.boosts.active > 0) dexPaid = true;
+        else if (pair.profile && pair.profile.header) dexPaid = true;
+        else if (pair.labels && pair.labels.length > 0) dexPaid = true;
+      }
+    }
+
     var pfp = null;
-    if (pump && pump.image_uri) pfp = pump.image_uri;
-    else if (pair && pair.info && pair.info.imageUrl) pfp = pair.info.imageUrl;
+    if (dexPaid && bannerUpdated && gmgn && gmgn.bannerUrl) {
+      pfp = gmgn.bannerUrl;
+    } else if (dexPaid && pair && pair.info && pair.info.imageUrl) {
+      pfp = pair.info.imageUrl;
+    } else if (pump && pump.image_uri) {
+      pfp = pump.image_uri;
+    }
 
     var mc = pair ? formatNum(pair.fdv) : 'N/A';
     var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
-
-    var dexPaid = false;
-    if (pair) {
-      if (pair.boosts && pair.boosts.active && pair.boosts.active > 0) { dexPaid = true; console.log('DEX PAID: boosts'); }
-      else if (pair.profile && pair.profile.header) { dexPaid = true; console.log('DEX PAID: profile'); }
-      else if (pair.labels && pair.labels.length > 0) { dexPaid = true; console.log('DEX PAID: labels', pair.labels); }
-      else if (pair.info && pair.info.imageUrl && pair.info.websites && pair.info.websites.length > 0) { dexPaid = true; console.log('DEX PAID: info complete'); }
-    }
-    console.log('dexPaid:', dexPaid);
 
     var twitter = (pump && pump.twitter) || null;
     var website = (pump && pump.website) || null;
@@ -123,7 +158,7 @@ function getTokenData(ca) {
       website = pair.info.websites[0].url;
     }
 
-    return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram };
+    return { ticker, name, pfp, mc, vol, dexPaid, bundlePct, website, twitter, telegram };
   });
 }
 
@@ -151,6 +186,7 @@ function buildText(ca, data, header) {
     '📊 <b>Stats</b>\n' +
     '├ MC: ' + data.mc + '\n' +
     '├ Vol: ' + data.vol + '\n' +
+    '├ Bundle: ' + data.bundlePct + '\n' +
     '└ Dex: ' + dex + '\n\n' +
     '🔗 <b>Socials</b>\n' +
     '└ ' + socials;
@@ -167,6 +203,7 @@ function buildAlertText(ca, data, solAmount) {
     '📊 <b>Stats</b>\n' +
     '├ MC: ' + data.mc + '\n' +
     '├ Vol: ' + data.vol + '\n' +
+    '├ Bundle: ' + data.bundlePct + '\n' +
     '└ Dex: ' + dex + '\n\n' +
     '🔗 <b>Socials</b>\n' +
     '└ ' + socials;
@@ -266,11 +303,8 @@ bot.onText(/\/help/, function(msg) {
 bot.onText(/\/list/, function(msg) {
   var uid = String(msg.chat.id);
   var tokens = users[uid] || [];
-  console.log('LIST uid:' + uid + ' count:' + tokens.length);
   if (tokens.length === 0) {
-    return bot.sendMessage(msg.chat.id,
-      'You\'re not tracking any tokens yet.\n\nPaste a Pump.fun CA to start tracking.'
-    );
+    return bot.sendMessage(msg.chat.id, 'You\'re not tracking any tokens yet.\n\nPaste a Pump.fun CA to start tracking.');
   }
   bot.sendMessage(msg.chat.id, '<b>Tracked tokens (' + tokens.length + '/10):</b>', {parse_mode: 'HTML'});
   tokens.forEach(function(t) {
@@ -334,7 +368,6 @@ function trackToken(uid, ca, chatId) {
   getCachedTokenData(ca).then(function(data) {
     if (!data) return bot.sendMessage(chatId, '❌ Could not find token. Check the CA and try again.');
     users[uid].push({mint: ca, ticker: data.ticker});
-    console.log('Added uid:' + uid + ' total:' + users[uid].length);
     startWatching(ca, data.ticker);
     var text = buildText(ca, data, '✅ <b>Now Tracking</b>\n\n');
     queueCard(chatId, ca, data, text, null);
@@ -382,13 +415,11 @@ function fireAlert(mint, ticker, sig) {
   }
   recentAlerts[mint] = Date.now();
   tokenCache[mint] = null;
-
   Promise.all([getCachedTokenData(mint), getClaimedAmount(sig)])
     .then(function(results) {
       var data = results[0];
       var solAmount = results[1];
       if (!data) return;
-      console.log('Claimed amount: ' + solAmount + ' SOL');
       var text = buildAlertText(mint, data, solAmount);
       Object.keys(users).forEach(function(uid) {
         if (users[uid].find(function(t) { return t.mint === mint; })) {
