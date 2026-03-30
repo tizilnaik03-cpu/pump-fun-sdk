@@ -63,59 +63,96 @@ function getCachedTokenData(ca) {
   });
 }
 
+// Normalize IPFS/CF-IPFS URLs to a format Telegram accepts
+function normalizeImageUrl(url) {
+  if (!url) return null;
+  // Convert IPFS URIs
+  if (url.startsWith('ipfs://')) {
+    return 'https://ipfs.io/ipfs/' + url.slice(7);
+  }
+  // Some pump.fun images use CF-IPFS — keep as-is, they usually work
+  // But reject obviously broken URLs
+  if (!url.startsWith('http')) return null;
+  return url;
+}
+
 function getTokenData(ca) {
   var pumpReq = fetch('https://frontend-api.pump.fun/coins/' + ca)
-    .then(function(r) { return r.json(); })
+    .then(function(r) { return r.ok ? r.json() : null; })
     .catch(function() { return null; });
 
   var dexReq = fetch('https://api.dexscreener.com/latest/dex/tokens/' + ca)
-    .then(function(r) { return r.json(); })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .catch(function() { return null; });
+
+  // Also hit DexScreener's token-info endpoint for paid status — more reliable
+  var dexInfoReq = fetch('https://api.dexscreener.com/token-boosts/top/v1')
+    .then(function(r) { return r.ok ? r.json() : null; })
     .catch(function() { return null; });
 
   return Promise.all([pumpReq, dexReq]).then(function(results) {
     var pump = results[0];
     var dex = results[1];
-    var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
+    var pair = dex && dex.pairs && dex.pairs.length > 0 ? dex.pairs[0] : null;
 
-    // pump.fun is primary for identity, name, pfp, socials
-    var ticker = clean((pump && pump.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN');
-    var name = clean((pump && pump.name) || (pair && pair.baseToken && pair.baseToken.name) || ticker);
+    // --- TICKER / NAME ---
+    // pump.fun is always primary. Check both top-level and metadata fields.
+    var rawTicker = (pump && (pump.symbol || (pump.metadata && pump.metadata.symbol))) ||
+                    (pair && pair.baseToken && pair.baseToken.symbol) || null;
+    var rawName   = (pump && (pump.name   || (pump.metadata && pump.metadata.name)))   ||
+                    (pair && pair.baseToken && pair.baseToken.name)   || rawTicker || 'Unknown';
 
-    // pump.fun primary for PFP — always available regardless of dex paid
-    var pfp = null;
-    if (pump && pump.image_uri) pfp = pump.image_uri;
-    else if (pair && pair.info && pair.info.imageUrl) pfp = pair.info.imageUrl;
+    var ticker = clean(rawTicker || 'UNKNOWN');
+    var name   = clean(rawName);
 
-    // DexScreener for market data
-    var mc = pair ? formatNum(pair.fdv) : 'N/A';
+    // --- PFP ---
+    // Priority: pump.fun image_uri → pump metadata image → dex imageUrl
+    var rawPfp = (pump && (pump.image_uri || (pump.metadata && pump.metadata.image))) ||
+                 (pair && pair.info && pair.info.imageUrl) || null;
+    var pfp = normalizeImageUrl(rawPfp);
+
+    // --- MARKET DATA ---
+    var mc  = pair ? formatNum(pair.fdv)                    : 'N/A';
     var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
 
-    // Dex paid — check multiple DexScreener fields
+    // --- DEX PAID ---
+    // Check ANY of: active boosts, profile header, OR paid labels
+    // Do NOT require everything at once — that causes false negatives
     var dexPaid = false;
     if (pair) {
-      if (pair.boosts && pair.boosts.active && pair.boosts.active > 0) dexPaid = true;
-      else if (pair.profile && pair.profile.header) dexPaid = true;
-      else if (pair.labels && pair.labels.length > 0) dexPaid = true;
-      else if (pair.info && pair.info.imageUrl && pair.info.websites && pair.info.websites.length > 0 && pair.info.socials && pair.info.socials.length > 0) dexPaid = true;
+      if (pair.boosts && pair.boosts.active > 0)              dexPaid = true;
+      if (!dexPaid && pair.profile && pair.profile.header)    dexPaid = true;
+      if (!dexPaid && pair.labels && pair.labels.some(function(l) {
+        return l === 'ads' || l === 'promoted' || l === 'trending';
+      }))                                                      dexPaid = true;
+      // If pair.info has both imageUrl AND (socials OR websites) — likely paid
+      if (!dexPaid && pair.info && pair.info.imageUrl &&
+          ((pair.info.socials && pair.info.socials.length > 0) ||
+           (pair.info.websites && pair.info.websites.length > 0))) {
+        dexPaid = true;
+      }
     }
 
-    // pump.fun primary for socials
-    var twitter = (pump && pump.twitter) || null;
-    var website = (pump && pump.website) || null;
+    // --- SOCIALS ---
+    // pump.fun is primary source — always available regardless of dex paid status
+    var twitter  = (pump && pump.twitter)  || null;
+    var website  = (pump && pump.website)  || null;
     var telegram = (pump && pump.telegram) || null;
 
-    // DexScreener fallback for socials
-    if (pair && pair.info && pair.info.socials) {
-      pair.info.socials.forEach(function(s) {
-        if (s.type === 'twitter' && !twitter) twitter = s.url;
-        if (s.type === 'telegram' && !telegram) telegram = s.url;
-      });
-    }
-    if (!website && pair && pair.info && pair.info.websites && pair.info.websites[0]) {
-      website = pair.info.websites[0].url;
+    // DexScreener as fallback only
+    if (pair && pair.info) {
+      if (pair.info.socials) {
+        pair.info.socials.forEach(function(s) {
+          if (s.type === 'twitter'  && !twitter)  twitter  = s.url;
+          if (s.type === 'telegram' && !telegram) telegram = s.url;
+        });
+      }
+      if (!website && pair.info.websites && pair.info.websites[0]) {
+        website = pair.info.websites[0].url;
+      }
     }
 
-    console.log('Token:', ticker, '| dexPaid:', dexPaid, '| pfp:', !!pfp, '| twitter:', !!twitter);
+    console.log('[Token]', ticker, '| dexPaid:', dexPaid, '| pfp:', !!pfp, '| twitter:', !!twitter, '| pair:', !!pair);
 
     return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram };
   });
@@ -124,44 +161,44 @@ function getTokenData(ca) {
 function formatNum(num) {
   if (!num) return 'N/A';
   if (num >= 1000000) return '$' + (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return '$' + (num / 1000).toFixed(1) + 'K';
+  if (num >= 1000)    return '$' + (num / 1000).toFixed(1)    + 'K';
   return '$' + num.toFixed(0);
 }
 
 function buildSocials(data) {
   var parts = [];
-  if (data.twitter) parts.push('<a href="' + data.twitter + '">X</a>');
-  if (data.website) parts.push('<a href="' + data.website + '">Web</a>');
+  if (data.twitter)  parts.push('<a href="' + data.twitter  + '">X</a>');
+  if (data.website)  parts.push('<a href="' + data.website  + '">Web</a>');
   if (data.telegram) parts.push('<a href="' + data.telegram + '">TG</a>');
   return parts.length > 0 ? parts.join(' | ') : 'None';
 }
 
 function buildText(ca, data, header) {
-  var dex = data.dexPaid ? '🟢' : '🔴';
+  var dex     = data.dexPaid ? '🟢' : '🔴';
   var socials = buildSocials(data);
   return header +
-    '<a href="https://pump.fun/' + ca + '"><b>$' + data.ticker + '</b></a> — ' + data.name + '\n' +
+    '<a href="https://pump.fun/coin/' + ca + '"><b>$' + data.ticker + '</b></a> — ' + data.name + '\n' +
     '<code>' + ca + '</code>\n\n' +
     '📊 <b>Stats</b>\n' +
-    '├ MC: ' + data.mc + '\n' +
+    '├ MC: '  + data.mc  + '\n' +
     '├ Vol: ' + data.vol + '\n' +
-    '└ Dex: ' + dex + '\n\n' +
+    '└ Dex: ' + dex      + '\n\n' +
     '🔗 <b>Socials</b>\n' +
     '└ ' + socials;
 }
 
 function buildAlertText(ca, data, solAmount) {
-  var dex = data.dexPaid ? '🟢' : '🔴';
+  var dex     = data.dexPaid ? '🟢' : '🔴';
   var socials = buildSocials(data);
   var amountLine = solAmount ? '💰 <b>' + solAmount + ' SOL claimed</b>\n\n' : '';
   return '🚨 <b>FEE CLAIM ALERT</b>\n\n' +
     amountLine +
-    '<a href="https://pump.fun/' + ca + '"><b>$' + data.ticker + '</b></a> — ' + data.name + '\n' +
+    '<a href="https://pump.fun/coin/' + ca + '"><b>$' + data.ticker + '</b></a> — ' + data.name + '\n' +
     '<code>' + ca + '</code>\n\n' +
     '📊 <b>Stats</b>\n' +
-    '├ MC: ' + data.mc + '\n' +
+    '├ MC: '  + data.mc  + '\n' +
     '├ Vol: ' + data.vol + '\n' +
-    '└ Dex: ' + dex + '\n\n' +
+    '└ Dex: ' + dex      + '\n\n' +
     '🔗 <b>Socials</b>\n' +
     '└ ' + socials;
 }
@@ -169,20 +206,20 @@ function buildAlertText(ca, data, solAmount) {
 function buildKeyboard(ca, sig) {
   var keyboard = [
     [
-      {text: 'GM', url: 'https://gmgn.ai/sol/token/' + ca},
-      {text: 'AXI', url: 'https://axiom.trade/t/' + ca},
+      {text: 'AXI', url: 'https://axiom.trade/t/'      + ca},
       {text: 'TRO', url: 'https://t.me/solana_trojanbot?start=' + ca},
-      {text: 'BLO', url: 'https://t.me/BloomSolana_bot?start=' + ca}
+      {text: 'BLO', url: 'https://t.me/BloomSolana_bot?start=' + ca},
+      {text: 'PHO', url: 'https://photon-sol.tinyastro.io/en/lp/' + ca}
     ],
     [
       {text: 'OKX', url: 'https://www.okx.com/web3/dex-swap#inputChain=501&inputCurrency=SOL&outputChain=501&outputCurrency=' + ca},
       {text: 'NEO', url: 'https://bullx.io/terminal?chainId=1399811149&address=' + ca},
-      {text: 'PHO', url: 'https://photon-sol.tinyastro.io/en/lp/' + ca},
-      {text: 'TRM', url: 'https://padre.trade/token/' + ca}
+      {text: 'TRM', url: 'https://padre.trade/token/' + ca},
+      {text: 'DEX', url: 'https://dexscreener.com/solana/' + ca}
     ],
     [{text: '🔄 Refresh', callback_data: 'refresh:' + ca}]
   ];
-  if (sig) keyboard[1].push({text: 'Solscan', url: 'https://solscan.io/tx/' + sig});
+  if (sig) keyboard[2].push({text: '🔍 Solscan', url: 'https://solscan.io/tx/' + sig});
   return {inline_keyboard: keyboard};
 }
 
@@ -196,24 +233,26 @@ function processQueue() {
       caption: item.text,
       parse_mode: 'HTML',
       reply_markup: item.markup
-    }).catch(function() {
+    }).catch(function(err) {
+      // Photo failed (bad URL, Telegram can't fetch it) — fall back to text
+      console.log('Photo send failed, falling back to text. URL:', item.pfp, '| Error:', err.message);
       return bot.sendMessage(item.chatId, item.text, {
         parse_mode: 'HTML',
         reply_markup: item.markup,
-        disable_web_page_preview: true
+        disable_web_page_preview: false  // allow link preview to show PFP via pump.fun link
       });
     });
   } else {
     promise = bot.sendMessage(item.chatId, item.text, {
       parse_mode: 'HTML',
       reply_markup: item.markup,
-      disable_web_page_preview: true
+      disable_web_page_preview: false
     });
   }
   promise.catch(function(e) { console.log('Queue error: ' + e.message); })
     .then(function() {
       isProcessing = false;
-      setTimeout(processQueue, 100);
+      setTimeout(processQueue, 150);
     });
 }
 
@@ -265,9 +304,9 @@ bot.onText(/\/list/, function(msg) {
   }
   bot.sendMessage(msg.chat.id, '<b>Tracked tokens (' + tokens.length + '/10):</b>', {parse_mode: 'HTML'});
   tokens.forEach(function(t) {
-    var text = '<b>$' + t.ticker + '</b>\n<code>' + t.mint + '</code>';
+    var text = '<a href="https://pump.fun/coin/' + t.mint + '"><b>$' + t.ticker + '</b></a>\n<code>' + t.mint + '</code>';
     var btns = {inline_keyboard: [[{text: '❌ Remove', callback_data: 'remove:' + t.mint}]]};
-    bot.sendMessage(msg.chat.id, text, {parse_mode: 'HTML', reply_markup: btns});
+    bot.sendMessage(msg.chat.id, text, {parse_mode: 'HTML', reply_markup: btns, disable_web_page_preview: true});
   });
 });
 
@@ -283,25 +322,78 @@ bot.on('callback_query', function(query) {
       chat_id: query.message.chat.id,
       message_id: query.message.message_id
     });
+    return;
   }
 
   if (data.startsWith('refresh:')) {
     var ca = data.replace('refresh:', '');
-    bot.answerCallbackQuery(query.id, {text: 'Refreshing...'});
+    bot.answerCallbackQuery(query.id, {text: '🔄 Refreshing...'});
+    // Clear cache so we fetch fresh data
     tokenCache[ca] = null;
-    bot.deleteMessage(query.message.chat.id, query.message.message_id).catch(function() {});
+    // Edit the existing message to show "refreshing" instead of sending a new one
+    bot.editMessageCaption
+      ? bot.editMessageCaption('⏳ Refreshing...', {
+          chat_id: query.message.chat.id,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML'
+        }).catch(function() {
+          // Message might be text (no caption) — try editMessageText
+          bot.editMessageText('⏳ Refreshing...', {
+            chat_id: query.message.chat.id,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML'
+          }).catch(function() {});
+        })
+      : null;
+
     getCachedTokenData(ca).then(function(tokenData) {
       if (!tokenData) return;
       var text = buildText(ca, tokenData, '🔄 <b>Refreshed</b>\n\n');
-      queueCard(query.message.chat.id, ca, tokenData, text, null);
+      var markup = buildKeyboard(ca, null);
+
+      if (tokenData.pfp) {
+        // Has photo — delete old and send new photo card
+        bot.deleteMessage(query.message.chat.id, query.message.message_id).catch(function() {});
+        bot.sendPhoto(query.message.chat.id, tokenData.pfp, {
+          caption: text,
+          parse_mode: 'HTML',
+          reply_markup: markup
+        }).catch(function() {
+          bot.sendMessage(query.message.chat.id, text, {
+            parse_mode: 'HTML',
+            reply_markup: markup,
+            disable_web_page_preview: false
+          });
+        });
+      } else {
+        // No photo — try to edit in place, fall back to delete+send
+        bot.editMessageText(text, {
+          chat_id: query.message.chat.id,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: markup,
+          disable_web_page_preview: false
+        }).catch(function() {
+          bot.deleteMessage(query.message.chat.id, query.message.message_id).catch(function() {});
+          bot.sendMessage(query.message.chat.id, text, {
+            parse_mode: 'HTML',
+            reply_markup: markup,
+            disable_web_page_preview: false
+          });
+        });
+      }
     }).catch(function(e) { console.log('Refresh error: ' + e.message); });
   }
 });
 
 function trackToken(uid, ca, chatId) {
   if (!users[uid]) users[uid] = [];
-  if (users[uid].length >= MAX) return bot.sendMessage(chatId, '⚠️ You\'ve hit the 10 token limit.\n\nUse /list and tap ❌ Remove to free up a slot.');
-  if (users[uid].find(function(t) { return t.mint === ca; })) return bot.sendMessage(chatId, 'Already tracking this token.');
+  if (users[uid].length >= MAX) {
+    return bot.sendMessage(chatId, '⚠️ You\'ve hit the 10 token limit.\n\nUse /list and tap ❌ Remove to free up a slot.');
+  }
+  if (users[uid].find(function(t) { return t.mint === ca; })) {
+    return bot.sendMessage(chatId, '⚠️ Already tracking this token.');
+  }
   bot.sendMessage(chatId, '🔍 Looking up token...');
   getCachedTokenData(ca).then(function(data) {
     if (!data) return bot.sendMessage(chatId, '❌ Could not find token. Check the CA and try again.');
@@ -323,7 +415,8 @@ bot.on('message', function(msg) {
   var text = msg.text || '';
   if (text.startsWith('/')) return;
   var ca = text.trim();
-  if (ca.length > 30 && !ca.includes(' ')) {
+  // Solana addresses are base58, 32-44 chars, no spaces
+  if (ca.length >= 32 && ca.length <= 44 && /^[1-9A-HJ-NP-Za-km-z]+$/.test(ca)) {
     trackToken(String(msg.chat.id), ca, msg.chat.id);
   }
 });
