@@ -40,12 +40,19 @@ function getClaimedAmount(sig) {
   .then(function(data) {
     if (!data || !data[0]) return null;
     var tx = data[0];
+    var nativeTransfers = tx.nativeTransfers || [];
     var total = 0;
-    (tx.nativeTransfers || []).forEach(function(t) { if (t.amount) total += t.amount; });
+    nativeTransfers.forEach(function(t) {
+      if (t.amount) total += t.amount;
+    });
     if (total > 0) return (total / 1e9).toFixed(4);
+    var fee = tx.fee || 0;
+    var accountData = tx.accountData || [];
     var maxChange = 0;
-    (tx.accountData || []).forEach(function(a) {
-      if (a.nativeBalanceChange && a.nativeBalanceChange > maxChange) maxChange = a.nativeBalanceChange;
+    accountData.forEach(function(a) {
+      if (a.nativeBalanceChange && a.nativeBalanceChange > maxChange) {
+        maxChange = a.nativeBalanceChange;
+      }
     });
     if (maxChange > 0) return (maxChange / 1e9).toFixed(4);
     return null;
@@ -77,6 +84,12 @@ function getTokenData(ca) {
     var pump = results[1];
     var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
 
+    if (pair) {
+      console.log('BOOSTS:', JSON.stringify(pair.boosts));
+      console.log('PROFILE:', JSON.stringify(pair.profile));
+      console.log('LABELS:', JSON.stringify(pair.labels));
+    }
+
     var ticker = clean((pump && pump.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN');
     var name = clean((pump && pump.name) || (pair && pair.baseToken && pair.baseToken.name) || ticker);
 
@@ -89,9 +102,12 @@ function getTokenData(ca) {
 
     var dexPaid = false;
     if (pair) {
-      if (pair.boosts !== undefined && pair.boosts !== null) dexPaid = true;
-      else if (pair.profile !== undefined && pair.profile !== null) dexPaid = true;
+      if (pair.boosts && pair.boosts.active && pair.boosts.active > 0) { dexPaid = true; console.log('DEX PAID: boosts'); }
+      else if (pair.profile && pair.profile.header) { dexPaid = true; console.log('DEX PAID: profile'); }
+      else if (pair.labels && pair.labels.length > 0) { dexPaid = true; console.log('DEX PAID: labels', pair.labels); }
+      else if (pair.info && pair.info.imageUrl && pair.info.websites && pair.info.websites.length > 0) { dexPaid = true; console.log('DEX PAID: info complete'); }
     }
+    console.log('dexPaid:', dexPaid);
 
     var twitter = (pump && pump.twitter) || null;
     var website = (pump && pump.website) || null;
@@ -250,8 +266,11 @@ bot.onText(/\/help/, function(msg) {
 bot.onText(/\/list/, function(msg) {
   var uid = String(msg.chat.id);
   var tokens = users[uid] || [];
+  console.log('LIST uid:' + uid + ' count:' + tokens.length);
   if (tokens.length === 0) {
-    return bot.sendMessage(msg.chat.id, 'You\'re not tracking any tokens yet.\n\nPaste a Pump.fun CA to start tracking.');
+    return bot.sendMessage(msg.chat.id,
+      'You\'re not tracking any tokens yet.\n\nPaste a Pump.fun CA to start tracking.'
+    );
   }
   bot.sendMessage(msg.chat.id, '<b>Tracked tokens (' + tokens.length + '/10):</b>', {parse_mode: 'HTML'});
   tokens.forEach(function(t) {
@@ -315,6 +334,7 @@ function trackToken(uid, ca, chatId) {
   getCachedTokenData(ca).then(function(data) {
     if (!data) return bot.sendMessage(chatId, '❌ Could not find token. Check the CA and try again.');
     users[uid].push({mint: ca, ticker: data.ticker});
+    console.log('Added uid:' + uid + ' total:' + users[uid].length);
     startWatching(ca, data.ticker);
     var text = buildText(ca, data, '✅ <b>Now Tracking</b>\n\n');
     queueCard(chatId, ca, data, text, null);
@@ -356,14 +376,19 @@ function startWatching(mint, ticker) {
 }
 
 function fireAlert(mint, ticker, sig) {
-  if (recentAlerts[mint] && Date.now() - recentAlerts[mint] < ALERT_COOLDOWN) return;
+  if (recentAlerts[mint] && Date.now() - recentAlerts[mint] < ALERT_COOLDOWN) {
+    console.log('Cooldown active for ' + mint);
+    return;
+  }
   recentAlerts[mint] = Date.now();
   tokenCache[mint] = null;
+
   Promise.all([getCachedTokenData(mint), getClaimedAmount(sig)])
     .then(function(results) {
       var data = results[0];
       var solAmount = results[1];
       if (!data) return;
+      console.log('Claimed amount: ' + solAmount + ' SOL');
       var text = buildAlertText(mint, data, solAmount);
       Object.keys(users).forEach(function(uid) {
         if (users[uid].find(function(t) { return t.mint === mint; })) {
