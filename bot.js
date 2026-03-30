@@ -40,9 +40,8 @@ function getClaimedAmount(sig) {
   .then(function(data) {
     if (!data || !data[0]) return null;
     var tx = data[0];
-    var nativeTransfers = tx.nativeTransfers || [];
     var total = 0;
-    nativeTransfers.forEach(function(t) { if (t.amount) total += t.amount; });
+    (tx.nativeTransfers || []).forEach(function(t) { if (t.amount) total += t.amount; });
     if (total > 0) return (total / 1e9).toFixed(4);
     var maxChange = 0;
     (tx.accountData || []).forEach(function(a) {
@@ -52,37 +51,6 @@ function getClaimedAmount(sig) {
     return null;
   })
   .catch(function() { return null; });
-}
-
-function getGmgnData(ca) {
-  return fetch('https://gmgn.ai/defi/quotation/v1/tokens/sol/' + ca, {
-    headers: {'User-Agent': 'Mozilla/5.0'}
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    console.log('GMGN response:', JSON.stringify(data && data.data && data.data.token ? {
-      dex_paid: data.data.token.dex_paid,
-      banner: data.data.token.banner,
-      bundle_pct: data.data.token.bundle_pct,
-      top_rat_trader_ratio: data.data.token.top_rat_trader_ratio
-    } : 'no token data'));
-
-    if (!data || !data.data || !data.data.token) return null;
-    var token = data.data.token;
-
-    var dexPaid = token.dex_paid === true || token.dex_paid === 1 || token.cto_flag === 1;
-    var bannerUpdated = token.banner && token.banner !== '' && token.banner !== null;
-    var bundlePct = token.bundle_pct !== undefined && token.bundle_pct !== null
-      ? parseFloat(token.bundle_pct).toFixed(1) + '%'
-      : null;
-    var bannerUrl = bannerUpdated ? token.banner : null;
-
-    return { dexPaid, bannerUpdated, bundlePct, bannerUrl };
-  })
-  .catch(function(e) {
-    console.log('GMGN error:', e.message);
-    return null;
-  });
 }
 
 function getCachedTokenData(ca) {
@@ -96,58 +64,47 @@ function getCachedTokenData(ca) {
 }
 
 function getTokenData(ca) {
-  var dexReq = fetch('https://api.dexscreener.com/latest/dex/tokens/' + ca)
-    .then(function(r) { return r.json(); })
-    .catch(function() { return null; });
-
   var pumpReq = fetch('https://frontend-api.pump.fun/coins/' + ca)
     .then(function(r) { return r.json(); })
     .catch(function() { return null; });
 
-  var gmgnReq = getGmgnData(ca);
+  var dexReq = fetch('https://api.dexscreener.com/latest/dex/tokens/' + ca)
+    .then(function(r) { return r.json(); })
+    .catch(function() { return null; });
 
-  return Promise.all([dexReq, pumpReq, gmgnReq]).then(function(results) {
-    var dex = results[0];
-    var pump = results[1];
-    var gmgn = results[2];
+  return Promise.all([pumpReq, dexReq]).then(function(results) {
+    var pump = results[0];
+    var dex = results[1];
     var pair = dex && dex.pairs && dex.pairs[0] ? dex.pairs[0] : null;
 
+    // pump.fun is primary for identity, name, pfp, socials
     var ticker = clean((pump && pump.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN');
     var name = clean((pump && pump.name) || (pair && pair.baseToken && pair.baseToken.name) || ticker);
 
-    var dexPaid = false;
-    var bannerUpdated = false;
-    var bundlePct = 'N/A';
-
-    if (gmgn) {
-      dexPaid = gmgn.dexPaid;
-      bannerUpdated = gmgn.bannerUpdated;
-      bundlePct = gmgn.bundlePct || 'N/A';
-      console.log('GMGN dexPaid:', dexPaid, 'banner:', bannerUpdated, 'bundle:', bundlePct);
-    } else {
-      if (pair) {
-        if (pair.boosts && pair.boosts.active && pair.boosts.active > 0) dexPaid = true;
-        else if (pair.profile && pair.profile.header) dexPaid = true;
-        else if (pair.labels && pair.labels.length > 0) dexPaid = true;
-      }
-    }
-
+    // pump.fun primary for PFP — always available regardless of dex paid
     var pfp = null;
-    if (dexPaid && bannerUpdated && gmgn && gmgn.bannerUrl) {
-      pfp = gmgn.bannerUrl;
-    } else if (dexPaid && pair && pair.info && pair.info.imageUrl) {
-      pfp = pair.info.imageUrl;
-    } else if (pump && pump.image_uri) {
-      pfp = pump.image_uri;
-    }
+    if (pump && pump.image_uri) pfp = pump.image_uri;
+    else if (pair && pair.info && pair.info.imageUrl) pfp = pair.info.imageUrl;
 
+    // DexScreener for market data
     var mc = pair ? formatNum(pair.fdv) : 'N/A';
     var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
 
+    // Dex paid — check multiple DexScreener fields
+    var dexPaid = false;
+    if (pair) {
+      if (pair.boosts && pair.boosts.active && pair.boosts.active > 0) dexPaid = true;
+      else if (pair.profile && pair.profile.header) dexPaid = true;
+      else if (pair.labels && pair.labels.length > 0) dexPaid = true;
+      else if (pair.info && pair.info.imageUrl && pair.info.websites && pair.info.websites.length > 0 && pair.info.socials && pair.info.socials.length > 0) dexPaid = true;
+    }
+
+    // pump.fun primary for socials
     var twitter = (pump && pump.twitter) || null;
     var website = (pump && pump.website) || null;
     var telegram = (pump && pump.telegram) || null;
 
+    // DexScreener fallback for socials
     if (pair && pair.info && pair.info.socials) {
       pair.info.socials.forEach(function(s) {
         if (s.type === 'twitter' && !twitter) twitter = s.url;
@@ -158,7 +115,9 @@ function getTokenData(ca) {
       website = pair.info.websites[0].url;
     }
 
-    return { ticker, name, pfp, mc, vol, dexPaid, bundlePct, website, twitter, telegram };
+    console.log('Token:', ticker, '| dexPaid:', dexPaid, '| pfp:', !!pfp, '| twitter:', !!twitter);
+
+    return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram };
   });
 }
 
@@ -181,12 +140,11 @@ function buildText(ca, data, header) {
   var dex = data.dexPaid ? '🟢' : '🔴';
   var socials = buildSocials(data);
   return header +
-    '<b>' + data.name + '</b> ($' + data.ticker + ')\n' +
+    '<a href="https://pump.fun/' + ca + '"><b>$' + data.ticker + '</b></a> — ' + data.name + '\n' +
     '<code>' + ca + '</code>\n\n' +
     '📊 <b>Stats</b>\n' +
     '├ MC: ' + data.mc + '\n' +
     '├ Vol: ' + data.vol + '\n' +
-    '├ Bundle: ' + data.bundlePct + '\n' +
     '└ Dex: ' + dex + '\n\n' +
     '🔗 <b>Socials</b>\n' +
     '└ ' + socials;
@@ -198,12 +156,11 @@ function buildAlertText(ca, data, solAmount) {
   var amountLine = solAmount ? '💰 <b>' + solAmount + ' SOL claimed</b>\n\n' : '';
   return '🚨 <b>FEE CLAIM ALERT</b>\n\n' +
     amountLine +
-    '<b>' + data.name + '</b> ($' + data.ticker + ')\n' +
+    '<a href="https://pump.fun/' + ca + '"><b>$' + data.ticker + '</b></a> — ' + data.name + '\n' +
     '<code>' + ca + '</code>\n\n' +
     '📊 <b>Stats</b>\n' +
     '├ MC: ' + data.mc + '\n' +
     '├ Vol: ' + data.vol + '\n' +
-    '├ Bundle: ' + data.bundlePct + '\n' +
     '└ Dex: ' + dex + '\n\n' +
     '🔗 <b>Socials</b>\n' +
     '└ ' + socials;
@@ -332,30 +289,11 @@ bot.on('callback_query', function(query) {
     var ca = data.replace('refresh:', '');
     bot.answerCallbackQuery(query.id, {text: 'Refreshing...'});
     tokenCache[ca] = null;
+    bot.deleteMessage(query.message.chat.id, query.message.message_id).catch(function() {});
     getCachedTokenData(ca).then(function(tokenData) {
       if (!tokenData) return;
       var text = buildText(ca, tokenData, '🔄 <b>Refreshed</b>\n\n');
-      var markup = buildKeyboard(ca, null);
-      if (query.message.photo) {
-        bot.editMessageCaption(text, {
-          chat_id: query.message.chat.id,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: markup
-        }).catch(function() {
-          queueCard(query.message.chat.id, ca, tokenData, text, null);
-        });
-      } else {
-        bot.editMessageText(text, {
-          chat_id: query.message.chat.id,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: markup,
-          disable_web_page_preview: true
-        }).catch(function() {
-          queueCard(query.message.chat.id, ca, tokenData, text, null);
-        });
-      }
+      queueCard(query.message.chat.id, ca, tokenData, text, null);
     }).catch(function(e) { console.log('Refresh error: ' + e.message); });
   }
 });
