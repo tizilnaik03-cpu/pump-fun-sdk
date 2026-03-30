@@ -66,14 +66,19 @@ function getGmgnData(ca) {
   .then(function(data) {
     if (!data || !data.data || !data.data.token) return null;
     var token = data.data.token;
-    console.log('GMGN token keys:', Object.keys(token));
-    console.log('GMGN bundler:', token.bundler_ratio, token.bundle_pct, token.top_bundler_ratio);
 
-    var dexPaid = !!(token.dex_paid || token.is_show_alert === false);
-    var bundlePct = null;
-    if (token.bundler_ratio !== undefined) bundlePct = (parseFloat(token.bundler_ratio) * 100).toFixed(1) + '%';
-    else if (token.bundle_pct !== undefined) bundlePct = parseFloat(token.bundle_pct).toFixed(1) + '%';
-    else if (token.top_bundler_ratio !== undefined) bundlePct = (parseFloat(token.top_bundler_ratio) * 100).toFixed(1) + '%';
+    var bundlePct = 'N/A';
+    if (token.top_bundler_ratio !== undefined) {
+      bundlePct = (parseFloat(token.top_bundler_ratio) * 100).toFixed(1) + '%';
+    } else if (token.bundler_ratio !== undefined) {
+      bundlePct = (parseFloat(token.bundler_ratio) * 100).toFixed(1) + '%';
+    } else if (token.bundle_pct !== undefined) {
+      bundlePct = parseFloat(token.bundle_pct).toFixed(1) + '%';
+    } else if (token.bundler && token.bundler.ratio !== undefined) {
+      bundlePct = (parseFloat(token.bundler.ratio) * 100).toFixed(1) + '%';
+    }
+
+    var dexPaid = !!(token.dex_paid === true || token.is_dex_paid === true || token.dexPaid === true || token.is_show_alert === false);
 
     return { dexPaid: dexPaid, bundlePct: bundlePct };
   })
@@ -113,7 +118,6 @@ function getTokenData(ca) {
     var ticker = clean((pump && pump.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN');
     var name = clean((pump && pump.name) || (pair && pair.baseToken && pair.baseToken.name) || ticker);
 
-    // PFP — pump.fun primary, dex fallback
     var pfp = null;
     if (pump && pump.image_uri) pfp = pump.image_uri;
     else if (pair && pair.info && pair.info.imageUrl) pfp = pair.info.imageUrl;
@@ -121,7 +125,6 @@ function getTokenData(ca) {
     var mc = pair ? formatNum(pair.fdv) : 'N/A';
     var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
 
-    // Dex paid — GMGN primary, dex fallback
     var dexPaid = false;
     if (gmgn && gmgn.dexPaid) {
       dexPaid = true;
@@ -132,10 +135,8 @@ function getTokenData(ca) {
       else if (pair.labels && pair.labels.length > 0) { dexPaid = true; console.log('DEX PAID via labels'); }
     }
 
-    // Bundle % — GMGN only
     var bundlePct = (gmgn && gmgn.bundlePct) ? gmgn.bundlePct : 'N/A';
 
-    // Socials — pump.fun primary, dex fallback
     var twitter = (pump && pump.twitter) || null;
     var website = (pump && pump.website) || null;
     var telegram = (pump && pump.telegram) || null;
@@ -150,7 +151,7 @@ function getTokenData(ca) {
       website = pair.info.websites[0].url;
     }
 
-    console.log('Token:', ticker, '| dexPaid:', dexPaid, '| bundle:', bundlePct, '| pfp:', !!pfp, '| twitter:', !!twitter);
+    console.log('Token:', ticker, '| dexPaid:', dexPaid, '| bundle:', bundlePct, '| pfp:', !!pfp);
 
     return { ticker, name, pfp, mc, vol, dexPaid, bundlePct, website, twitter, telegram };
   });
