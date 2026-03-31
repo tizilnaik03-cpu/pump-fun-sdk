@@ -17,6 +17,7 @@ var lastSig = {};
 var claimsCount = {};
 var messageQueue = [];
 var isProcessing = false;
+var messageTypes = {};
 var globalConn = new web3.Connection('https://mainnet.helius-rpc.com/?api-key=' + HELIUS_KEY, 'confirmed');
 
 bot.setMyCommands([
@@ -29,21 +30,17 @@ bot.setMyCommands([
 setInterval(function() {
   var now = Date.now();
   Object.keys(tokenCache).forEach(function(k) {
-    if (!tokenCache[k] || now - tokenCache[k].timestamp > CACHE_TTL) {
-      delete tokenCache[k];
-    }
+    if (!tokenCache[k] || now - tokenCache[k].timestamp > CACHE_TTL) delete tokenCache[k];
   });
   Object.keys(recentAlerts).forEach(function(k) {
     if (now - recentAlerts[k] > 120000) delete recentAlerts[k];
   });
-  if (messageQueue.length > QUEUE_MAX) {
-    console.log('[Cleanup] Queue overflow (' + messageQueue.length + '), trimming');
-    messageQueue = messageQueue.slice(-QUEUE_MAX);
+  var mtKeys = Object.keys(messageTypes);
+  if (mtKeys.length > 1000) {
+    mtKeys.slice(0, mtKeys.length - 1000).forEach(function(k) { delete messageTypes[k]; });
   }
-  console.log('[Cleanup] cache:' + Object.keys(tokenCache).length +
-    ' alerts:' + Object.keys(recentAlerts).length +
-    ' queue:' + messageQueue.length +
-    ' watchers:' + Object.keys(watchingMints).length);
+  if (messageQueue.length > QUEUE_MAX) messageQueue = messageQueue.slice(-QUEUE_MAX);
+  console.log('[Cleanup] cache:' + Object.keys(tokenCache).length + ' queue:' + messageQueue.length + ' watchers:' + Object.keys(watchingMints).length);
 }, 300000);
 
 function clean(str) {
@@ -58,20 +55,20 @@ function normalizeImageUrl(url) {
   if (url.startsWith('ipfs://')) return 'https://ipfs.io/ipfs/' + url.slice(7);
   if (url.includes('cf-ipfs.com/ipfs/')) {
     var hash = url.split('/ipfs/')[1];
-    return hash ? 'https://ipfs.io/ipfs/' + hash : null;
+    return hash ? 'https://ipfs.io/ipfs/' + hash.split('?')[0] : null;
   }
-  if (url.includes('ipfs.io') || url.startsWith('https://')) return url;
+  if (url.includes('ipfs.io/ipfs/')) return url.split('?')[0];
+  if (url.startsWith('https://')) return url;
   return null;
 }
 
 function formatAge(createdAt) {
   if (!createdAt) return 'Unknown';
-  var created = typeof createdAt === 'number' && createdAt < 1e12
-    ? createdAt * 1000
-    : createdAt;
+  var created = createdAt > 1e12 ? createdAt : createdAt * 1000;
   var diff = Math.floor((Date.now() - created) / 1000);
-  if (diff < 60)    return diff + 's';
-  if (diff < 3600)  return Math.floor(diff / 60) + 'm';
+  if (diff < 0) return 'Unknown';
+  if (diff < 60) return diff + 's';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm';
   if (diff < 86400) return Math.floor(diff / 3600) + 'h ' + Math.floor((diff % 3600) / 60) + 'm';
   return Math.floor(diff / 86400) + 'd ' + Math.floor((diff % 86400) / 3600) + 'h';
 }
@@ -87,7 +84,7 @@ function getClaimTier(solAmount) {
 function formatNum(num) {
   if (!num) return 'N/A';
   if (num >= 1000000) return '$' + (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000)    return '$' + (num / 1000).toFixed(1)    + 'K';
+  if (num >= 1000) return '$' + (num / 1000).toFixed(1) + 'K';
   return '$' + num.toFixed(0);
 }
 
@@ -114,6 +111,14 @@ function getClaimedAmount(sig) {
   .catch(function() { return null; });
 }
 
+function fetchMetadata(metadataUri) {
+  if (!metadataUri) return Promise.resolve(null);
+  var url = normalizeImageUrl(metadataUri) || metadataUri;
+  return fetch(url)
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .catch(function() { return null; });
+}
+
 function getCachedTokenData(ca) {
   if (tokenCache[ca] && Date.now() - tokenCache[ca].timestamp < CACHE_TTL) {
     return Promise.resolve(tokenCache[ca].data);
@@ -135,103 +140,98 @@ function getTokenData(ca) {
 
   return Promise.all([pumpReq, dexReq]).then(function(results) {
     var pump = results[0];
-    var dex  = results[1];
+    var dex = results[1];
     var pair = dex && dex.pairs && dex.pairs.length > 0 ? dex.pairs[0] : null;
 
-    var rawTicker = (pump && (pump.symbol || (pump.metadata && pump.metadata.symbol))) ||
-                    (pair && pair.baseToken && pair.baseToken.symbol) || null;
-    var rawName   = (pump && (pump.name   || (pump.metadata && pump.metadata.name)))   ||
-                    (pair && pair.baseToken && pair.baseToken.name)   || rawTicker || 'Unknown';
-    var ticker = clean(rawTicker || 'UNKNOWN');
-    var name   = clean(rawName);
+    var metadataReq = (pump && pump.metadata_uri)
+      ? fetchMetadata(pump.metadata_uri)
+      : Promise.resolve(null);
 
-    var rawPfp = (pump && (pump.image_uri || (pump.metadata && pump.metadata.image))) ||
-                 (pair && pair.info && pair.info.imageUrl) || null;
-    var pfp = normalizeImageUrl(rawPfp);
+    return metadataReq.then(function(meta) {
+      var rawTicker = (pump && pump.symbol) || (meta && meta.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN';
+      var rawName = (pump && pump.name) || (meta && meta.name) || (pair && pair.baseToken && pair.baseToken.name) || rawTicker;
+      var ticker = clean(rawTicker);
+      var name = clean(rawName);
 
-    var mc  = pair ? formatNum(pair.fdv) : 'N/A';
-    var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
+      var rawPfp = (meta && meta.image) || (pump && pump.image_uri) || (pair && pair.info && pair.info.imageUrl) || null;
+      var pfp = normalizeImageUrl(rawPfp);
 
-    var createdAt = (pump && (pump.created_timestamp || pump.created_at)) || null;
+      var mc = pair ? formatNum(pair.fdv) : 'N/A';
+      var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
+      var createdAt = (pump && pump.created_timestamp) || null;
 
-    var dexPaid = false;
-    if (pair) {
-      if (pair.boosts && pair.boosts.active > 0)             dexPaid = true;
-      if (!dexPaid && pair.profile && pair.profile.header)   dexPaid = true;
-      if (!dexPaid && pair.labels && pair.labels.length > 0) dexPaid = true;
-      if (!dexPaid && pair.info && pair.info.imageUrl &&
-          ((pair.info.socials  && pair.info.socials.length  > 0) ||
-           (pair.info.websites && pair.info.websites.length > 0))) dexPaid = true;
-    }
-
-    var twitter  = (pump && (pump.twitter  || (pump.metadata && pump.metadata.twitter)))  || null;
-    var website  = (pump && (pump.website  || (pump.metadata && pump.metadata.website)))  || null;
-    var telegram = (pump && (pump.telegram || (pump.metadata && pump.metadata.telegram))) || null;
-
-    if (pair && pair.info) {
-      if (pair.info.socials) {
-        pair.info.socials.forEach(function(s) {
-          if (s.type === 'twitter'  && !twitter)  twitter  = s.url;
-          if (s.type === 'telegram' && !telegram) telegram = s.url;
-        });
+      var dexPaid = false;
+      if (pair) {
+        if (pair.boosts && pair.boosts.active > 0) dexPaid = true;
+        if (!dexPaid && pair.profile && pair.profile.header) dexPaid = true;
+        if (!dexPaid && pair.labels && pair.labels.length > 0) dexPaid = true;
+        if (!dexPaid && pair.info && pair.info.imageUrl &&
+            ((pair.info.socials && pair.info.socials.length > 0) ||
+             (pair.info.websites && pair.info.websites.length > 0))) dexPaid = true;
       }
-      if (!website && pair.info.websites && pair.info.websites[0]) {
-        website = pair.info.websites[0].url;
+
+      var twitter = (pump && pump.twitter && pump.twitter !== '' ? pump.twitter : null) || (meta && meta.twitter) || null;
+      var website = (pump && pump.website && pump.website !== '' ? pump.website : null) || (meta && meta.website) || null;
+      var telegram = (pump && pump.telegram && pump.telegram !== '' ? pump.telegram : null) || (meta && meta.telegram) || null;
+
+      if (pair && pair.info) {
+        if (pair.info.socials) {
+          pair.info.socials.forEach(function(s) {
+            if (s.type === 'twitter' && !twitter) twitter = s.url;
+            if (s.type === 'telegram' && !telegram) telegram = s.url;
+          });
+        }
+        if (!website && pair.info.websites && pair.info.websites[0]) website = pair.info.websites[0].url;
       }
-    }
 
-    console.log('[Token]', ticker, '| dexPaid:', dexPaid,
-      '| pfp:', pfp ? pfp.slice(0, 40) : 'none',
-      '| age:', formatAge(createdAt));
+      console.log('[Token]', ticker, '| age:', formatAge(createdAt), '| pfp:', pfp ? 'yes' : 'no', '| dexPaid:', dexPaid, '| twitter:', !!twitter);
 
-    return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram, createdAt };
+      return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram, createdAt };
+    });
   });
 }
 
 function buildSocials(data) {
   var parts = [];
-  if (data.twitter)  parts.push('<a href="' + data.twitter  + '">X</a>');
-  if (data.website)  parts.push('<a href="' + data.website  + '">Web</a>');
+  if (data.twitter) parts.push('<a href="' + data.twitter + '">X</a>');
+  if (data.website) parts.push('<a href="' + data.website + '">Web</a>');
   if (data.telegram) parts.push('<a href="' + data.telegram + '">TG</a>');
   return parts.length > 0 ? parts.join(' | ') : 'None';
 }
 
 function buildText(ca, data, header) {
-  var dex     = data.dexPaid ? '🟢' : '🔴';
+  var dex = data.dexPaid ? '🟢' : '🔴';
   var socials = buildSocials(data);
-  var age     = formatAge(data.createdAt);
+  var age = formatAge(data.createdAt);
   return header +
     '<a href="https://pump.fun/coin/' + ca + '"><b>$' + data.ticker + '</b></a> — ' + data.name + '\n' +
     '<code>' + ca + '</code>\n\n' +
     '📊 <b>Stats</b>\n' +
-    '├ MC: '  + data.mc  + '\n' +
+    '├ MC: ' + data.mc + '\n' +
     '├ Vol: ' + data.vol + '\n' +
-    '├ Age: ' + age      + '\n' +
-    '└ Dex: ' + dex      + '\n\n' +
+    '├ Age: ' + age + '\n' +
+    '└ Dex: ' + dex + '\n\n' +
     '🔗 <b>Socials</b>\n' +
     '└ ' + socials;
 }
 
 function buildAlertText(ca, data, solAmount, claimNum) {
-  var dex      = data.dexPaid ? '🟢' : '🔴';
-  var socials  = buildSocials(data);
-  var age      = formatAge(data.createdAt);
-  var tier     = getClaimTier(solAmount);
+  var dex = data.dexPaid ? '🟢' : '🔴';
+  var socials = buildSocials(data);
+  var age = formatAge(data.createdAt);
+  var tier = getClaimTier(solAmount);
   var tierLine = tier ? tier + '\n' : '';
-  var amtLine  = '💰 <b>' + (solAmount ? solAmount + ' SOL claimed' : 'Unknown amount') + '</b>\n';
+  var amtLine = '💰 <b>' + (solAmount ? solAmount + ' SOL claimed' : 'Unknown amount') + '</b>\n';
   var claimLine = claimNum > 1 ? '📍 Claim #' + claimNum + ' on this token\n' : '';
-
   return '🚨 <b>FEE CLAIM ALERT</b>\n\n' +
-    tierLine +
-    amtLine +
-    claimLine + '\n' +
+    tierLine + amtLine + claimLine + '\n' +
     '<a href="https://pump.fun/coin/' + ca + '"><b>$' + data.ticker + '</b></a> — ' + data.name + '\n' +
     '<code>' + ca + '</code>\n\n' +
     '📊 <b>Stats</b>\n' +
-    '├ MC: '  + data.mc  + '\n' +
+    '├ MC: ' + data.mc + '\n' +
     '├ Vol: ' + data.vol + '\n' +
-    '├ Age: ' + age      + '\n' +
-    '└ Dex: ' + dex      + '\n\n' +
+    '├ Age: ' + age + '\n' +
+    '└ Dex: ' + dex + '\n\n' +
     '🔗 <b>Socials</b>\n' +
     '└ ' + socials;
 }
@@ -239,16 +239,16 @@ function buildAlertText(ca, data, solAmount, claimNum) {
 function buildKeyboard(ca, sig) {
   var keyboard = [
     [
-      {text: 'AXI', url: 'https://axiom.trade/t/'                 + ca},
-      {text: 'TRO', url: 'https://t.me/solana_trojanbot?start='   + ca},
-      {text: 'BLO', url: 'https://t.me/BloomSolana_bot?start='    + ca},
+      {text: 'AXI', url: 'https://axiom.trade/t/' + ca},
+      {text: 'TRO', url: 'https://t.me/solana_trojanbot?start=' + ca},
+      {text: 'BLO', url: 'https://t.me/BloomSolana_bot?start=' + ca},
       {text: 'PHO', url: 'https://photon-sol.tinyastro.io/en/lp/' + ca}
     ],
     [
       {text: 'OKX', url: 'https://www.okx.com/web3/dex-swap#inputChain=501&inputCurrency=SOL&outputChain=501&outputCurrency=' + ca},
       {text: 'NEO', url: 'https://bullx.io/terminal?chainId=1399811149&address=' + ca},
-      {text: 'TRM', url: 'https://padre.trade/token/'             + ca},
-      {text: 'DEX', url: 'https://dexscreener.com/solana/'        + ca}
+      {text: 'TRM', url: 'https://padre.trade/token/' + ca},
+      {text: 'DEX', url: 'https://dexscreener.com/solana/' + ca}
     ],
     [{text: '🔄 Refresh', callback_data: 'refresh:' + ca}]
   ];
@@ -267,12 +267,16 @@ function processQueue() {
       caption: item.text,
       parse_mode: 'HTML',
       reply_markup: item.markup
+    }).then(function(sent) {
+      messageTypes[String(item.chatId) + ':' + sent.message_id] = 'photo';
     }).catch(function(err) {
       console.log('[Queue] Photo failed (' + err.message + ') — text fallback');
       return bot.sendMessage(item.chatId, item.text, {
         parse_mode: 'HTML',
         reply_markup: item.markup,
         disable_web_page_preview: true
+      }).then(function(sent) {
+        messageTypes[String(item.chatId) + ':' + sent.message_id] = 'text';
       });
     });
   } else {
@@ -280,26 +284,25 @@ function processQueue() {
       parse_mode: 'HTML',
       reply_markup: item.markup,
       disable_web_page_preview: true
+    }).then(function(sent) {
+      messageTypes[String(item.chatId) + ':' + sent.message_id] = 'text';
     });
   }
 
   promise
     .catch(function(e) { console.log('[Queue] Error: ' + e.message); })
-    .finally(function() {
+    .then(function() {
       isProcessing = false;
       setTimeout(processQueue, 150);
     });
 }
 
 function queueCard(chatId, ca, data, text, sig) {
-  if (messageQueue.length >= QUEUE_MAX) {
-    console.log('[Queue] Full, dropping oldest item');
-    messageQueue.shift();
-  }
+  if (messageQueue.length >= QUEUE_MAX) messageQueue.shift();
   var markup = buildKeyboard(ca, sig);
   messageQueue.push(data.pfp
     ? {type: 'photo', chatId: chatId, pfp: data.pfp, text: text, markup: markup}
-    : {type: 'text',  chatId: chatId, text: text, markup: markup}
+    : {type: 'text', chatId: chatId, text: text, markup: markup}
   );
   processQueue();
 }
@@ -331,7 +334,7 @@ bot.onText(/\/help/, function(msg) {
     '<b>Claim tiers:</b>\n' +
     '🚨 Strong — 5+ SOL\n' +
     '⚠️ Medium — 2 to 5 SOL\n' +
-    '💤 Weak   — 0 to 2 SOL\n\n' +
+    '💤 Weak — 0 to 2 SOL\n\n' +
     '<b>Max 10 tokens per user.</b>\n\n' +
     '<i>Tracked tokens reset on bot restart.</i>',
     {parse_mode: 'HTML'}
@@ -339,35 +342,31 @@ bot.onText(/\/help/, function(msg) {
 });
 
 bot.onText(/\/list/, function(msg) {
-  var uid    = String(msg.chat.id);
+  var uid = String(msg.chat.id);
   var tokens = users[uid] || [];
   if (tokens.length === 0) {
-    return bot.sendMessage(msg.chat.id,
-      'You\'re not tracking any tokens yet.\n\nPaste a Pump.fun CA to start.');
+    return bot.sendMessage(msg.chat.id, 'You\'re not tracking any tokens yet.\n\nPaste a Pump.fun CA to start.');
   }
-  bot.sendMessage(msg.chat.id,
-    '<b>Tracked tokens (' + tokens.length + '/10):</b>',
-    {parse_mode: 'HTML'});
+  bot.sendMessage(msg.chat.id, '<b>Tracked tokens (' + tokens.length + '/10):</b>', {parse_mode: 'HTML'});
   tokens.forEach(function(t) {
     var claims = claimsCount[t.mint] ? ' · ' + claimsCount[t.mint] + ' claim(s)' : '';
     var text = '<a href="https://pump.fun/coin/' + t.mint + '"><b>$' + t.ticker + '</b></a>' +
-               claims + '\n<code>' + t.mint + '</code>';
+      claims + '\n<code>' + t.mint + '</code>';
     var btns = {inline_keyboard: [[{text: '❌ Remove', callback_data: 'remove:' + t.mint}]]};
-    bot.sendMessage(msg.chat.id, text,
-      {parse_mode: 'HTML', reply_markup: btns, disable_web_page_preview: true});
+    bot.sendMessage(msg.chat.id, text, {parse_mode: 'HTML', reply_markup: btns, disable_web_page_preview: true});
   });
 });
 
 bot.on('callback_query', function(query) {
-  var uid    = String(query.message.chat.id);
-  var data   = query.data;
+  var uid = String(query.message.chat.id);
+  var data = query.data;
   var chatId = query.message.chat.id;
-  var msgId  = query.message.message_id;
+  var msgId = query.message.message_id;
+  var msgKey = String(chatId) + ':' + msgId;
 
   if (data.startsWith('remove:')) {
     var ca = data.replace('remove:', '');
     if (users[uid]) users[uid] = users[uid].filter(function(t) { return t.mint !== ca; });
-
     var stillTracked = Object.keys(users).some(function(u) {
       return users[u].find(function(t) { return t.mint === ca; });
     });
@@ -382,11 +381,8 @@ bot.on('callback_query', function(query) {
       delete recentAlerts[ca];
       delete tokenCache[ca];
     }
-
     bot.answerCallbackQuery(query.id, {text: '✅ Removed!'});
-    bot.editMessageReplyMarkup({inline_keyboard: []}, {
-      chat_id: chatId, message_id: msgId
-    }).catch(function() {});
+    bot.editMessageReplyMarkup({inline_keyboard: []}, {chat_id: chatId, message_id: msgId}).catch(function() {});
     return;
   }
 
@@ -397,9 +393,9 @@ bot.on('callback_query', function(query) {
 
     getCachedTokenData(ca).then(function(tokenData) {
       if (!tokenData) return;
-      var text   = buildText(ca, tokenData, '🔄 <b>Refreshed</b>\n\n');
+      var text = buildText(ca, tokenData, '🔄 <b>Refreshed</b>\n\n');
       var markup = buildKeyboard(ca, null);
-      var isPhoto = !!(query.message.photo && query.message.photo.length > 0);
+      var isPhoto = messageTypes[msgKey] === 'photo';
 
       if (isPhoto) {
         bot.editMessageCaption(text, {
@@ -408,11 +404,13 @@ bot.on('callback_query', function(query) {
           parse_mode: 'HTML',
           reply_markup: markup
         }).catch(function(err) {
-          console.log('[Refresh] editMessageCaption failed: ' + err.message);
+          console.log('[Refresh] Caption edit failed: ' + err.message);
           bot.sendMessage(chatId, text, {
             parse_mode: 'HTML',
             reply_markup: markup,
             disable_web_page_preview: true
+          }).then(function(sent) {
+            messageTypes[String(chatId) + ':' + sent.message_id] = 'text';
           });
         });
       } else {
@@ -423,11 +421,13 @@ bot.on('callback_query', function(query) {
           reply_markup: markup,
           disable_web_page_preview: true
         }).catch(function(err) {
-          console.log('[Refresh] editMessageText failed: ' + err.message);
+          console.log('[Refresh] Text edit failed: ' + err.message);
           bot.sendMessage(chatId, text, {
             parse_mode: 'HTML',
             reply_markup: markup,
             disable_web_page_preview: true
+          }).then(function(sent) {
+            messageTypes[String(chatId) + ':' + sent.message_id] = 'text';
           });
         });
       }
@@ -438,16 +438,14 @@ bot.on('callback_query', function(query) {
 function trackToken(uid, ca, chatId) {
   if (!users[uid]) users[uid] = [];
   if (users[uid].length >= MAX) {
-    return bot.sendMessage(chatId,
-      '⚠️ You\'ve hit the 10 token limit.\n\nUse /list and tap ❌ Remove to free up a slot.');
+    return bot.sendMessage(chatId, '⚠️ You\'ve hit the 10 token limit.\n\nUse /list and tap ❌ Remove to free up a slot.');
   }
   if (users[uid].find(function(t) { return t.mint === ca; })) {
     return bot.sendMessage(chatId, '⚠️ Already tracking this token.');
   }
   bot.sendMessage(chatId, '🔍 Looking up token...');
   getCachedTokenData(ca).then(function(data) {
-    if (!data) return bot.sendMessage(chatId,
-      '❌ Could not find token. Check the CA and try again.');
+    if (!data) return bot.sendMessage(chatId, '❌ Could not find token. Check the CA and try again.');
     users[uid].push({mint: ca, ticker: data.ticker});
     startWatching(ca, data.ticker);
     var text = buildText(ca, data, '✅ <b>Now Tracking</b>\n\n');
@@ -475,12 +473,10 @@ function startWatching(mint, ticker) {
   if (watchingMints[mint]) return;
   watchingMints[mint] = 'starting';
   try {
-    var pub   = new web3.PublicKey(mint);
+    var pub = new web3.PublicKey(mint);
     var subId = globalConn.onLogs(pub, function(logs) {
       if (logs.err) return;
-      var isClaim = logs.logs.some(function(l) {
-        return l && l.includes('CollectCreatorFee');
-      });
+      var isClaim = logs.logs.some(function(l) { return l && l.includes('CollectCreatorFee'); });
       if (!isClaim) return;
       if (lastSig[mint] === logs.signature) return;
       lastSig[mint] = logs.signature;
@@ -497,13 +493,12 @@ function startWatching(mint, ticker) {
 }
 
 function fireAlert(mint, ticker, sig, claimNum) {
-  if (recentAlerts[mint] && recentAlerts[mint] === sig) return;
+  if (recentAlerts[mint] === sig) return;
   recentAlerts[mint] = sig;
   tokenCache[mint] = null;
-
   Promise.all([getCachedTokenData(mint), getClaimedAmount(sig)])
     .then(function(results) {
-      var data      = results[0];
+      var data = results[0];
       var solAmount = results[1];
       if (!data) return;
       var text = buildAlertText(mint, data, solAmount, claimNum);
