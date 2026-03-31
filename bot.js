@@ -17,7 +17,6 @@ var lastSig = {};
 var claimsCount = {};
 var messageQueue = [];
 var isProcessing = false;
-var messageTypes = {};
 var globalConn = new web3.Connection('https://mainnet.helius-rpc.com/?api-key=' + HELIUS_KEY, 'confirmed');
 
 bot.setMyCommands([
@@ -32,15 +31,7 @@ setInterval(function() {
   Object.keys(tokenCache).forEach(function(k) {
     if (!tokenCache[k] || now - tokenCache[k].timestamp > CACHE_TTL) delete tokenCache[k];
   });
-  Object.keys(recentAlerts).forEach(function(k) {
-    if (now - recentAlerts[k] > 120000) delete recentAlerts[k];
-  });
-  var mtKeys = Object.keys(messageTypes);
-  if (mtKeys.length > 1000) {
-    mtKeys.slice(0, mtKeys.length - 1000).forEach(function(k) { delete messageTypes[k]; });
-  }
   if (messageQueue.length > QUEUE_MAX) messageQueue = messageQueue.slice(-QUEUE_MAX);
-  console.log('[Cleanup] cache:' + Object.keys(tokenCache).length + ' queue:' + messageQueue.length + ' watchers:' + Object.keys(watchingMints).length);
 }, 300000);
 
 function clean(str) {
@@ -53,32 +44,28 @@ function clean(str) {
 function normalizeImageUrl(url) {
   if (!url) return null;
   if (url.startsWith('ipfs://')) return 'https://ipfs.io/ipfs/' + url.slice(7);
-  if (url.includes('cf-ipfs.com/ipfs/')) {
-    var hash = url.split('/ipfs/')[1];
-    return hash ? 'https://ipfs.io/ipfs/' + hash.split('?')[0] : null;
-  }
-  if (url.includes('ipfs.io/ipfs/')) return url.split('?')[0];
+  if (url.includes('/ipfs/')) return 'https://ipfs.io/ipfs/' + url.split('/ipfs/')[1].split('?')[0];
   if (url.startsWith('https://')) return url;
   return null;
 }
 
 function formatAge(createdAt) {
-  if (!createdAt) return 'Unknown';
+  if (!createdAt) return 'N/A';
   var created = createdAt > 1e12 ? createdAt : createdAt * 1000;
   var diff = Math.floor((Date.now() - created) / 1000);
-  if (diff < 0) return 'Unknown';
+  if (diff < 0 || diff > 31536000) return 'N/A';
   if (diff < 60) return diff + 's';
   if (diff < 3600) return Math.floor(diff / 60) + 'm';
-  if (diff < 86400) return Math.floor(diff / 3600) + 'h ' + Math.floor((diff % 3600) / 60) + 'm';
-  return Math.floor(diff / 86400) + 'd ' + Math.floor((diff % 86400) / 3600) + 'h';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h';
+  return Math.floor(diff / 86400) + 'd';
 }
 
 function getClaimTier(solAmount) {
-  if (!solAmount) return null;
+  if (!solAmount) return '';
   var amt = parseFloat(solAmount);
-  if (amt >= 5) return '🚨 STRONG CLAIM (5+ SOL)';
-  if (amt >= 2) return '⚠️ MEDIUM CLAIM (2–5 SOL)';
-  return '💤 WEAK CLAIM (<2 SOL)';
+  if (amt >= 5) return '🚨 STRONG (5+ SOL)\n';
+  if (amt >= 2) return '⚠️ MEDIUM (2-5 SOL)\n';
+  return '💤 WEAK (<2 SOL)\n';
 }
 
 function formatNum(num) {
@@ -105,18 +92,9 @@ function getClaimedAmount(sig) {
     (tx.accountData || []).forEach(function(a) {
       if (a.nativeBalanceChange && a.nativeBalanceChange > maxChange) maxChange = a.nativeBalanceChange;
     });
-    if (maxChange > 0) return (maxChange / 1e9).toFixed(4);
-    return null;
+    return maxChange > 0 ? (maxChange / 1e9).toFixed(4) : null;
   })
   .catch(function() { return null; });
-}
-
-function fetchMetadata(metadataUri) {
-  if (!metadataUri) return Promise.resolve(null);
-  var url = normalizeImageUrl(metadataUri) || metadataUri;
-  return fetch(url)
-    .then(function(r) { return r.ok ? r.json() : null; })
-    .catch(function() { return null; });
 }
 
 function getCachedTokenData(ca) {
@@ -143,51 +121,51 @@ function getTokenData(ca) {
     var dex = results[1];
     var pair = dex && dex.pairs && dex.pairs.length > 0 ? dex.pairs[0] : null;
 
-    var metadataReq = (pump && pump.metadata_uri)
-      ? fetchMetadata(pump.metadata_uri)
-      : Promise.resolve(null);
+    // ticker and name — pump.fun is always primary
+    var ticker = clean((pump && pump.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN');
+    var name = clean((pump && pump.name) || (pair && pair.baseToken && pair.baseToken.name) || ticker);
 
-    return metadataReq.then(function(meta) {
-      var rawTicker = (pump && pump.symbol) || (meta && meta.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN';
-      var rawName = (pump && pump.name) || (meta && meta.name) || (pair && pair.baseToken && pair.baseToken.name) || rawTicker;
-      var ticker = clean(rawTicker);
-      var name = clean(rawName);
+    // PFP — pump.fun image_uri works for ALL tokens paid or not
+    var pfp = normalizeImageUrl((pump && pump.image_uri) || (pair && pair.info && pair.info.imageUrl) || null);
 
-      var rawPfp = (meta && meta.image) || (pump && pump.image_uri) || (pair && pair.info && pair.info.imageUrl) || null;
-      var pfp = normalizeImageUrl(rawPfp);
+    // Market data
+    var mc = pair ? formatNum(pair.fdv) : 'N/A';
+    var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
 
-      var mc = pair ? formatNum(pair.fdv) : 'N/A';
-      var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
-      var createdAt = (pump && pump.created_timestamp) || null;
+    // Age — pump.fun created_timestamp is in milliseconds
+    var createdAt = (pump && pump.created_timestamp) || null;
+    console.log('[Age debug] created_timestamp:', createdAt, 'formatted:', formatAge(createdAt));
 
-      var dexPaid = false;
-      if (pair) {
-        if (pair.boosts && pair.boosts.active > 0) dexPaid = true;
-        if (!dexPaid && pair.profile && pair.profile.header) dexPaid = true;
-        if (!dexPaid && pair.labels && pair.labels.length > 0) dexPaid = true;
-        if (!dexPaid && pair.info && pair.info.imageUrl &&
-            ((pair.info.socials && pair.info.socials.length > 0) ||
-             (pair.info.websites && pair.info.websites.length > 0))) dexPaid = true;
+    // Dex paid
+    var dexPaid = false;
+    if (pair) {
+      if (pair.boosts && pair.boosts.active > 0) dexPaid = true;
+      if (!dexPaid && pair.profile && pair.profile.header) dexPaid = true;
+      if (!dexPaid && pair.labels && pair.labels.length > 0) dexPaid = true;
+      if (!dexPaid && pair.info && pair.info.imageUrl &&
+        ((pair.info.socials && pair.info.socials.length > 0) ||
+         (pair.info.websites && pair.info.websites.length > 0))) dexPaid = true;
+    }
+
+    // Socials — pump.fun returns these directly, no IPFS needed
+    var twitter = (pump && pump.twitter && pump.twitter.trim() !== '') ? pump.twitter : null;
+    var website = (pump && pump.website && pump.website.trim() !== '') ? pump.website : null;
+    var telegram = (pump && pump.telegram && pump.telegram.trim() !== '') ? pump.telegram : null;
+
+    // DexScreener socials as fallback
+    if (pair && pair.info) {
+      if (pair.info.socials) {
+        pair.info.socials.forEach(function(s) {
+          if (s.type === 'twitter' && !twitter) twitter = s.url;
+          if (s.type === 'telegram' && !telegram) telegram = s.url;
+        });
       }
+      if (!website && pair.info.websites && pair.info.websites[0]) website = pair.info.websites[0].url;
+    }
 
-      var twitter = (pump && pump.twitter && pump.twitter !== '' ? pump.twitter : null) || (meta && meta.twitter) || null;
-      var website = (pump && pump.website && pump.website !== '' ? pump.website : null) || (meta && meta.website) || null;
-      var telegram = (pump && pump.telegram && pump.telegram !== '' ? pump.telegram : null) || (meta && meta.telegram) || null;
+    console.log('[Token]', ticker, '| pfp:', !!pfp, '| dexPaid:', dexPaid, '| age:', formatAge(createdAt), '| twitter:', !!twitter, '| website:', !!website);
 
-      if (pair && pair.info) {
-        if (pair.info.socials) {
-          pair.info.socials.forEach(function(s) {
-            if (s.type === 'twitter' && !twitter) twitter = s.url;
-            if (s.type === 'telegram' && !telegram) telegram = s.url;
-          });
-        }
-        if (!website && pair.info.websites && pair.info.websites[0]) website = pair.info.websites[0].url;
-      }
-
-      console.log('[Token]', ticker, '| age:', formatAge(createdAt), '| pfp:', pfp ? 'yes' : 'no', '| dexPaid:', dexPaid, '| twitter:', !!twitter);
-
-      return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram, createdAt };
-    });
+    return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram, createdAt };
   });
 }
 
@@ -220,11 +198,10 @@ function buildAlertText(ca, data, solAmount, claimNum) {
   var socials = buildSocials(data);
   var age = formatAge(data.createdAt);
   var tier = getClaimTier(solAmount);
-  var tierLine = tier ? tier + '\n' : '';
-  var amtLine = '💰 <b>' + (solAmount ? solAmount + ' SOL claimed' : 'Unknown amount') + '</b>\n';
-  var claimLine = claimNum > 1 ? '📍 Claim #' + claimNum + ' on this token\n' : '';
+  var amtLine = '💰 <b>' + (solAmount ? solAmount + ' SOL claimed' : 'Amount unknown') + '</b>\n';
+  var claimLine = claimNum > 1 ? '📍 Claim #' + claimNum + '\n' : '';
   return '🚨 <b>FEE CLAIM ALERT</b>\n\n' +
-    tierLine + amtLine + claimLine + '\n' +
+    tier + amtLine + claimLine + '\n' +
     '<a href="https://pump.fun/coin/' + ca + '"><b>$' + data.ticker + '</b></a> — ' + data.name + '\n' +
     '<code>' + ca + '</code>\n\n' +
     '📊 <b>Stats</b>\n' +
@@ -267,16 +244,12 @@ function processQueue() {
       caption: item.text,
       parse_mode: 'HTML',
       reply_markup: item.markup
-    }).then(function(sent) {
-      messageTypes[String(item.chatId) + ':' + sent.message_id] = 'photo';
     }).catch(function(err) {
-      console.log('[Queue] Photo failed (' + err.message + ') — text fallback');
+      console.log('[Queue] Photo failed: ' + err.message + ' — fallback to text');
       return bot.sendMessage(item.chatId, item.text, {
         parse_mode: 'HTML',
         reply_markup: item.markup,
         disable_web_page_preview: true
-      }).then(function(sent) {
-        messageTypes[String(item.chatId) + ':' + sent.message_id] = 'text';
       });
     });
   } else {
@@ -284,8 +257,6 @@ function processQueue() {
       parse_mode: 'HTML',
       reply_markup: item.markup,
       disable_web_page_preview: true
-    }).then(function(sent) {
-      messageTypes[String(item.chatId) + ':' + sent.message_id] = 'text';
     });
   }
 
@@ -334,7 +305,7 @@ bot.onText(/\/help/, function(msg) {
     '<b>Claim tiers:</b>\n' +
     '🚨 Strong — 5+ SOL\n' +
     '⚠️ Medium — 2 to 5 SOL\n' +
-    '💤 Weak — 0 to 2 SOL\n\n' +
+    '💤 Weak — under 2 SOL\n\n' +
     '<b>Max 10 tokens per user.</b>\n\n' +
     '<i>Tracked tokens reset on bot restart.</i>',
     {parse_mode: 'HTML'}
@@ -362,13 +333,12 @@ bot.on('callback_query', function(query) {
   var data = query.data;
   var chatId = query.message.chat.id;
   var msgId = query.message.message_id;
-  var msgKey = String(chatId) + ':' + msgId;
 
   if (data.startsWith('remove:')) {
     var ca = data.replace('remove:', '');
     if (users[uid]) users[uid] = users[uid].filter(function(t) { return t.mint !== ca; });
     var stillTracked = Object.keys(users).some(function(u) {
-      return users[u].find(function(t) { return t.mint === ca; });
+      return users[u] && users[u].find(function(t) { return t.mint === ca; });
     });
     if (!stillTracked) {
       if (subscriptions[ca] !== undefined) {
@@ -395,42 +365,27 @@ bot.on('callback_query', function(query) {
       if (!tokenData) return;
       var text = buildText(ca, tokenData, '🔄 <b>Refreshed</b>\n\n');
       var markup = buildKeyboard(ca, null);
-      var isPhoto = messageTypes[msgKey] === 'photo';
 
-      if (isPhoto) {
-        bot.editMessageCaption(text, {
-          chat_id: chatId,
-          message_id: msgId,
-          parse_mode: 'HTML',
-          reply_markup: markup
-        }).catch(function(err) {
-          console.log('[Refresh] Caption edit failed: ' + err.message);
-          bot.sendMessage(chatId, text, {
-            parse_mode: 'HTML',
-            reply_markup: markup,
-            disable_web_page_preview: true
-          }).then(function(sent) {
-            messageTypes[String(chatId) + ':' + sent.message_id] = 'text';
-          });
-        });
-      } else {
-        bot.editMessageText(text, {
+      // Try edit caption first (works if it was a photo)
+      bot.editMessageCaption(text, {
+        chat_id: chatId,
+        message_id: msgId,
+        parse_mode: 'HTML',
+        reply_markup: markup
+      }).catch(function() {
+        // Try edit text (works if it was a text message)
+        return bot.editMessageText(text, {
           chat_id: chatId,
           message_id: msgId,
           parse_mode: 'HTML',
           reply_markup: markup,
           disable_web_page_preview: true
-        }).catch(function(err) {
-          console.log('[Refresh] Text edit failed: ' + err.message);
-          bot.sendMessage(chatId, text, {
-            parse_mode: 'HTML',
-            reply_markup: markup,
-            disable_web_page_preview: true
-          }).then(function(sent) {
-            messageTypes[String(chatId) + ':' + sent.message_id] = 'text';
-          });
         });
-      }
+      }).catch(function(err) {
+        console.log('[Refresh] Edit failed: ' + err.message);
+        // Last resort — send new message only if both edits fail
+        queueCard(chatId, ca, tokenData, text, null);
+      });
     }).catch(function(e) { console.log('[Refresh] Error: ' + e.message); });
   }
 });
@@ -471,7 +426,7 @@ bot.on('message', function(msg) {
 
 function startWatching(mint, ticker) {
   if (watchingMints[mint]) return;
-  watchingMints[mint] = 'starting';
+  watchingMints[mint] = true;
   try {
     var pub = new web3.PublicKey(mint);
     var subId = globalConn.onLogs(pub, function(logs) {
@@ -481,11 +436,10 @@ function startWatching(mint, ticker) {
       if (lastSig[mint] === logs.signature) return;
       lastSig[mint] = logs.signature;
       claimsCount[mint] = (claimsCount[mint] || 0) + 1;
-      console.log('[Claim] mint:' + mint + ' sig:' + logs.signature + ' count:' + claimsCount[mint]);
+      console.log('[Claim] mint:' + mint + ' sig:' + logs.signature + ' #' + claimsCount[mint]);
       fireAlert(mint, ticker, logs.signature, claimsCount[mint]);
     }, 'confirmed');
     subscriptions[mint] = subId;
-    watchingMints[mint] = true;
   } catch(e) {
     console.log('[Watch] Error: ' + e.message);
     delete watchingMints[mint];
@@ -503,7 +457,7 @@ function fireAlert(mint, ticker, sig, claimNum) {
       if (!data) return;
       var text = buildAlertText(mint, data, solAmount, claimNum);
       Object.keys(users).forEach(function(uid) {
-        if (users[uid].find(function(t) { return t.mint === mint; })) {
+        if (users[uid] && users[uid].find(function(t) { return t.mint === mint; })) {
           queueCard(uid, mint, data, text, sig);
         }
       });
