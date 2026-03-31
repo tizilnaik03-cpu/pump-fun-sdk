@@ -280,7 +280,7 @@ function queueCard(chatId, ca, data, text, sig) {
 
 bot.onText(/\/start/, function(msg) {
   bot.sendMessage(msg.chat.id,
-    '<b>PumpFee Alert Bot</b> 🚨\n\n' +
+    '<b>VoilaClaimBot</b> 🚨\n\n' +
     'Get instant alerts when fees are claimed on any Pump.fun token.\n\n' +
     '<b>How to use:</b>\n' +
     '1. Paste any Pump.fun token CA\n' +
@@ -296,7 +296,7 @@ bot.onText(/\/start/, function(msg) {
 
 bot.onText(/\/help/, function(msg) {
   bot.sendMessage(msg.chat.id,
-    '<b>How to use PumpFee Bot:</b>\n\n' +
+    '<b>How to use VoilaClaimBot:</b>\n\n' +
     '• Paste any Pump.fun CA directly in chat\n' +
     '• Or use /track &lt;CA&gt;\n' +
     '• Use /list to see what you\'re tracking\n' +
