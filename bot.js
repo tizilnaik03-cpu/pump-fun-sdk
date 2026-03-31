@@ -118,7 +118,7 @@ function pollForClaims() {
         }).catch(function() {});
     } catch(e) {}
   });
-
+}
 
 setInterval(pollForClaims, 30000);
 
@@ -495,7 +495,6 @@ bot.on('callback_query', function(query) {
     }).catch(function(e) { console.log('[Refresh] Error: ' + e.message); });
   }
 });
-
 
 // ── Tracking ─────────────────────────────────────────────────────────────────
 function trackToken(uid, ca, chatId) {
