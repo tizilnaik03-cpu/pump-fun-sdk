@@ -1,7 +1,7 @@
 var TelegramBot = require('node-telegram-bot-api');
 var web3 = require('@solana/web3.js');
 
-var BOT_TOKEN = '8732323530:AAHW-EBvR5PrB6Ma1e71_8fW9aAX_H9ujDo';
+var BOT_TOKEN = '8669635112:AAHb4lEJhUtUnm9wLAg4w8opND21La9op3E';
 var HELIUS_KEY = 'f783be12-4da4-4170-b5e9-c7a1fd1c03bb';
 var MAX = 10;
 var CACHE_TTL = 5 * 60 * 1000;
