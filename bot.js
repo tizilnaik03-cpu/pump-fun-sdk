@@ -164,8 +164,44 @@ function getCachedTokenData(ca) {
   });
 }
 
+function getCreatorFromChain(mint) {
+  // Derive creator by fetching the bonding curve account
+  // pump.fun stores creator in the bonding curve PDA
+  // Fallback: parse the first transaction of the mint to get creator
+  try {
+    var pub = new web3.PublicKey(mint);
+    return globalConn.getSignaturesForAddress(pub, {limit: 10, before: undefined})
+      .then(function(sigs) {
+        if (!sigs || sigs.length === 0) return null;
+        // Get the oldest signature (token creation tx)
+        var oldest = sigs[sigs.length - 1];
+        return globalConn.getParsedTransaction(oldest.signature, {maxSupportedTransactionVersion: 0});
+      })
+      .then(function(tx) {
+        if (!tx || !tx.transaction) return null;
+        // Creator is the fee payer / first signer
+        var keys = tx.transaction.message.accountKeys;
+        if (keys && keys.length > 0) {
+          // First account is typically the creator/fee payer
+          var creator = keys[0].pubkey ? keys[0].pubkey.toString() : null;
+          console.log('[Chain] Got creator from chain for ' + mint + ': ' + creator);
+          return creator;
+        }
+        return null;
+      })
+      .catch(function() { return null; });
+  } catch(e) {
+    return Promise.resolve(null);
+  }
+}
+
 function getTokenData(ca) {
   var pumpReq = fetch('https://frontend-api.pump.fun/coins/' + ca)
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .catch(function() { return null; });
+
+  // Also try v2 API as fallback for creator field
+  var pumpV2Req = fetch('https://frontend-api-v2.pump.fun/coins/' + ca)
     .then(function(r) { return r.ok ? r.json() : null; })
     .catch(function() { return null; });
 
@@ -173,26 +209,38 @@ function getTokenData(ca) {
     .then(function(r) { return r.ok ? r.json() : null; })
     .catch(function() { return null; });
 
-  return Promise.all([pumpReq, dexReq]).then(function(results) {
+  return Promise.all([pumpReq, pumpV2Req, dexReq]).then(function(results) {
     var pump = results[0];
-    var dex = results[1];
+    var pumpV2 = results[1];
+    var dex = results[2];
     var pair = dex && dex.pairs && dex.pairs.length > 0 ? dex.pairs[0] : null;
 
-    var metaReq = (pump && pump.metadata_uri)
-      ? fetchMetadata(pump.metadata_uri)
+    // Merge pump data — v1 first, v2 as fallback for missing fields
+    var pumpData = pump || pumpV2 || {};
+    if (pump && pumpV2) {
+      // Fill missing fields from v2
+      Object.keys(pumpV2).forEach(function(k) {
+        if (!pumpData[k] && pumpV2[k]) pumpData[k] = pumpV2[k];
+      });
+    } else {
+      pumpData = pump || pumpV2 || {};
+    }
+
+    var metaReq = pumpData.metadata_uri
+      ? fetchMetadata(pumpData.metadata_uri)
       : Promise.resolve(null);
 
     return metaReq.then(function(meta) {
-      var ticker = clean((pump && pump.symbol) || (meta && meta.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN');
-      var name = clean((pump && pump.name) || (meta && meta.name) || (pair && pair.baseToken && pair.baseToken.name) || ticker);
+      var ticker = clean(pumpData.symbol || (meta && meta.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN');
+      var name   = clean(pumpData.name   || (meta && meta.name)   || (pair && pair.baseToken && pair.baseToken.name)   || ticker);
 
-      var rawPfp = (meta && meta.image) || (pump && pump.image_uri) || (pair && pair.info && pair.info.imageUrl) || null;
+      var rawPfp = (meta && meta.image) || pumpData.image_uri || (pair && pair.info && pair.info.imageUrl) || null;
       var pfp = normalizeImageUrl(rawPfp);
 
-      var mc = pair ? formatNum(pair.fdv) : 'N/A';
+      var mc  = pair ? formatNum(pair.fdv) : 'N/A';
       var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
-      var createdAt = (pump && pump.created_timestamp) || null;
-      var creator = (pump && pump.creator) || null;
+      var createdAt = pumpData.created_timestamp || null;
+      var creator   = pumpData.creator || null;
 
       var dexPaid = false;
       if (pair) {
@@ -200,13 +248,13 @@ function getTokenData(ca) {
         if (!dexPaid && pair.profile && pair.profile.header) dexPaid = true;
         if (!dexPaid && pair.labels && pair.labels.length > 0) dexPaid = true;
         if (!dexPaid && pair.info && pair.info.imageUrl &&
-          ((pair.info.socials && pair.info.socials.length > 0) ||
+          ((pair.info.socials  && pair.info.socials.length  > 0) ||
            (pair.info.websites && pair.info.websites.length > 0))) dexPaid = true;
       }
 
-      var twitter  = (pump && pump.twitter  && pump.twitter.trim()  !== '' ? pump.twitter  : null) || (meta && meta.twitter)  || null;
-      var website  = (pump && pump.website  && pump.website.trim()  !== '' ? pump.website  : null) || (meta && meta.website)  || null;
-      var telegram = (pump && pump.telegram && pump.telegram.trim() !== '' ? pump.telegram : null) || (meta && meta.telegram) || null;
+      var twitter  = (pumpData.twitter  && pumpData.twitter.trim()  !== '' ? pumpData.twitter  : null) || (meta && meta.twitter)  || null;
+      var website  = (pumpData.website  && pumpData.website.trim()  !== '' ? pumpData.website  : null) || (meta && meta.website)  || null;
+      var telegram = (pumpData.telegram && pumpData.telegram.trim() !== '' ? pumpData.telegram : null) || (meta && meta.telegram) || null;
 
       if (pair && pair.info) {
         if (pair.info.socials) {
@@ -218,7 +266,7 @@ function getTokenData(ca) {
         if (!website && pair.info.websites && pair.info.websites[0]) website = pair.info.websites[0].url;
       }
 
-      console.log('[Token]', ticker, '| pfp:', pfp ? pfp.slice(0,40) : 'none', '| age:', formatAge(createdAt), '| dexPaid:', dexPaid);
+      console.log('[Token]', ticker, '| creator:', creator, '| pfp:', pfp ? pfp.slice(0,40) : 'none', '| age:', formatAge(createdAt));
       return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram, createdAt, creator };
     });
   });
@@ -461,7 +509,7 @@ function trackToken(uid, ca, chatId) {
   getCachedTokenData(ca).then(function(data) {
     if (!data) return bot.sendMessage(chatId, '❌ Could not find token. Check the CA and try again.');
     users[uid].push({mint: ca, ticker: data.ticker});
-    startWatching(ca, data.ticker, data.creator);
+     startWatching(ca, data.ticker, data.creator);
     var text = buildText(ca, data, '✅ <b>Now Tracking</b>\n\n');
     queueCard(chatId, ca, data, text, null);
   }).catch(function(e) {
@@ -487,20 +535,42 @@ function startWatching(mint, ticker, creator) {
   if (watchingMints[mint]) return;
   watchingMints[mint] = {ticker: ticker, creatorVault: null};
 
-  if (!creator) {
-    fetch('https://frontend-api.pump.fun/coins/' + mint)
-      .then(function(r) { return r.ok ? r.json() : null; })
-      .then(function(pump) {
-        if (pump && pump.creator) {
-          setupVault(mint, ticker, pump.creator);
-        } else {
-          console.log('[Watch] Could not get creator for ' + mint);
-        }
-      })
-      .catch(function() {});
-  } else {
+  if (creator) {
     setupVault(mint, ticker, creator);
+    return;
   }
+
+  // Try v1 API first, then v2, then fall back to parsing chain
+  fetch('https://frontend-api.pump.fun/coins/' + mint)
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(pump) {
+      if (pump && pump.creator) {
+        console.log('[Watch] Got creator from v1 API for ' + mint);
+        return pump.creator;
+      }
+      // Try v2
+      return fetch('https://frontend-api-v2.pump.fun/coins/' + mint)
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(pump2) {
+          if (pump2 && pump2.creator) {
+            console.log('[Watch] Got creator from v2 API for ' + mint);
+            return pump2.creator;
+          }
+          // Last resort: parse from chain
+          console.log('[Watch] Falling back to chain for creator of ' + mint);
+          return getCreatorFromChain(mint);
+        });
+    })
+    .then(function(creatorAddr) {
+      if (creatorAddr) {
+        setupVault(mint, ticker, creatorAddr);
+      } else {
+        console.log('[Watch] All methods failed for creator of ' + mint);
+      }
+    })
+    .catch(function(e) {
+      console.log('[Watch] Error getting creator: ' + e.message);
+    });
 }
 
 function setupVault(mint, ticker, creatorAddress) {
@@ -545,4 +615,3 @@ function fireAlert(mint, ticker, sig, claimNum) {
 }
 
 console.log('[Bot] Started — polling creator vaults for fee claims');
-        
