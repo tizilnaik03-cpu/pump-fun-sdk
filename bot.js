@@ -7,6 +7,8 @@ var MAX = 10;
 var CACHE_TTL = 5 * 60 * 1000;
 var QUEUE_MAX = 200;
 var POLL_INTERVAL = 20000;
+var PUMP_PROGRAM = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P';
+var PUMP_FEE_PROGRAM = 'pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ';
 
 var bot = new TelegramBot(BOT_TOKEN, {polling: true});
 var users = {};
@@ -37,61 +39,102 @@ setInterval(function() {
   if (mtKeys.length > 1000) mtKeys.slice(0, mtKeys.length - 1000).forEach(function(k) { delete messageTypes[k]; });
 }, 300000);
 
+// Main poll loop — polls both mint AND fee wallet for each tracked token
 setInterval(function() {
   var mints = Object.keys(watchingMints);
   if (mints.length === 0) return;
   mints.forEach(function(mint) {
     var info = watchingMints[mint];
     if (!info) return;
-    pollMint(mint, info.ticker);
+    // Poll mint address for CollectCreatorFee logs
+    pollAddress(mint, mint, info.ticker, true);
+    // Also poll fee wallet if we have it
+    if (info.feeWallet && info.feeWallet !== mint) {
+      pollAddress(info.feeWallet, mint, info.ticker, false);
+    }
   });
 }, POLL_INTERVAL);
 
-function pollMint(mint, ticker) {
+function pollAddress(addressStr, mint, ticker, isMint) {
   var pub;
-  try { pub = new web3.PublicKey(mint); } catch(e) { return; }
+  try { pub = new web3.PublicKey(addressStr); } catch(e) { return; }
+
+  var sigKey = addressStr;
 
   globalConn.getSignaturesForAddress(pub, {limit: 10})
     .then(function(sigs) {
       if (!sigs || sigs.length === 0) return;
 
-      // First call: just record current state, don't alert on historical claims
-      if (!lastSigInit[mint]) {
-        lastSigInit[mint] = true;
-        lastSig[mint] = sigs[0].signature;
-        console.log('[Poll] Initialized ' + mint + ' lastSig=' + sigs[0].signature.slice(0,20) + '...');
+      // First call: just record state, no alerts
+      if (!lastSigInit[sigKey]) {
+        lastSigInit[sigKey] = true;
+        lastSig[sigKey] = sigs[0].signature;
+        console.log('[Init] ' + (isMint ? 'mint' : 'wallet') + ' ' + addressStr.slice(0,12) + '...');
         return;
       }
 
-      // Find all sigs newer than lastSig
+      // Find sigs newer than lastSig
       var newSigs = [];
       for (var i = 0; i < sigs.length; i++) {
-        if (sigs[i].signature === lastSig[mint]) break;
-        newSigs.push(sigs[i]);
+        if (sigs[i].signature === lastSig[sigKey]) break;
+        if (!sigs[i].err) newSigs.push(sigs[i]);
       }
-
       if (newSigs.length === 0) return;
+      lastSig[sigKey] = sigs[0].signature;
 
-      // Advance lastSig to the newest
-      lastSig[mint] = sigs[0].signature;
-
-      // Check each new sig for CollectCreatorFee
       newSigs.forEach(function(sigInfo) {
-        if (sigInfo.err) return;
         globalConn.getParsedTransaction(sigInfo.signature, {maxSupportedTransactionVersion: 0})
           .then(function(tx) {
             if (!tx || !tx.meta) return;
             var logs = tx.meta.logMessages || [];
-            var isClaim = logs.some(function(l) { return l && l.includes('CollectCreatorFee'); });
+            var accountKeys = (tx.transaction && tx.transaction.message && tx.transaction.message.accountKeys) || [];
+            var programAddrs = accountKeys.map(function(a) { return a.pubkey ? a.pubkey.toString() : ''; });
+
+            var hasPumpProgram = programAddrs.indexOf(PUMP_PROGRAM) !== -1 || programAddrs.indexOf(PUMP_FEE_PROGRAM) !== -1;
+            var hasClaimLog = logs.some(function(l) { return l && (l.includes('CollectCreatorFee') || l.includes('distributeCreatorFees') || l.includes('distribute_creator_fees')); });
+
+            var isClaim = false;
+
+            if (isMint) {
+              // For mint: need explicit claim log
+              isClaim = hasClaimLog;
+            } else {
+              // For fee wallet: SOL received + pump program involved
+              var walletIdx = -1;
+              for (var i = 0; i < accountKeys.length; i++) {
+                var key = accountKeys[i].pubkey ? accountKeys[i].pubkey.toString() : '';
+                if (key === addressStr) { walletIdx = i; break; }
+              }
+              if (walletIdx !== -1 && tx.meta.preBalances && tx.meta.postBalances) {
+                var solChange = (tx.meta.postBalances[walletIdx] - tx.meta.preBalances[walletIdx]) / 1e9;
+                if (solChange > 0.001 && (hasPumpProgram || hasClaimLog)) {
+                  isClaim = true;
+                }
+              }
+            }
+
             if (!isClaim) return;
+
             claimsCount[mint] = (claimsCount[mint] || 0) + 1;
-            console.log('[CLAIM] mint:' + mint + ' sig:' + sigInfo.signature + ' #' + claimsCount[mint]);
+            console.log('[CLAIM] mint:' + mint + ' via:' + (isMint ? 'mint' : 'wallet') + ' sig:' + sigInfo.signature.slice(0,20) + ' #' + claimsCount[mint]);
             fireAlert(mint, ticker, sigInfo.signature, claimsCount[mint]);
           })
           .catch(function() {});
       });
     })
-    .catch(function(e) { console.log('[Poll] Error ' + mint + ': ' + e.message); });
+    .catch(function(e) { console.log('[Poll] Error ' + addressStr.slice(0,12) + ': ' + e.message); });
+}
+
+function getFeeWallet(mint, pumpData) {
+  // Try to get fee wallet from pump.fun API response
+  // pump.fun stores fee_recipients or creator field
+  if (pumpData && pumpData.fee_recipients && pumpData.fee_recipients.length > 0) {
+    return pumpData.fee_recipients[0].wallet || null;
+  }
+  if (pumpData && pumpData.creator) {
+    return pumpData.creator;
+  }
+  return null;
 }
 
 function clean(str) {
@@ -195,24 +238,21 @@ function getTokenData(ca) {
     var pair = dex && dex.pairs && dex.pairs.length > 0 ? dex.pairs[0] : null;
 
     var pumpData = {};
-    if (pump) Object.keys(pump).forEach(function(k) { if (pump[k]) pumpData[k] = pump[k]; });
-    if (pumpV2) Object.keys(pumpV2).forEach(function(k) { if (!pumpData[k] && pumpV2[k]) pumpData[k] = pumpV2[k]; });
+    if (pump) Object.keys(pump).forEach(function(k) { if (pump[k] !== undefined && pump[k] !== null) pumpData[k] = pump[k]; });
+    if (pumpV2) Object.keys(pumpV2).forEach(function(k) { if (!pumpData[k] && pumpV2[k] !== undefined && pumpV2[k] !== null) pumpData[k] = pumpV2[k]; });
 
-    var metaReq = pumpData.metadata_uri
-      ? fetchMetadata(pumpData.metadata_uri)
-      : Promise.resolve(null);
+    var metaReq = pumpData.metadata_uri ? fetchMetadata(pumpData.metadata_uri) : Promise.resolve(null);
 
     return metaReq.then(function(meta) {
       var ticker = clean(pumpData.symbol || (meta && meta.symbol) || (pair && pair.baseToken && pair.baseToken.symbol) || 'UNKNOWN');
       var name = clean(pumpData.name || (meta && meta.name) || (pair && pair.baseToken && pair.baseToken.name) || ticker);
-
       var rawPfp = (meta && meta.image) || pumpData.image_uri || (pair && pair.info && pair.info.imageUrl) || null;
       var pfp = normalizeImageUrl(rawPfp);
-
       var mc = pair ? formatNum(pair.fdv) : 'N/A';
       var vol = pair ? formatNum(pair.volume && pair.volume.h24) : 'N/A';
       var createdAt = pumpData.created_timestamp || null;
       var creator = pumpData.creator || null;
+      var feeWallet = getFeeWallet(null, pumpData);
 
       var dexPaid = false;
       if (pair) {
@@ -238,8 +278,8 @@ function getTokenData(ca) {
         if (!website && pair.info.websites && pair.info.websites[0]) website = pair.info.websites[0].url;
       }
 
-      console.log('[Token]', ticker, '| pfp:', pfp ? 'yes' : 'no', '| dexPaid:', dexPaid, '| age:', formatAge(createdAt));
-      return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram, createdAt, creator };
+      console.log('[Token]', ticker, '| pfp:', pfp ? 'yes' : 'no', '| dexPaid:', dexPaid, '| feeWallet:', feeWallet ? feeWallet.slice(0,12) : 'none');
+      return { ticker, name, pfp, mc, vol, dexPaid, website, twitter, telegram, createdAt, creator, feeWallet };
     });
   });
 }
@@ -419,6 +459,11 @@ bot.on('callback_query', function(query) {
       return users[u] && users[u].find(function(t) { return t.mint === ca; });
     });
     if (!stillTracked) {
+      var info = watchingMints[ca];
+      if (info && info.feeWallet) {
+        delete lastSig[info.feeWallet];
+        delete lastSigInit[info.feeWallet];
+      }
       delete watchingMints[ca];
       delete lastSig[ca];
       delete lastSigInit[ca];
@@ -457,59 +502,51 @@ bot.on('callback_query', function(query) {
           chat_id: chatId, message_id: msgId, parse_mode: 'HTML',
           reply_markup: markup, disable_web_page_preview: true
         }).catch(function(err) {
-          console.log('[Refresh] Text edit failed: ' + err.message);
-          bot.sendMessage(chatId, text, {
-            parse_mode: 'HTML', reply_markup: markup, disable_web_page_preview: true
-          }).then(function(sent) {
-            messageTypes[String(chatId) + ':' + sent.message_id] = 'text';
-          });
-        });
-      }
-    }).catch(function(e) { console.log('[Refresh] Error: ' + e.message); });
-  }
-});
-
-function trackToken(uid, ca, chatId) {
-  if (!users[uid]) users[uid] = [];
-  if (users[uid].length >= MAX) {
-    return bot.sendMessage(chatId, '⚠️ You\'ve hit the 10 token limit.\n\nUse /list and tap ❌ Remove to free up a slot.');
-  }
-  if (users[uid].find(function(t) { return t.mint === ca; })) {
-    return bot.sendMessage(chatId, '⚠️ Already tracking this token.');
-  }
-  bot.sendMessage(chatId, '🔍 Looking up token...');
-  getCachedTokenData(ca).then(function(data) {
-    if (!data) return bot.sendMessage(chatId, '❌ Could not find token. Check the CA and try again.');
-    users[uid].push({mint: ca, ticker: data.ticker});
-    watchingMints[ca] = {ticker: data.ticker};
-    var text = buildText(ca, data, '✅ <b>Now Tracking</b>\n\n');
-    queueCard(chatId, ca, data, text, null);
-    // Initialize polling state immediately
-    pollMint(ca, data.ticker);
-  }).catch(function(e) {
-    console.log('[Track] Error: ' + e.message);
-    bot.sendMessage(chatId, '❌ Could not find token. Check the CA and try again.');
-  });
+          console.log('[Refresh] Error: ' + e.message); });
 }
-
-bot.onText(/\/track (.+)/, function(msg, match) {
-  trackToken(String(msg.chat.id), match[1].trim(), msg.chat.id);
 });
-
+function trackToken(uid, ca, chatId) {
+if (!users[uid]) users[uid] = [];
+if (users[uid].length >= MAX) {
+return bot.sendMessage(chatId, '⚠️ You've hit the 10 token limit.\n\nUse /list and tap ❌ Remove to free up a slot.');
+}
+if (users[uid].find(function(t) { return t.mint === ca; })) {
+return bot.sendMessage(chatId, '⚠️ Already tracking this token.');
+}
+bot.sendMessage(chatId, '🔍 Looking up token...');
+getCachedTokenData(ca).then(function(data) {
+if (!data) return bot.sendMessage(chatId, '❌ Could not find token. Check the CA and try again.');
+users[uid].push({mint: ca, ticker: data.ticker});
+watchingMints[ca] = {ticker: data.ticker, feeWallet: data.feeWallet || data.creator || null};
+console.log('[Track] mint:' + ca + ' feeWallet:' + (watchingMints[ca].feeWallet || 'none'));
+// Trigger first poll immediately to initialize lastSig
+pollAddress(ca, ca, data.ticker, true);
+if (watchingMints[ca].feeWallet && watchingMints[ca].feeWallet !== ca) {
+pollAddress(watchingMints[ca].feeWallet, ca, data.ticker, false);
+}
+var text = buildText(ca, data, '✅ Now Tracking\n\n');
+queueCard(chatId, ca, data, text, null);
+}).catch(function(e) {
+console.log('[Track] Error: ' + e.message);
+bot.sendMessage(chatId, '❌ Could not find token. Check the CA and try again.');
+});
+}
+bot.onText(//track (.+)/, function(msg, match) {
+trackToken(String(msg.chat.id), match[1].trim(), msg.chat.id);
+});
 bot.on('message', function(msg) {
-  var text = msg.text || '';
-  if (text.startsWith('/')) return;
-  var ca = text.trim();
-  if (ca.length >= 32 && ca.length <= 44 && /^[1-9A-HJ-NP-Za-km-z]+$/.test(ca)) {
-    trackToken(String(msg.chat.id), ca, msg.chat.id);
-  }
+var text = msg.text || '';
+if (text.startsWith('/')) return;
+var ca = text.trim();
+if (ca.length >= 32 && ca.length <= 44 && /^[1-9A-HJ-NP-Za-km-z]+$/.test(ca)) {
+trackToken(String(msg.chat.id), ca, msg.chat.id);
+}
 });
-
 function fireAlert(mint, ticker, sig, claimNum) {
-  tokenCache[mint] = null;
-  Promise.all([getCachedTokenData(mint), getClaimedAmount(sig)])
-    .then(function(results){
-    var data = results[0];
+tokenCache[mint] = null;
+Promise.all([getCachedTokenData(mint), getClaimedAmount(sig)])
+.then(function(results) {
+var data = results[0];
 var solAmount = results[1];
 if (!data) return;
 var text = buildAlertText(mint, data, solAmount, claimNum);
@@ -521,4 +558,4 @@ queueCard(uid, mint, data, text, sig);
 })
 .catch(function(e) { console.log('[Alert] Error: ' + e.message); });
 }
-console.log('[Bot] Started — polling mint addresses for fee claims');
+console.log('[Bot] Started — dual polling mint + fee wallet');
