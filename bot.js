@@ -1,49 +1,48 @@
-var TelegramBot = require('node-telegram-bot-api');
-var web3 = require('@solana/web3.js');
+const TelegramBot = require('node-telegram-bot-api');
+const web3 = require('@solana/web3.js');
 
-var BOT_TOKEN = '8669635112:AAHb4lEJhUtUnm9wLAg4w8opND21La9op3E';
-var HELIUS_KEY = 'f783be12-4da4-4170-b5e9-c7a1fd1c03bb';
+const BOT_TOKEN = '8669635112:AAHb4lEJhUtUnm9wLAg4w8opND21La9op3E';
+const HELIUS_KEY = 'f783be12-4da4-4170-b5e9-c7a1fd1c03bb';
 
-var MAX = 10;
-var CACHE_TTL = 5 * 60 * 1000;
-var QUEUE_MAX = 200;
-var POLL_INTERVAL = 18000;        // 18 seconds - slightly staggered
+const MAX = 10;
+const CACHE_TTL = 5 * 60 * 1000;
+const QUEUE_MAX = 200;
+const POLL_INTERVAL = 18000; // \~18 seconds
 
-var PUMP_PROGRAM = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P';
-var PUMP_FEE_PROGRAM = 'pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ';
+const PUMP_PROGRAM = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P';
+const PUMP_FEE_PROGRAM = 'pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ';
 
-var bot = new TelegramBot(BOT_TOKEN, { polling: true });
+const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
-var users = {};           // chatId -> array of {mint, ticker}
-var watchingMints = {};   // mint -> {ticker, feeWallet?}
-var tokenCache = {};
-var lastSig = {};
-var lastSigInit = {};
-var claimsCount = {};
-var messageQueue = [];
-var isProcessing = false;
-var messageTypes = {};
+const users = {};           // chatId -> [{mint, ticker}]
+const watchingMints = {};   // mint -> {ticker, feeWallet?}
+const tokenCache = {};
+const lastSig = {};
+const lastSigInit = {};
+const claimsCount = {};
+const messageQueue = [];
+let isProcessing = false;
+const messageTypes = {};
 
-var globalConn = new web3.Connection(
-  'https://mainnet.helius-rpc.com/?api-key=' + HELIUS_KEY,
+const globalConn = new web3.Connection(
+  `https://mainnet.helius-rpc.com/?api-key=${HELIUS_KEY}`,
   'confirmed'
 );
 
-// Global error handler (very important on Railway)
+// Prevent crashes on Railway
 process.on('uncaughtException', (err) => {
-  console.error('[FATAL] Uncaught Exception:', err);
+  console.error('[FATAL] Uncaught Exception:', err.message);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason) => {
   console.error('[FATAL] Unhandled Rejection:', reason);
 });
 
-// Bot commands
 bot.setMyCommands([
-  {command: 'start', description: 'Start the bot'},
-  {command: 'track', description: 'Track a token - /track <CA>'},
-  {command: 'list', description: 'See your tracked tokens'},
-  {command: 'help', description: 'How to use this bot'}
+  { command: 'start', description: 'Start the bot' },
+  { command: 'track', description: 'Track a token - /track <CA>' },
+  { command: 'list', description: 'See your tracked tokens' },
+  { command: 'help', description: 'How to use this bot' }
 ]);
 
 // Cache cleanup
@@ -52,10 +51,10 @@ setInterval(() => {
   Object.keys(tokenCache).forEach(k => {
     if (now - tokenCache[k].timestamp > CACHE_TTL) delete tokenCache[k];
   });
-  if (messageQueue.length > QUEUE_MAX) messageQueue = messageQueue.slice(-QUEUE_MAX);
+  if (messageQueue.length > QUEUE_MAX) messageQueue.splice(0, messageQueue.length - QUEUE_MAX);
 }, 300000);
 
-// Main polling loop
+// Main polling loop (mint + fee wallet)
 setInterval(() => {
   const mints = Object.keys(watchingMints);
   if (mints.length === 0) return;
@@ -64,20 +63,19 @@ setInterval(() => {
     const info = watchingMints[mint];
     if (!info) return;
 
-    pollAddress(mint, mint, info.ticker, true);                    // Poll mint
+    pollAddress(mint, mint, info.ticker, true); // mint side
     if (info.feeWallet && info.feeWallet !== mint) {
-      pollAddress(info.feeWallet, mint, info.ticker, false);       // Poll fee wallet
+      pollAddress(info.feeWallet, mint, info.ticker, false); // wallet side
     }
   });
 }, POLL_INTERVAL);
 
-// Improved poll function with better error handling and logging
 async function pollAddress(addressStr, mint, ticker, isMint) {
   let pub;
   try {
     pub = new web3.PublicKey(addressStr);
   } catch (e) {
-    console.error('[Poll] Invalid address:', addressStr);
+    console.error(`[Poll] Invalid address: ${addressStr}`);
     return;
   }
 
@@ -91,7 +89,7 @@ async function pollAddress(addressStr, mint, ticker, isMint) {
     if (!lastSigInit[sigKey]) {
       lastSigInit[sigKey] = true;
       lastSig[sigKey] = sigs[0].signature;
-      console.log(`[Init] ${isMint ? 'Mint' : 'Wallet'} ${addressStr.slice(0,12)}...`);
+      console.log(`[Init] ${isMint ? 'Mint' : 'Fee Wallet'} ${addressStr.slice(0, 12)}...`);
       return;
     }
 
@@ -119,11 +117,14 @@ async function pollAddress(addressStr, mint, ticker, isMint) {
         const programAddrs = accountKeys.map(a => a.pubkey?.toString() || '');
 
         const hasPumpProgram = programAddrs.includes(PUMP_PROGRAM) || programAddrs.includes(PUMP_FEE_PROGRAM);
-        const hasClaimLog = logs.some(l => 
-          l && (l.includes('CollectCreatorFee') || 
-                l.includes('distributeCreatorFees') || 
-                l.includes('distribute_creator_fees') ||
-                l.includes('creator'))
+        const hasClaimLog = logs.some(l =>
+          l && (
+            l.includes('CollectCreatorFee') ||
+            l.includes('collectCreatorFee') ||
+            l.includes('distributeCreatorFees') ||
+            l.includes('distribute_creator_fees') ||
+            l.includes('creator')
+          )
         );
 
         let isClaim = false;
@@ -131,7 +132,7 @@ async function pollAddress(addressStr, mint, ticker, isMint) {
         if (isMint) {
           isClaim = hasClaimLog && hasPumpProgram;
         } else {
-          // Wallet side: check SOL received
+          // Fee wallet: check for incoming SOL
           const walletIdx = accountKeys.findIndex(acc => acc.pubkey?.toString() === addressStr);
           if (walletIdx !== -1 && tx.meta.preBalances && tx.meta.postBalances) {
             const solChange = (tx.meta.postBalances[walletIdx] - tx.meta.preBalances[walletIdx]) / 1e9;
@@ -143,11 +144,11 @@ async function pollAddress(addressStr, mint, ticker, isMint) {
 
         if (isClaim) {
           claimsCount[mint] = (claimsCount[mint] || 0) + 1;
-          console.log(`[CLAIM DETECTED] Mint: ${mint.slice(0,8)}... via: ${isMint ? 'mint' : 'wallet'} | SOL change likely | Sig: ${sigInfo.signature.slice(0,20)}...`);
+          console.log(`[CLAIM] Mint:\( {mint.slice(0,8)}... via: \){isMint ? 'mint' : 'wallet'} Sig:${sigInfo.signature.slice(0,20)}...`);
           fireAlert(mint, ticker, sigInfo.signature, claimsCount[mint]);
         }
       } catch (txErr) {
-        // Silent - many txs fail to parse
+        // Many transactions fail to parse - ignore silently
       }
     }
   } catch (e) {
@@ -155,31 +156,43 @@ async function pollAddress(addressStr, mint, ticker, isMint) {
   }
 }
 
-// ... (keep your clean, normalizeImageUrl, formatAge, getClaimTier, formatNum, getClaimedAmount, fetchMetadata, buildSocials, buildText, buildAlertText, buildKeyboard, processQueue, queueCard functions unchanged)
+// Keep all your helper functions exactly as they were (clean, normalizeImageUrl, formatAge, etc.)
+// I'll list only the changed/important ones below for brevity. Paste your original ones for the rest.
 
-// Improved trackToken with better feeWallet fallback
+function getFeeWallet(pumpData) {
+  if (pumpData?.fee_recipients?.length > 0) {
+    return pumpData.fee_recipients[0].wallet || null;
+  }
+  return pumpData?.creator || null;
+}
+
+// ... paste your original clean(), normalizeImageUrl(), formatAge(), getClaimTier(), formatNum(), 
+// getClaimedAmount(), fetchMetadata(), getCachedTokenData(), getTokenData(), buildSocials(), 
+// buildText(), buildAlertText(), buildKeyboard(), processQueue(), queueCard() here ...
+
+// Updated trackToken
 async function trackToken(uid, ca, chatId) {
   if (!users[uid]) users[uid] = [];
   if (users[uid].length >= MAX) {
-    return bot.sendMessage(chatId, '⚠️ Max 10 tokens per user reached.');
+    return bot.sendMessage(chatId, '⚠️ You have reached the maximum of 10 tracked tokens.');
   }
   if (users[uid].some(t => t.mint === ca)) {
     return bot.sendMessage(chatId, '⚠️ Already tracking this token.');
   }
 
-  bot.sendMessage(chatId, '🔍 Fetching token data...');
+  bot.sendMessage(chatId, '🔍 Looking up token...');
 
   try {
     const data = await getCachedTokenData(ca);
-    if (!data) throw new Error('No data');
+    if (!data) throw new Error('Token data not found');
 
     users[uid].push({ mint: ca, ticker: data.ticker });
-    watchingMints[ca] = { 
-      ticker: data.ticker, 
-      feeWallet: data.feeWallet || data.creator || null 
+    watchingMints[ca] = {
+      ticker: data.ticker,
+      feeWallet: data.feeWallet || data.creator || null
     };
 
-    console.log(`[Track] ${ca} | feeWallet: ${watchingMints[ca].feeWallet ? watchingMints[ca].feeWallet.slice(0,12) : 'none'}`);
+    console.log(`[Track] ${ca.slice(0,8)}... feeWallet: ${watchingMints[ca].feeWallet ? watchingMints[ca].feeWallet.slice(0,12) : 'none'}`);
 
     // Initialize polling
     pollAddress(ca, ca, data.ticker, true);
@@ -191,25 +204,44 @@ async function trackToken(uid, ca, chatId) {
     queueCard(chatId, ca, data, text, null);
   } catch (e) {
     console.error('[Track Error]', e.message);
-    bot.sendMessage(chatId, '❌ Failed to load token. Check the CA.');
+    bot.sendMessage(chatId, '❌ Could not load token. Please check the CA and try again.');
   }
 }
 
-// Fixed regex
+// Commands
+bot.onText(/\/start/, (msg) => { /* your original start message */ });
+bot.onText(/\/help/, (msg) => { /* your original help message */ });
+
+bot.onText(/\/list/, (msg) => { /* your original list logic */ });
+
 bot.onText(/\/track (.+)/, (msg, match) => {
   trackToken(String(msg.chat.id), match[1].trim(), msg.chat.id);
 });
 
 bot.on('message', (msg) => {
-  const text = msg.text?.trim() || '';
+  const text = (msg.text || '').trim();
   if (text.startsWith('/')) return;
-
   if (text.length >= 32 && text.length <= 44 && /^[1-9A-HJ-NP-Za-km-z]+$/.test(text)) {
     trackToken(String(msg.chat.id), text, msg.chat.id);
   }
 });
 
-// Keep your /start, /help, /list, callback_query, fireAlert, etc. (they look mostly fine)
+bot.on('callback_query', (query) => { /* your original callback logic - keep as is */ });
 
-// At the very end
-console.log('[Bot] Started — Dual mint + fee wallet polling (improved stability)');
+// fireAlert
+function fireAlert(mint, ticker, sig, claimNum) {
+  tokenCache[mint] = null;
+  Promise.all([getCachedTokenData(mint), getClaimedAmount(sig)])
+    .then(([data, solAmount]) => {
+      if (!data) return;
+      const text = buildAlertText(mint, data, solAmount, claimNum);
+      Object.keys(users).forEach(uid => {
+        if (users[uid]?.some(t => t.mint === mint)) {
+          queueCard(uid, mint, data, text, sig);
+        }
+      });
+    })
+    .catch(e => console.error('[fireAlert Error]', e.message));
+}
+
+console.log('[Bot] Started — Dual mint + fee wallet polling (stable version)');
